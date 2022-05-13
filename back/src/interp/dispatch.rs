@@ -66,6 +66,7 @@ impl ArmFn {
             MsrReg      => ArmFn(afn!(arm::status::msr_reg)),
             Mrs         => ArmFn(afn!(arm::status::mrs)),
             Umull       => ArmFn(afn!(arm::multiply::umull)),
+            Umlal       => ArmFn(afn!(arm::multiply::umlal)),
             Mul         => ArmFn(afn!(arm::multiply::mul)),
 
             LdrImm      => ArmFn(afn!(arm::loadstore::ldr_imm)),
