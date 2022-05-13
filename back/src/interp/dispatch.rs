@@ -116,6 +116,7 @@ impl ArmFn {
             TstImm      => ArmFn(afn!(arm::dataproc::tst_imm)),
             BicImm      => ArmFn(afn!(arm::dataproc::bic_imm)),
             BicReg      => ArmFn(afn!(arm::dataproc::bic_reg)),
+            BicRegShiftReg => ArmFn(afn!(arm::dataproc::bic_rsr)),
             Clz         => ArmFn(afn!(arm::dataproc::clz)),
 
             OrrRegShiftReg => ArmFn(afn!(arm::dataproc::orr_rsr)),

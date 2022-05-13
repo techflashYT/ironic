@@ -461,3 +461,26 @@ pub fn clz(cpu: &mut Cpu, op: ClzBits) -> DispatchRes {
     DispatchRes::RetireOk
 }
 
+pub fn bic_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
+    assert_ne!((op.s() && op.rd() == 15), true); //FIXME: this is not always the case, good enough for now
+
+    let (val, carry) = barrel_shift(ShiftArgs::RegShiftReg {
+        rm: cpu.reg[op.rm()],
+        stype: op.stype(),
+        rs: cpu.reg[op.rs()],
+        c_in: cpu.reg.cpsr.c()
+    });
+
+    let base = cpu.reg[op.rd()];
+    let res = cpu.reg[op.rn()] & !val;
+
+    if op.s() {
+        cpu.reg.cpsr.set_n((res & 0x8000_0000) != 0);
+        cpu.reg.cpsr.set_z(res == 0);
+        cpu.reg.cpsr.set_c(carry);
+    }
+
+    cpu.reg[op.rd()] = res;
+
+    DispatchRes::RetireOk
+}
