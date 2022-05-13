@@ -104,6 +104,7 @@ impl ArmFn {
             MovReg      => ArmFn(afn!(arm::dataproc::mov_reg)),
             AddImm      => ArmFn(afn!(arm::dataproc::add_imm)),
             AddReg      => ArmFn(afn!(arm::dataproc::add_reg)),
+            AdcImm      => ArmFn(afn!(arm::dataproc::adc_imm)),
             OrrImm      => ArmFn(afn!(arm::dataproc::orr_imm)),
             OrrReg      => ArmFn(afn!(arm::dataproc::orr_reg)),
             EorReg      => ArmFn(afn!(arm::dataproc::eor_reg)),

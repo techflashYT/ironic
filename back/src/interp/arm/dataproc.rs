@@ -484,3 +484,13 @@ pub fn bic_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
 
     DispatchRes::RetireOk
 }
+
+pub fn adc_imm(cpu: &mut Cpu, op: DpImmBits) -> DispatchRes {
+    let (res, n, z, c,v ) = add_generic(cpu.reg[op.rn()], op.imm12());
+    cpu.reg[op.rd()] = res;
+    if op.s() {
+        set_all_flags!(cpu, n, z, c, v);
+    }
+    DispatchRes::RetireOk
+}
+
