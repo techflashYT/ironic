@@ -305,3 +305,12 @@ pub fn stm(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
     DispatchRes::RetireOk
 }
 
+pub fn strh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
+    let (addr, wb_addr) = do_amode(cpu.reg[op.rn()],
+        op.imm4l(), op.u(), op.p(), op.w()
+    );
+    cpu.reg[op.rn()] = wb_addr;
+    cpu.write16(addr, cpu.reg[op.rt()]);
+    DispatchRes::RetireOk
+}
+
