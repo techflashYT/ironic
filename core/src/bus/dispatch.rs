@@ -53,7 +53,7 @@ impl Bus {
     /// Dispatch a physical read access (to memory, or some I/O device).
     fn do_read(&mut self, addr: u32, width: BusWidth) -> BusPacket {
         let handle = self.decode_phys_addr(addr).unwrap_or_else(||
-            panic!("Unresolved physical address {:08x}", addr)
+            panic!("Unresolved physical address {:08x}. current cycle count: {}", addr, self.cycle)
         );
 
         let off = (addr & handle.mask) as usize;

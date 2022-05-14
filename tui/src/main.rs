@@ -71,5 +71,6 @@ fn main() {
 
     let bus_ref = bus.write().unwrap();
     dump_memory(&bus_ref);
+    println!("Bus cycles elapsed: {}", bus_ref.cycle);
 }
 
