@@ -281,7 +281,7 @@ impl InterpBackend {
 
 impl Backend for InterpBackend {
     fn run(&mut self) {
-        for _step in 0..0x8000_0000usize {
+        loop {
 
             // Take ownership of the bus to deal with any pending tasks
             {
