@@ -106,6 +106,9 @@ impl IrqInterface {
             0x10 => {
                 self.arm_fiq_enable.0 = val;
             },
+            0x2c => { // HW_DBGINTEN ???? temporarily ignore because it's a blocker to more interesting things.
+                println!("FIXME FIXME FIXME: suppressed IRQ write at offset: 0x2c (maybe: HW_BDGINTEN) val: {:#10x}", val);
+            },
             _ => panic!("Unhandled write {:08x} on HLWD IRQ interface {:02x}", 
                 val, off),
         }
