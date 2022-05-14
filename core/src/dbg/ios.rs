@@ -94,7 +94,9 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
         0x16 | 0x18 | 0x19 | 0x1a | 
         0x1d..=0x1f | 0x21 | 0x22 |
         0x63 | 0x68 | 0x6a | 0x6d |
-        0x2a | 0x2f | 0x3f | 0x30 | 0x40 | 0x4f => return None,
+        0x2a | 0x2f | 0x3f | 0x30 |
+        0x40 | 0x4f | 0x61 | 0x6b |
+        0x6c | 0x6e | 0x66          => return None,
         _ => { },
     }
 
@@ -143,7 +145,7 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
         0x42 => scdef!("IosBoot", StrPtr),
         0x43 => scdef!("BootNewIosKernel", Ptr, Uint),
         0x46 => scdef!("DIResetCheck", ),
-        0x47 => scdef!("WhichKernel", Ptr, Ptr),
+        0x47 => scdef!("WhichKernel", Ptr, Ptr), //get_kernel_flavor
         0x4d => scdef!("KernelGetVersion", ),
         0x4f => scdef!("VirtToPhys", Ptr),
         0x50 => scdef!("DVDVideoSet", Uint),
