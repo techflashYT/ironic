@@ -255,14 +255,27 @@ impl Bus {
 
     /// Perform a NAND read into memory
     fn nand_read_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) {
+        let mut len = cmd.len as usize;
+        // Ok, I have no idea why official software is trying to read with size != 0x800 or 0x840
+        // but it happens. I feel reasonably confident about reads sized 0x40, since they probably
+        // want the ECC. Anything else I have no idea, and I just bail. This should probably be
+        // addressed at some point.
+        if len != 0x800 && len != 0x840 {
+            println!("WARNING: requested a really weird read size {:#06x} from the NAND interface", len);
+            if len != 0x40 {
+                //panic!("Invalid read size: {:#06x} from NAND interface.", len);
+                println!("Bailing out of NAND interface!");
+                return;
+            }
+            len = 0x840;
+        }
         // Read the source data from the NAND
-        let mut local_buf = vec![0; cmd.len as usize];
+        let mut local_buf = vec![0; len];
 
         let off = reg.addr2 as usize * NAND_PAGE_LEN;
         self.nand.read_data(off, &mut local_buf);
 
         //println!("{:?}", local_buf.hex_dump());
-
         // Do the DMA writes to memory
         self.dma_write(reg.databuf, &local_buf[..0x800]);
         self.dma_write(reg.eccbuf, &local_buf[0x800..]);
