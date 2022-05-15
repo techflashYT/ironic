@@ -6,6 +6,8 @@ pub mod dispatch;
 pub mod lut;
 
 use std::sync::{Arc, RwLock};
+use std::thread::sleep;
+use std::time::Duration;
 
 use crate::back::*;
 use crate::interp::lut::*;
@@ -283,6 +285,14 @@ impl Backend for InterpBackend {
     fn run(&mut self) {
         loop {
 
+            {
+                let bus = self.bus.read().unwrap();
+                if bus.debug {
+                    while bus.debug_allowed_cycles == 0 {
+                        sleep(Duration::from_millis(250));
+                    }
+                }
+            }
             // Take ownership of the bus to deal with any pending tasks
             {
                 let mut bus = self.bus.write().unwrap();

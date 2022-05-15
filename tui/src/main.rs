@@ -3,6 +3,7 @@ use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
 use ironic_backend::ppc::*;
+use ironic_backend::debug::*;
 
 use std::sync::{Arc, RwLock};
 use std::thread::Builder;
@@ -65,6 +66,14 @@ fn main() {
         let mut back = PpcBackend::new(ppc_bus);
         back.run();
     }).unwrap();
+
+    // Finally fork the DEBUG thread
+    let debug_bus = bus.clone();
+    let debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
+        println!("DEBUG");
+        let mut back = DebugBackend::new(debug_bus);
+        back.run();
+    });
 
     //ppc_thread.join().unwrap();
     emu_thread.join().unwrap();

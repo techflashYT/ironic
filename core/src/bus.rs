@@ -45,6 +45,8 @@ pub struct Bus {
     /// Queue for pending work on I/O devices.
     pub tasks: Vec<Task>,
     pub cycle: usize,
+    pub debug: bool,
+    pub debug_allowed_cycles: u64,
 }
 impl Bus {
     pub fn new()-> Self {
@@ -69,6 +71,8 @@ impl Bus {
             mirror_enabled: false,
             tasks: Vec::new(),
             cycle: 0,
+            debug: false,
+            debug_allowed_cycles: 0,
         }
     }
 }
