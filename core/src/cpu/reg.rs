@@ -226,6 +226,7 @@ impl std::ops::Index<u32> for RegisterFile {
     fn index(&self, index: u32) -> &u32 {
         match index {
             0..=14 => &self.r[index as usize],
+            15     => &self.pc,
             _ => panic!("Invalid index {} into register file", index),
         }
     }
@@ -234,6 +235,7 @@ impl std::ops::IndexMut<u32> for RegisterFile {
     fn index_mut(&mut self, index: u32) -> &mut u32 {
         match index {
             0..=14 => &mut self.r[index as usize],
+            15     => &mut self.pc,
             _ => panic!("Invalid index {} into register file", index),
         }
     }
@@ -243,6 +245,7 @@ impl std::ops::Index<u16> for RegisterFile {
     fn index(&self, index: u16) -> &u32 {
         match index {
             0..=14 => &self.r[index as usize],
+            15     => &self.pc,
             _ => panic!("Invalid index {} into register file", index),
         }
     }
@@ -251,6 +254,7 @@ impl std::ops::IndexMut<u16> for RegisterFile {
     fn index_mut(&mut self, index: u16) -> &mut u32 {
         match index {
             0..=14 => &mut self.r[index as usize],
+            15     => &mut self.pc,
             _ => panic!("Invalid index {} into register file", index),
         }
     }
