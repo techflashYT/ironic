@@ -8,6 +8,11 @@ pub mod lut;
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::Duration;
+use std::fs;
+use std::io::Seek;
+use std::io::Read;
+
+extern crate elf;
 
 use crate::back::*;
 use crate::interp::lut::*;
@@ -69,9 +74,10 @@ pub struct InterpBackend {
     pub svc_buf: String,
     /// Current stage in the platform boot process.
     pub boot_status: BootStatus,
+    pub custom_kernel: Option<String>,
 }
 impl InterpBackend {
-    pub fn new(bus: Arc<RwLock<Bus>>) -> Self {
+    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>) -> Self {
         InterpBackend {
             svc_buf: String::new(),
             cpu: Cpu::new(bus.clone()),
@@ -79,6 +85,7 @@ impl InterpBackend {
             cpu_cycle: 0,
             bus_cycle: 0,
             bus,
+            custom_kernel
         }
     }
 }
@@ -283,6 +290,35 @@ impl InterpBackend {
 
 impl Backend for InterpBackend {
     fn run(&mut self) {
+        if self.custom_kernel.is_some() {
+            // Read the user supplied kernel file
+            let mut kernel_file = fs::File::open(&self.custom_kernel.as_ref().unwrap()).unwrap();
+            let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata().expect("Kernel elf file-metadata").len() as usize);
+            kernel_file.read_to_end(&mut kernel_bytes).expect("Failed to read custom kernel ELF");
+            // Reuse the file for the ELF parser
+            kernel_file.rewind().unwrap();
+            let kernel_elf = match elf::File::open_stream(&mut kernel_file) {
+                Ok(res) => res,
+                Err(e)  => panic!("Custom Kernel ELF error: {:?}", e),
+            };
+            let headers = kernel_elf.phdrs;
+            // We have a valid ELF (probably)
+            let mut bus = self.bus.write().expect("RW bus access for custom kernel");
+            // We are relying on the mirror being available
+            // Or else we would be writing to mask ROM.
+            bus.rom_disabled = true;
+            bus.mirror_enabled = true;
+            // A basic ELF loader
+            for header in headers.iter() {
+                if header.progtype == elf::types::ProgType(1) && header.filesz > 0 { // progtype 1 == PT_LOAD
+                    let start = header.offset as usize;
+                    let end = start + header.filesz as usize;
+                    println!("CUSTOM KERNEL: LOADING offset: {:#10x}  phys addr: {:#10x} filesz: {:#10x}", header.offset, header.paddr, header.filesz);
+                    bus.dma_write(header.paddr as u32, &kernel_bytes[start..end]);
+                }
+            }
+            self.boot_status = BootStatus::UserKernelStub;
+        }
         loop {
 
             {

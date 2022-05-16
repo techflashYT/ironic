@@ -34,16 +34,21 @@ fn dump_memory(bus: &Bus) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        println!("usage: {} {{interp|jit}}", args[0]);
+        println!("usage: {} {{interp|jit}} [custom_kernel.elf]", args[0]);
         return;
     }
 
     // Let the user specify the backend
     let backend = parse_backend(args[1].as_str());
     if backend.is_none() {
-        println!("usage: {} {{interp|jit}}", args[0]);
+        println!("usage: {} {{interp|jit}} [custom_kernel.elf]", args[0]);
         return;
     }
+
+    let custom_kernel:Option<String> = match args.len() {
+        3 => Some(args[2].to_owned()),
+        _ => None,
+    };
 
     // The bus is shared between any threads we spin up
     let bus = Arc::new(RwLock::new(Bus::new()));
@@ -53,7 +58,7 @@ fn main() {
     let emu_thread = match backend.unwrap() {
         BackendType::Interpreter => {
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
-                let mut back = InterpBackend::new(emu_bus);
+                let mut back = InterpBackend::new(emu_bus, custom_kernel);
                 back.run();
             }).unwrap()
         },
