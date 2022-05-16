@@ -66,7 +66,7 @@ impl Bus {
             0x0d07 => Some(SDHC0_HANDLE),
             0x0d08 => Some(SDHC1_HANDLE),
 
-            0x0d80 |
+            0x0d00 | 0x0d80 |
             0x0d8b => self.resolve_hlwd(addr),
 
             0x0000..=0x017f => Some(MEM1_HANDLE),
@@ -84,6 +84,7 @@ impl Bus {
         match addr {
             HLWD_BASE..=HLWD_TAIL   => Some(HLWD_HANDLE),
             DI_BASE..=DI_TAIL       => Some(DI_HANDLE),
+            EXI_REG_BASE..=EXI_REG_TAIL |
             EXI_BASE..=EXI_TAIL     => Some(EXI_HANDLE),
             AHB_BASE..=AHB_TAIL     => Some(AHB_HANDLE),
             MEM_BASE..=MEM_TAIL     => Some(MI_HANDLE),

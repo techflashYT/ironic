@@ -79,3 +79,29 @@ pub const MEM_TAIL:     u32 = MEM_BASE + MEMDEV_SIZE - 1;
 pub const DDR_TAIL:     u32 = DDR_BASE + MEMDEV_SIZE - 1;
 pub const MROM_TAIL:    u32 = MROM_BASE + MROM_SIZE - 1;
 
+pub const EXI_REG_BASE: u32 = 0x0d00_6800;
+pub const EXI0_REG_BASE:u32 = EXI_REG_BASE;
+pub const EXI1_REG_BASE:u32 = EXI_REG_BASE  + 0x14;
+pub const EXI2_REG_BASE:u32 = EXI_REG_BASE  + 0x28;
+
+pub const EXI0_CSR     :u32 = EXI0_REG_BASE + 0x00;
+pub const EXI0_MAR     :u32 = EXI0_REG_BASE + 0x04;
+pub const EXI0_LENGTH  :u32 = EXI0_REG_BASE + 0x08;
+pub const EXI0_CR      :u32 = EXI0_REG_BASE + 0x0c;
+pub const EXI0_DATA    :u32 = EXI0_REG_BASE + 0x10;
+
+pub const EXI1_CSR     :u32 = EXI1_REG_BASE + 0x00;
+pub const EXI1_MAR     :u32 = EXI1_REG_BASE + 0x04;
+pub const EXI1_LENGTH  :u32 = EXI1_REG_BASE + 0x08;
+pub const EXI1_CR      :u32 = EXI1_REG_BASE + 0x0c;
+pub const EXI1_DATA    :u32 = EXI1_REG_BASE + 0x10;
+
+pub const EXI2_CSR     :u32 = EXI2_REG_BASE + 0x00;
+pub const EXI2_MAR     :u32 = EXI2_REG_BASE + 0x04;
+pub const EXI2_LENGTH  :u32 = EXI2_REG_BASE + 0x08;
+pub const EXI2_CR      :u32 = EXI2_REG_BASE + 0x0c;
+pub const EXI2_DATA    :u32 = EXI2_REG_BASE + 0x10;
+
+pub const EXI_BOOT_BASE:u32 = EXI_REG_BASE  + 0x40;
+
+pub const EXI_REG_TAIL :u32 = EXI_BOOT_BASE;
