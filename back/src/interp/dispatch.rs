@@ -28,10 +28,10 @@ pub enum DispatchRes {
 
 /// Handler for unimplemented ARM instructions.
 pub fn arm_unimpl_instr(cpu: &mut Cpu, op: u32) -> DispatchRes {
-    println!("Bus cycle count: {}", cpu.bus.read().expect("couldn't get bus read-lock in un-impl instruction handler").cycle);
     if (op & 0xe600_0000) != 0xe600_0000 {
         println!("pc={:08x} Couldn't dispatch instruction {:08x} ({:?})",
             cpu.read_fetch_pc(), op, ArmInst::decode(op));
+        println!("Bus cycle count: {}", cpu.bus.read().expect("couldn't get bus read-lock in un-impl instruction handler").cycle);
         return DispatchRes::FatalErr;
     }
     DispatchRes::Exception(ExceptionType::Undef(op))
