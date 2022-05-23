@@ -4,8 +4,9 @@
 use ironic_core::bus::*;
 use crate::back::*;
 
+use std::sync::mpsc::Receiver;
 use std::thread;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, mpsc::Sender};
 use std::os::unix::net::{UnixStream, UnixListener};
 use std::net::Shutdown;
 use std::io::{Read, Write};
@@ -13,6 +14,23 @@ use std::convert::TryInto;
 
 extern crate pretty_hex;
 use pretty_hex::*;
+
+macro_rules! extract_packet_and_reply {
+    ($debug_recv: expr; $client: expr) => {
+        let value = $debug_recv.recv().unwrap().value.unwrap().to_le();
+        let bytes: [u8;4] = unsafe {std::mem::transmute(value)};
+        $client.write(&bytes).unwrap();
+    };
+}
+
+#[derive(Debug)]
+pub struct DebugPacket {
+    pub write: Option<bool>, // True if we are writing, false if we are reading
+    pub addr: Option<u32>, // If we are operating on a memory address
+    pub reg: Option<u32>,  // If we are operating on registers
+    pub value: Option<u32>, //The value to write
+    pub new_step: Option<u32>, // CPU/Bus steps
+}
 
 /// A type of command sent over the socket.
 #[derive(Debug)]
@@ -60,17 +78,19 @@ pub const IPC_SOCK: &str = "/tmp/ironic-debug.sock";
 pub const BUF_LEN: usize = 0x10000;
 
 pub struct DebugBackend {
-    /// Reference to the system bus.
-    pub bus: Arc<RwLock<Bus>>,
+    // Thread IPC
+    dbg_send: Sender<DebugPacket>,
+    dbg_recv: Receiver<DebugPacket>,
     /// Input buffer for the socket.
     pub ibuf: [u8; BUF_LEN],
     /// Output buffer for the socket.
     pub obuf: [u8; BUF_LEN],
 }
 impl DebugBackend {
-    pub fn new(bus: Arc<RwLock<Bus>>) -> Self {
+    pub fn new(dbg_send: Sender<DebugPacket>, dbg_recv: Receiver<DebugPacket>) -> Self {
         DebugBackend {
-            bus,
+            dbg_send,
+            dbg_recv,
             ibuf: [0; BUF_LEN],
             obuf: [0; BUF_LEN],
         }
@@ -135,22 +155,31 @@ impl DebugBackend {
 
     fn handle_cmd_peekreg(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command PeekReg");
+        self.dbg_send.send(DebugPacket { write: Some(false), addr: None, reg: Some(req.addr), value: None, new_step: None }).expect("PeekReg send");
+        extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_pokereg(&mut self, client: &mut UnixStream, req: SocketReq) {
-        println!("[DEBUG] Command PeekReg");
+        println!("[DEBUG] Command PokeReg");
+        self.dbg_send.send(DebugPacket { write: Some(true), addr: None, reg: Some(req.addr), value: Some(req.len), new_step: None }).expect("PokeReg send");
+        extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_peekaddr(&mut self, client: &mut UnixStream, req: SocketReq) {
-        println!("[DEBUG] Command PeekReg");
+        println!("[DEBUG] Command PeekAddr");
+        self.dbg_send.send(DebugPacket { write: Some(false), addr: Some(req.addr), reg: None, value: None, new_step: None }).expect("PeekAddr send");
+        extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_pokeaddr(&mut self, client: &mut UnixStream, req: SocketReq) {
-        println!("[DEBUG] Command PeekReg");
+        println!("[DEBUG] Command PokeAddr");
+        self.dbg_send.send(DebugPacket { write: Some(true), addr: Some(req.addr), reg: None, value: Some(req.len), new_step: None }).expect("PokeAddr send");
+        extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_step(&mut self, client: &mut UnixStream, req: SocketReq) {
-        println!("[DEBUG] Command PeekReg");
+        println!("[DEBUG] Command Step");
+        todo!();
     }
 
 }

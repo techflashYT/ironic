@@ -5,7 +5,10 @@ pub mod thumb;
 pub mod dispatch;
 pub mod lut;
 
-use std::sync::{Arc, RwLock};
+use std::convert::TryInto;
+use std::fmt::Debug;
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, RwLock, mpsc::Sender};
 use std::thread::sleep;
 use std::time::Duration;
 use std::fs;
@@ -15,6 +18,7 @@ use std::io::Read;
 extern crate elf;
 
 use crate::back::*;
+use crate::debug::DebugPacket;
 use crate::interp::lut::*;
 use crate::interp::dispatch::DispatchRes;
 
@@ -75,9 +79,13 @@ pub struct InterpBackend {
     /// Current stage in the platform boot process.
     pub boot_status: BootStatus,
     pub custom_kernel: Option<String>,
+    emu_send: Sender<DebugPacket>,
+    emu_recv: Receiver<DebugPacket>,
+    debugger_attached: bool,
+    debug_cycles: u32,
 }
 impl InterpBackend {
-    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>) -> Self {
+    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>, emu_send: Sender<DebugPacket>, emu_recv: Receiver<DebugPacket>) -> Self {
         InterpBackend {
             svc_buf: String::new(),
             cpu: Cpu::new(bus.clone()),
@@ -85,7 +93,11 @@ impl InterpBackend {
             cpu_cycle: 0,
             bus_cycle: 0,
             bus,
-            custom_kernel
+            custom_kernel,
+            emu_send,
+            emu_recv,
+            debugger_attached: false,
+            debug_cycles: 0,
         }
     }
 }
@@ -319,15 +331,23 @@ impl Backend for InterpBackend {
             }
             self.boot_status = BootStatus::UserKernelStub;
         }
-        loop {
-
-            {
-                let bus = self.bus.read().unwrap();
-                if bus.debug {
-                    while bus.debug_allowed_cycles == 0 {
-                        sleep(Duration::from_millis(250));
+        'outer: loop {
+            'check_for_debug: {
+                let maybe_packet = self.emu_recv.try_recv();
+                if maybe_packet.is_ok(){
+                    self.debugger_attached = true;
+                    self.debug_cycles = 0;
+                }
+                if self.debugger_attached && self.debug_cycles == 0 {
+                    if maybe_packet.is_err(){
+                        continue 'outer;
                     }
                 }
+                else {
+                    self.debug_cycles -= 1;
+                    break 'check_for_debug;
+                }
+                self.handle_debug_packet(maybe_packet.unwrap());
             }
             // Take ownership of the bus to deal with any pending tasks
             {
@@ -361,3 +381,48 @@ impl Backend for InterpBackend {
     }
 }
 
+impl InterpBackend {
+    fn handle_debug_packet(&mut self, packet: DebugPacket){
+
+        match packet.new_step {
+            Some(new_step) => {
+                self.debug_cycles = new_step;
+                return;
+            },
+            None => {},
+        }
+
+        match packet.reg {
+            Some(reg) => {
+                match packet.write {
+                    Some(write) => {
+                        match write {
+                            true => self.cpu.reg[reg] = packet.value.expect("DebugPacket reg->write->value"),
+                            false => todo!("Debug reg read reply"),
+                        }
+                    },
+                    None => panic!("DebugPacket Reg but no read/write bool"),
+                }
+                return;
+            },
+            None => {},
+        }
+
+        match packet.addr {
+            Some(addr) => {
+                match packet.write {
+                    Some(write) => {
+                        match write {
+                            true => todo!("Bus write, u32 to [u8]"),
+                            false => todo!("Bus read reply"),
+                        }
+                    },
+                    None => panic!("DebugPacket Addr but no read/write bool"),
+                }
+                return;
+            },
+            None => {}
+        }
+        panic!("Unhndled debug packet {:#?}", &packet);
+    }
+}

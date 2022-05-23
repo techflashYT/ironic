@@ -5,7 +5,8 @@ use ironic_backend::back::*;
 use ironic_backend::ppc::*;
 use ironic_backend::debug::*;
 
-use std::sync::{Arc, RwLock};
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
 use std::thread::Builder;
 use std::env;
 
@@ -52,13 +53,15 @@ fn main() {
 
     // The bus is shared between any threads we spin up
     let bus = Arc::new(RwLock::new(Bus::new()));
+    let (dbg_send, emu_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
+    let (emu_send, dbg_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
 
     // Fork off the backend thread
     let emu_bus = bus.clone();
     let emu_thread = match backend.unwrap() {
         BackendType::Interpreter => {
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
-                let mut back = InterpBackend::new(emu_bus, custom_kernel);
+                let mut back = InterpBackend::new(emu_bus, custom_kernel, emu_send, emu_recv);
                 back.run();
             }).unwrap()
         },
@@ -76,7 +79,7 @@ fn main() {
     let debug_bus = bus.clone();
     let debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
         println!("DEBUG");
-        let mut back = DebugBackend::new(debug_bus);
+        let mut back = DebugBackend::new(dbg_send, dbg_recv);
         back.run();
     });
 
