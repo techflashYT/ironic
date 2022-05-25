@@ -42,7 +42,7 @@ pub enum Cond {
     HI = 0b1000, LS = 0b1001,
     GE = 0b1010, LT = 0b1011,
     GT = 0b1100, LE = 0b1101,
-    AL = 0b1110,
+    AL = 0b1110, UNC = 0b1111,
 }
 impl From<u32> for Cond {
     fn from(x: u32) -> Self {
@@ -55,7 +55,7 @@ impl From<u32> for Cond {
             0b1000 => HI, 0b1001 => LS,
             0b1010 => GE, 0b1011 => LT,
             0b1100 => GT, 0b1101 => LE,
-            0b1110 => AL,
+            0b1110 => AL, 0b1111 => UNC,
             _ => panic!("Invalid condition bits {:08x}", x),
         }
     }
@@ -216,7 +216,8 @@ impl RegisterFile {
 
             GT => !self.cpsr.z() && (self.cpsr.n() == self.cpsr.v()), 
             LE => self.cpsr.z() || (self.cpsr.n() != self.cpsr.v()),
-            AL => true,
+            AL |
+            UNC => true,
         }
     }
 }

@@ -28,6 +28,7 @@ pub enum ArmInst {
     PldReg, PldImm, LdcImm, Clz, 
     B, BlImm, Bx, BlxReg, Bxj, 
     Svc, Bkpt, 
+    BlxImm,
     Undefined,
 }
 
@@ -35,6 +36,15 @@ pub enum ArmInst {
 impl ArmInst {
     pub const fn decode(opcd: u32) -> Self {
         use ArmInst::*;
+        match opcd & 0xf000_0000 { // Unconditional instruction extension space
+            0xf000_0000 => {
+                match opcd & 0x0e00_0000 {
+                    0x0a000000 => return BlxImm,
+                    _ => return Undefined,
+                }
+            },
+            _ => {}
+        }
         match opcd & 0x0ff000f0 {
             0x01400050 => return Qdadd,
             0x01200050 => return Qsub,

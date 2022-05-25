@@ -34,4 +34,12 @@ pub fn bx(cpu: &mut Cpu, op: BxBits) -> DispatchRes {
     DispatchRes::RetireBranch
 }
 
+pub fn blx_immm(cpu: &mut Cpu, op: BranchBits) -> DispatchRes {
+    let new_lr = cpu.read_fetch_pc().wrapping_add(4);
+    let dest_pc = (cpu.read_exec_pc()).wrapping_add(4 + ((sign_extend(op.imm24(), 30) as u32) << 2) + ((op.h() as u32) << 1));
+    cpu.reg.cpsr.set_thumb(true);
+    cpu.reg.pc = dest_pc;
+    cpu.reg[Reg::Lr] = new_lr;
+    DispatchRes::RetireBranch
+}
 

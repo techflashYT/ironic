@@ -686,7 +686,7 @@ impl StmRegUserBits {
     pub fn register_list(&self) -> u32 { (self.0 & 0x0000ffff) >> 0 }
 }
 
-/// ['Svc', 'B', 'BlImm']
+/// ['Svc', 'B', 'BlImm', 'BlxImm']
 #[repr(transparent)]
 pub struct BranchBits(pub u32);
 impl BranchBits {
