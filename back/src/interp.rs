@@ -343,8 +343,11 @@ impl Backend for InterpBackend {
                         continue 'outer;
                     }
                 }
-                else {
+                else if self.debug_cycles > 0 {
                     self.debug_cycles -= 1;
+                    break 'check_for_debug;
+                }
+                else {
                     break 'check_for_debug;
                 }
                 self.handle_debug_packet(maybe_packet.unwrap());
