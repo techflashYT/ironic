@@ -19,7 +19,7 @@ pub struct ThumbFn(pub fn(&mut Cpu, u16) -> DispatchRes);
 
 /// The ARMv5 lookup table.
 pub struct ArmLut { 
-    pub data: [ArmFn; 0xffff]
+    pub data: [ArmFn; 0x2000]
 }
 impl ArmLut {
     pub fn lookup(&self, opcd: u32) -> ArmFn { 
@@ -27,15 +27,25 @@ impl ArmLut {
     }
 
     const fn idx_to_opcd(idx: usize) -> u32 {
-        ((((idx & 0xf000) >> 12) << 28) | ((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32
+        if idx > 0x0fff {
+            return ((0xf << 28) | ((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32;
+        }
+        else {
+            return (((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32
+        }
     }
     const fn opcd_to_idx(opcd: u32) -> usize {
-        ((((opcd >> 28) << 12) & 0xf000) | ((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize
+        if (opcd >> 28) & 0xf == 0xf {
+            return (0x1000 | ((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize;
+        }
+        else {
+            return (((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize;
+        }
     }
-    const LUT_SIZE: usize = 0xffff;
+    const LUT_SIZE: usize = 0x2000;
     const fn create_lut(default_entry: ArmFn) -> Self {
         let mut lut = ArmLut {
-            data: [default_entry; 0xffff],
+            data: [default_entry; 0x2000],
         };
         let mut i = 0;
         while i < Self::LUT_SIZE {
