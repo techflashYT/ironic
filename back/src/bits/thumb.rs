@@ -5,6 +5,8 @@ pub struct BlBits(pub u16);
 impl BlBits {
     #[inline(always)]
     pub fn imm11(&self) -> u16 { (self.0 & 0x07ff) >> 0 }
+    #[inline(always)]
+    pub fn h(&self) -> u16 { (self.0 >> 11) & 0x3 }
 }
 
 

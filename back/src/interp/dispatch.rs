@@ -192,6 +192,7 @@ impl ThumbFn {
             Bx          => ThumbFn(tfn!(thumb::branch::bx)),
             B           => ThumbFn(tfn!(thumb::branch::b)),
             BAlt        => ThumbFn(tfn!(thumb::branch::b_unconditional)),
+            BlxImmSuffix=> ThumbFn(tfn!(thumb::branch::blx_imm_suffix)),
             Svc         => ThumbFn(tfn!(thumb::misc::svc)),
             _           => ThumbFn(thumb_unimpl_instr),
         }
