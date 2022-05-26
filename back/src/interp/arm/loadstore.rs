@@ -232,7 +232,8 @@ pub fn ldmia(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
     for i in 0..16 {
         if (reglist & (1 << i)) != 0 {
             if i == 15 {
-                let new_pc = cpu.read32(addr);
+                let new_pc = cpu.read32(addr) & 0xfffffffe;
+                cpu.reg.cpsr.set_thumb(new_pc & 1 != 1);
                 cpu.write_exec_pc(new_pc);
                 branch = true;
                 addr += 4;
