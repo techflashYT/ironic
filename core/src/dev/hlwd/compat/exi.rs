@@ -171,7 +171,8 @@ impl EXIChannel {
         self.state = ChannelState::from_chn(self.idx, self.csr, self.ctrl);
 
         if self.state.transfer {
-            panic!("EXI transfer unimpl");
+            self.ctrl &= !1;
+            println!("FIXME FIXME EXI Transfer swallowed!");
         }
     }
 }
