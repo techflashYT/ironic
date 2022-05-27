@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 ironic-core = { path = "../core" }
 ironic-backend = { path = "../back" }
+
+clap = { version = "3.1.18", features = ["std", "derive", "suggestions", "color", "wrap_help"]}

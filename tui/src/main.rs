@@ -1,3 +1,4 @@
+use clap::{ArgEnum, Parser};
 
 use ironic_core::bus::*;
 use ironic_backend::interp::*;
@@ -11,18 +12,26 @@ use std::thread::Builder;
 use std::env;
 
 /// User-specified backend type.
+#[derive(ArgEnum, Clone, Debug)]
 pub enum BackendType {
-    Interpreter,
+    Interp,
     JIT
 }
 
-/// Map from input string to a backend type.
-fn parse_backend(s: &str) -> Option<BackendType> {
-    match s {
-        "interp" => Some(BackendType::Interpreter),
-        "jit" => Some(BackendType::JIT),
-        _ => None
-    }
+#[derive(Parser, Debug)]
+struct Args {
+    /// Emulator backend to use
+    #[clap(short, long, arg_enum, default_value_t = BackendType::Interp)]
+    backend: BackendType,
+    /// Path to a custom kernel ELF
+    #[clap(short, long)]
+    custom_kernel: Option<String>,
+    /// Enable the PPC HLE server (default = True)
+    #[clap(short, long)]
+    ppc_hle: Option<bool>,
+    /// Enable the Debug server (default = False)
+    #[clap(short, long)]
+    debug_server: Option<bool>,
 }
 
 fn dump_memory(bus: &Bus) {
@@ -33,23 +42,11 @@ fn dump_memory(bus: &Bus) {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        println!("usage: {} {{interp|jit}} [custom_kernel.elf]", args[0]);
-        return;
-    }
+    let args = Args::parse();
+    let custom_kernel = args.custom_kernel.clone();
+    let enable_ppc_hle = args.ppc_hle.unwrap_or(true);
+    let enable_debug_server = args.debug_server.unwrap_or(false);
 
-    // Let the user specify the backend
-    let backend = parse_backend(args[1].as_str());
-    if backend.is_none() {
-        println!("usage: {} {{interp|jit}} [custom_kernel.elf]", args[0]);
-        return;
-    }
-
-    let custom_kernel:Option<String> = match args.len() {
-        3 => Some(args[2].to_owned()),
-        _ => None,
-    };
 
     // The bus is shared between any threads we spin up
     let bus = Arc::new(RwLock::new(Bus::new()));
@@ -58,8 +55,8 @@ fn main() {
 
     // Fork off the backend thread
     let emu_bus = bus.clone();
-    let emu_thread = match backend.unwrap() {
-        BackendType::Interpreter => {
+    let emu_thread = match args.backend {
+        BackendType::Interp => {
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
                 let mut back = InterpBackend::new(emu_bus, custom_kernel, emu_send, emu_recv);
                 back.run();
@@ -69,19 +66,23 @@ fn main() {
     };
 
     // Fork off the PPC HLE thread
-    let ppc_bus = bus.clone();
-    let ppc_thread = Builder::new().name("IpcThread".to_owned()).spawn(move || {
-        let mut back = PpcBackend::new(ppc_bus);
-        back.run();
-    }).unwrap();
+    if enable_ppc_hle {
+        let ppc_bus = bus.clone();
+        let ppc_thread = Builder::new().name("IpcThread".to_owned()).spawn(move || {
+            let mut back = PpcBackend::new(ppc_bus);
+            back.run();
+        }).unwrap();
+    }
 
     // Finally fork the DEBUG thread
-    let debug_bus = bus.clone();
-    let debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
-        println!("DEBUG");
-        let mut back = DebugBackend::new(dbg_send, dbg_recv);
-        back.run();
-    });
+    if enable_debug_server {
+        let debug_bus = bus.clone();
+        let debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
+            println!("DEBUG");
+            let mut back = DebugBackend::new(dbg_send, dbg_recv);
+            back.run();
+        });
+    }
 
     //ppc_thread.join().unwrap();
     emu_thread.join().unwrap();
