@@ -647,7 +647,7 @@ impl LdmRegUserBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn register_list(&self) -> u32 { (self.0 & 0x00007fff) >> 0 }
+    pub fn register_list(&self) -> u32 { (self.0 & 0x0000ffff) >> 0 }
 }
 
 /// ['StrImm', 'StrbImm', 'LdrbImm', 'LdrImm']

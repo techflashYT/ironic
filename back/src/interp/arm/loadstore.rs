@@ -172,6 +172,9 @@ pub fn stm_user(cpu: &mut Cpu, op: StmRegUserBits) -> DispatchRes {
 pub fn ldm_user(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
     assert_ne!(op.rn(), 15);
     let reglist = op.register_list();
+    if (reglist >> 15) & 1 == 1 { // S bit is set, so if the PC is set, we restore the SPSR and branch, if we aren't touching the PC, we just use Usr mode registers.
+        return ldm_user_pc(cpu, op);
+    }
 
     let len = reglist.count_ones() * 4;
     let mut addr = if op.u() { 
@@ -200,6 +203,40 @@ pub fn ldm_user(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
     }
 
     DispatchRes::RetireOk
+}
+
+pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
+    let reglist = op.register_list();
+    let len = reglist.count_ones() * 4;
+    let mut addr = if op.u() {
+        cpu.reg[op.rn()]
+    } else {
+        cpu.reg[op.rn()] - len
+    };
+    if op.p() == op.u() {
+        addr += 4;
+    }
+    for i in 0..=14 {
+        if (reglist & (1 << i)) != 0 {
+            let val = cpu.read32(addr);
+            cpu.reg[i as u32] = val;
+            addr += 4;
+        }
+    }
+    cpu.reg.cpsr = cpu.reg.spsr.read(cpu.reg.cpsr.mode());
+    let mut new_pc = cpu.read32(addr);
+    // This is *not* what the reference manual says to do, however, it's how it's needed to be
+    // done for now.
+    if (new_pc & 1 == 1){
+        new_pc = new_pc & 0xfffffffe;
+        cpu.reg.cpsr.set_thumb(true);
+    }
+    cpu.write_exec_pc(new_pc);
+    addr += 4;
+    if op.w() {
+        cpu.reg[op.rn()] = addr;
+    }
+    DispatchRes::RetireBranch
 }
 
 pub fn ldmib(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
