@@ -119,6 +119,7 @@ impl SystemControl {
         match SystemControlReg::from(reg) {
             CacheControl => match (crm, opcd2) {
                 (10, 3) => FlagRes { n: None, z: Some(true), c: None, v: None },
+                (14, 3) => FlagRes { n: None, z: Some(true), c: None, v: None }, //clean and invalidate entire DCache
                 _ => panic!(""),
             },
             _ => panic!("Unimpl p15 read_alt {:?} crm={} opcd2={}", 
