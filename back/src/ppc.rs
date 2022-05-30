@@ -7,6 +7,8 @@ use ironic_core::bus::*;
 use ironic_core::dev::hlwd::irq::*;
 use crate::back::*;
 
+use std::env::temp_dir;
+use std::path::PathBuf;
 use std::thread;
 use std::sync::{Arc, RwLock};
 use std::os::unix::net::{UnixStream, UnixListener};
@@ -59,7 +61,7 @@ impl SocketReq {
     }
 }
 
-pub const IPC_SOCK: &str = "/tmp/ironic.sock";
+pub const IPC_SOCK: &str = "ironic-ppc.sock";
 pub const BUF_LEN: usize = 0x10000;
 
 pub struct PpcBackend {
@@ -90,6 +92,12 @@ impl PpcBackend {
 
 
 impl PpcBackend {
+
+    fn resolve_socket_path() -> PathBuf {
+        let mut dir = temp_dir();
+        dir.push(IPC_SOCK);
+        dir
+    }
 
     /// Handle clients connected to the socket.
     pub fn server_loop(&mut self, sock: UnixListener) {
@@ -256,16 +264,16 @@ impl Backend for PpcBackend {
         thread::sleep(std::time::Duration::from_millis(100));
 
         // Try binding to the socket
-        let res = std::fs::remove_file(IPC_SOCK);
+        let res = std::fs::remove_file(PpcBackend::resolve_socket_path());
         match res {
             Ok(_) => {},
             Err(e) => {},
         }
-        let res = UnixListener::bind(IPC_SOCK);
+        let res = UnixListener::bind(PpcBackend::resolve_socket_path());
         let sock = match res {
             Ok(sock) => Some(sock),
             Err(e) => {
-                println!("[PPC] Couldn't bind to {},\n{:?}", IPC_SOCK, e);
+                println!("[PPC] Couldn't bind to {},\n{:?}", PpcBackend::resolve_socket_path().to_string_lossy(), e);
                 None
             }
         };

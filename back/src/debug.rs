@@ -4,6 +4,8 @@
 use ironic_core::bus::*;
 use crate::back::*;
 
+use std::env::temp_dir;
+use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::sync::{Arc, RwLock, mpsc::Sender};
@@ -74,7 +76,7 @@ impl SocketReq {
     }
 }
 
-pub const IPC_SOCK: &str = "/tmp/ironic-debug.sock";
+pub const IPC_SOCK: &str = "ironic-debug.sock";
 pub const BUF_LEN: usize = 0x10000;
 
 pub struct DebugBackend {
@@ -107,6 +109,12 @@ impl DebugBackend {
 
 
 impl DebugBackend {
+
+    fn resolve_socket_path() -> PathBuf {
+        let mut dir = temp_dir();
+        dir.push(IPC_SOCK);
+        dir
+    }
 
     /// Handle clients connected to the socket.
     pub fn server_loop(&mut self, sock: UnixListener) {
@@ -190,16 +198,16 @@ impl Backend for DebugBackend {
         println!("[DEBUG] DEBUG backend thread started");
 
         // Try binding to the socket
-        let res = std::fs::remove_file(IPC_SOCK);
+        let res = std::fs::remove_file(DebugBackend::resolve_socket_path());
         match res {
             Ok(_) => {},
             Err(e) => {},
         }
-        let res = UnixListener::bind(IPC_SOCK);
+        let res = UnixListener::bind(DebugBackend::resolve_socket_path());
         let sock = match res {
             Ok(sock) => Some(sock),
             Err(e) => {
-                println!("[DEBUG] Couldn't bind to {},\n{:?}", IPC_SOCK, e);
+                println!("[DEBUG] Couldn't bind to {},\n{:?}", DebugBackend::resolve_socket_path().to_string_lossy(), e);
                 None
             }
         };
