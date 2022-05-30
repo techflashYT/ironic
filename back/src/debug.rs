@@ -9,13 +9,17 @@ use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::sync::{Arc, RwLock, mpsc::Sender};
-use std::os::unix::net::{UnixStream, UnixListener};
 use std::net::Shutdown;
 use std::io::{Read, Write};
 use std::convert::TryInto;
 
 extern crate pretty_hex;
 use pretty_hex::*;
+
+#[cfg(target_family = "unix")]
+use std::os::unix::net::{UnixStream, UnixListener};
+#[cfg(target_family = "windows")]
+use uds_windows::{UnixStream, UnixListener};
 
 macro_rules! extract_packet_and_reply {
     ($debug_recv: expr; $client: expr) => {

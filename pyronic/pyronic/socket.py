@@ -9,7 +9,7 @@ class IronicSocket(object):
     IRONIC_ACK     = 4
     IRONIC_MSGNORET= 5
 
-    def __init__(self, filename="/tmp/ironic.sock"):
+    def __init__(self, filename="/tmp/ironic-ppc.sock"):
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.socket.connect(filename)
 

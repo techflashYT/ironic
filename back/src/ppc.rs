@@ -11,13 +11,17 @@ use std::env::temp_dir;
 use std::path::PathBuf;
 use std::thread;
 use std::sync::{Arc, RwLock};
-use std::os::unix::net::{UnixStream, UnixListener};
 use std::net::Shutdown;
 use std::io::{Read, Write};
 use std::convert::TryInto;
 
 extern crate pretty_hex;
 use pretty_hex::*;
+
+#[cfg(target_family = "unix")]
+use std::os::unix::net::{UnixStream, UnixListener};
+#[cfg(target_family = "windows")]
+use uds_windows::{UnixStream, UnixListener};
 
 /// A type of command sent over the socket.
 #[derive(Debug)]

@@ -57,7 +57,7 @@ class IPCClient(object):
     IPC_IOCTL   = 6
     IPC_IOCTLV  = 7
 
-    def __init__(self, filename="/tmp/ironic.sock"):
+    def __init__(self, filename="/tmp/ironic-ppc.sock"):
         self.sock = IronicSocket()
         self.mem = PPCMemory(self.sock)
 
