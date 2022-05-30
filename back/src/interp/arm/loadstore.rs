@@ -223,15 +223,9 @@ pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
             addr += 4;
         }
     }
-    cpu.reg.cpsr = cpu.reg.spsr.read(cpu.reg.cpsr.mode());
-    let mut new_pc = cpu.read32(addr);
-    // This is *not* what the reference manual says to do, however, it's how it's needed to be
-    // done for now.
-    if (new_pc & 1 == 1){
-        new_pc = new_pc & 0xfffffffe;
-        cpu.reg.cpsr.set_thumb(true);
-    }
-    cpu.write_exec_pc(new_pc);
+
+    let new_pc = cpu.read32(addr);
+    cpu.exception_return(new_pc);
     addr += 4;
     if op.w() {
         cpu.reg[op.rn()] = addr;
