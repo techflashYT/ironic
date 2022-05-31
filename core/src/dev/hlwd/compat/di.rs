@@ -4,6 +4,7 @@ use crate::bus::task::*;
 
 /// Legacy disc drive interface.
 #[derive(Default, Debug, Clone)]
+#[allow(dead_code)]
 pub struct DriveInterface {
     disr: u32,
     dicvr: u32,

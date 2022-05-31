@@ -37,7 +37,7 @@ pub fn bx(cpu: &mut Cpu, op: BxBits) -> DispatchRes {
 
 pub fn blx_immm(cpu: &mut Cpu, op: BranchBits) -> DispatchRes {
     let mut offset = (sign_extend(op.imm24(), 24, 30) as u32) << 2;
-    if(((op.h() as u32) << 1) == 0){
+    if ((op.h() as u32) << 1) == 0 {
         offset = offset & !2;
     }
     let new_lr = cpu.read_fetch_pc().wrapping_add(4);

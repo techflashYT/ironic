@@ -294,7 +294,7 @@ pub fn and_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
 
 
 
-
+#[allow(unreachable_patterns)]
 fn do_bitwise_reg(cpu: &mut Cpu, rn: u32, rm: u32, rd: u32, imm5: u32, 
     s: bool, stype: u32, op: BitwiseOp) -> DispatchRes {
     assert_ne!(rd, 15);
@@ -344,7 +344,7 @@ pub fn bic_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
 }
 
 
-
+#[allow(unreachable_patterns)]
 fn do_bitwise_imm(cpu: &mut Cpu, rn: u32, rd: u32, imm: u32, 
     s: bool, op: BitwiseOp) -> DispatchRes {
     assert_ne!(rd, 15);
@@ -471,7 +471,7 @@ pub fn bic_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
         c_in: cpu.reg.cpsr.c()
     });
 
-    let base = cpu.reg[op.rd()];
+    //let base = cpu.reg[op.rd()];
     let res = cpu.reg[op.rn()] & !val;
 
     if op.s() {

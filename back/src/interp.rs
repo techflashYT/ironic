@@ -418,7 +418,6 @@ impl InterpBackend {
                     },
                     None => panic!("DebugPacket Addr but no read/write bool"),
                 }
-                return;
             },
             None => {}
         }

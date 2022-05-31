@@ -280,7 +280,7 @@ impl Bus {
         for i in 0..4 {
             let addr = (reg.eccbuf ^ 0x40) + (i as u32 * 4);
             let new_ecc = calc_ecc(&mut local_buf[(i * 0x200)..]);
-            let old_ecc = self.read32(addr);
+            // let old_ecc = self.read32(addr);
             //println!("NND old_ecc={:08x} new_ecc={:08x}", old_ecc, new_ecc);
             self.write32(addr, new_ecc);
         }

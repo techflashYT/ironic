@@ -74,7 +74,6 @@ impl Cpu {
     /// Change CPU state to reflect the fact that we've entered an exception.
     pub fn generate_exception(&mut self, e: ExceptionType) {
         assert_ne!(e, ExceptionType::Swi);
-        let current_pc = self.read_fetch_pc();
 
         let old_cpsr = self.reg.cpsr;
         let target_mode = CpuMode::from(e);
@@ -125,7 +124,6 @@ impl Cpu {
 
         let current_mode = self.reg.cpsr.mode();
         let spsr = self.reg.spsr.read(current_mode);
-        let target_mode = spsr.mode();
         self.reg.write_cpsr(spsr);
         self.write_exec_pc(dest_pc & 0xffff_fffe);
 

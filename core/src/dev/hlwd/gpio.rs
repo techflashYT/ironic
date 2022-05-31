@@ -60,6 +60,7 @@ impl GpioInterface {
 
 /// ARM-facing GPIO pin state.
 #[derive(Default, Debug, Clone)]
+#[allow(dead_code)]
 pub struct ArmGpio {
     en: u32,
     output: u32,
@@ -112,6 +113,7 @@ impl ArmGpio {
 
 /// PowerPC-facing GPIO pin state.
 #[derive(Default, Debug, Clone)]
+#[allow(dead_code)]
 pub struct PpcGpio {
     output: u32,
     dir: u32,

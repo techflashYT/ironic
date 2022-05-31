@@ -113,7 +113,7 @@ impl PpcBackend {
                 }
             };
 
-            'handle_client: loop {
+            loop {
                 println!("[PPC] waiting for command ...");
 
                 let res = self.wait_for_request(&mut client);
@@ -235,7 +235,7 @@ impl PpcBackend {
         client.write("OK".as_bytes()).unwrap();
     }
 
-    pub fn handle_ack(&mut self, req: SocketReq) {
+    pub fn handle_ack(&mut self, _req: SocketReq) {
         let mut bus = self.bus.write().unwrap();
         let ppc_ctrl = bus.hlwd.ipc.read_handler(4) & 0x3c;
         bus.hlwd.ipc.write_handler(4, ppc_ctrl | 0x8);
@@ -269,7 +269,7 @@ impl Backend for PpcBackend {
         let res = std::fs::remove_file(PpcBackend::resolve_socket_path());
         match res {
             Ok(_) => {},
-            Err(e) => {},
+            Err(_e) => {},
         }
         let res = UnixListener::bind(PpcBackend::resolve_socket_path());
         let sock = match res {

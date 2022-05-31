@@ -54,6 +54,7 @@ impl Cpu {
     }
 
     /// Resolve a coarse descriptor, returning a physical address.
+    #[allow(unreachable_patterns)]
     fn resolve_coarse(&self, req: TLBReq, d: CoarseDescriptor) -> u32 {
         let desc = self.l2_fetch(req.vaddr, L1Descriptor::Coarse(d));
         match desc {

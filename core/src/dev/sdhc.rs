@@ -38,7 +38,7 @@ pub struct SDInterface {
 impl MmioDevice for SDInterface {
     type Width = u32;
     fn read(&mut self, off: usize) -> BusPacket {
-        let val = match off {
+        let _val = match off {
             _ => panic!("SDHC0 read at {:x} unimpl", off),
         };
         //BusPacket::Word(val)
@@ -47,7 +47,6 @@ impl MmioDevice for SDInterface {
         match off {
             _ => panic!("SDHC0 write {:08x} at {:x} unimpl", val, off),
         }
-        None
     }
 }
 
@@ -74,6 +73,5 @@ impl MmioDevice for WLANInterface {
         match off {
             _ => panic!("SDHC1 write {:08x} at {:x} unimpl", val, off),
         }
-        None
     }
 }

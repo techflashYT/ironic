@@ -67,7 +67,7 @@ fn main() {
     // Fork off the PPC HLE thread
     if enable_ppc_hle {
         let ppc_bus = bus.clone();
-        let ppc_thread = Builder::new().name("IpcThread".to_owned()).spawn(move || {
+        let _ppc_thread = Builder::new().name("IpcThread".to_owned()).spawn(move || {
             let mut back = PpcBackend::new(ppc_bus);
             back.run();
         }).unwrap();
@@ -75,8 +75,7 @@ fn main() {
 
     // Finally fork the DEBUG thread
     if enable_debug_server {
-        let debug_bus = bus.clone();
-        let debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
+        let _debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
             println!("DEBUG");
             let mut back = DebugBackend::new(dbg_send, dbg_recv);
             back.run();

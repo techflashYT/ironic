@@ -189,7 +189,7 @@ pub struct Hollywood {
 impl Hollywood {
     pub fn new() -> Self {
         // TODO: Where do the initial values for these registers matter?
-        let mut res = Hollywood {
+        let res = Hollywood {
             task: None,
             ipc: ipc::IpcInterface::new(),
             busctrl: BusCtrlInterface::default(),

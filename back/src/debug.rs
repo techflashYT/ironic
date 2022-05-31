@@ -127,7 +127,7 @@ impl DebugBackend {
                 }
             };
 
-            'handle_client: loop {
+            loop {
                 println!("[DEBUG] waiting for command ...");
 
                 let res = self.wait_for_request(&mut client);
@@ -184,7 +184,7 @@ impl DebugBackend {
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
-    fn handle_cmd_step(&mut self, client: &mut UnixStream, req: SocketReq) {
+    fn handle_cmd_step(&mut self, _client: &mut UnixStream, _req: SocketReq) {
         println!("[DEBUG] Command Step");
         todo!();
     }
@@ -200,7 +200,7 @@ impl Backend for DebugBackend {
         let res = std::fs::remove_file(DebugBackend::resolve_socket_path());
         match res {
             Ok(_) => {},
-            Err(e) => {},
+            Err(_e) => {},
         }
         let res = UnixListener::bind(DebugBackend::resolve_socket_path());
         let sock = match res {
