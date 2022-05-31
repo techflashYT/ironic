@@ -15,8 +15,6 @@ use std::net::Shutdown;
 use std::io::{Read, Write};
 use std::convert::TryInto;
 
-extern crate pretty_hex;
-use pretty_hex::*;
 
 #[cfg(target_family = "unix")]
 use std::os::unix::net::{UnixStream, UnixListener};

@@ -1,9 +1,7 @@
 
 extern crate aes;
 extern crate cbc;
-extern crate pretty_hex;
 
-use pretty_hex::*;
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 
 type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;

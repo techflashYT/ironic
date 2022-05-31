@@ -1,7 +1,3 @@
-
-extern crate pretty_hex;
-use pretty_hex::*;
-
 pub mod util;
 use crate::dev::nand::util::*;
 

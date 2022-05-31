@@ -3,8 +3,6 @@
 //! Note that a lot of this depends on the version being booted.
 //! For now, it's sufficient to just assume we're on IOS58.
 
-extern crate pretty_hex;
-use pretty_hex::*;
 use crate::cpu::Cpu;
 use crate::cpu::reg::Reg;
 use crate::cpu::mmu::prim::{Access, TLBReq};

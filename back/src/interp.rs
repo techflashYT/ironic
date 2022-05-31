@@ -5,12 +5,8 @@ pub mod thumb;
 pub mod dispatch;
 pub mod lut;
 
-use std::convert::TryInto;
-use std::fmt::Debug;
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock, mpsc::Sender};
-use std::thread::sleep;
-use std::time::Duration;
 use std::fs;
 use std::io::Seek;
 use std::io::Read;

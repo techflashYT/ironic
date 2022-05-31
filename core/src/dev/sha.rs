@@ -1,13 +1,11 @@
 
 pub mod util;
-extern crate pretty_hex;
 
 use crate::bus::*;
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
 use crate::dev::hlwd::irq::*;
-use pretty_hex::*;
 
 pub struct ShaCommand {
     len: u32,

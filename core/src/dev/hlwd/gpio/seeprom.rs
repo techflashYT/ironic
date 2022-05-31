@@ -1,6 +1,3 @@
-
-use std::io::Read;
-use std::fs::File;
 use crate::dev::hlwd::gpio::*;
 use crate::mem::*;
 

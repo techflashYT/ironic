@@ -9,7 +9,6 @@ use ironic_backend::debug::*;
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
 use std::thread::Builder;
-use std::env;
 
 /// User-specified backend type.
 #[derive(ArgEnum, Clone, Debug)]

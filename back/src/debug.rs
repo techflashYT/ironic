@@ -1,20 +1,15 @@
 // A basic debugging backend
 // I stole this from the PPC backend for it's socket, so it's going to look similar
 
-use ironic_core::bus::*;
 use crate::back::*;
 
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
-use std::thread;
-use std::sync::{Arc, RwLock, mpsc::Sender};
+use std::sync::mpsc::Sender;
 use std::net::Shutdown;
 use std::io::{Read, Write};
 use std::convert::TryInto;
-
-extern crate pretty_hex;
-use pretty_hex::*;
 
 #[cfg(target_family = "unix")]
 use std::os::unix::net::{UnixStream, UnixListener};
