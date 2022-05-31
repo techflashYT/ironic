@@ -7,7 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pretty-hex = "0.2.1"
 elf = "0.0.10"
 uds_windows = "1.0.2"
 ironic-core = { path = "../core" }
