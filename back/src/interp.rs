@@ -26,6 +26,12 @@ use ironic_core::cpu::{Cpu, CpuRes};
 use ironic_core::cpu::reg::Reg;
 use ironic_core::cpu::excep::ExceptionType;
 
+macro_rules! DebugPacketValueReply {
+    ($val: expr) => {
+        DebugPacket { write: None, addr: None, reg: None, value: Some($val), new_step: None }
+    };
+}
+
 /// Current stage in the platform's boot process.
 #[derive(PartialEq)]
 pub enum BootStatus { 
@@ -346,7 +352,8 @@ impl Backend for InterpBackend {
                 else {
                     break 'check_for_debug;
                 }
-                self.handle_debug_packet(maybe_packet.unwrap());
+                let reply_val = self.handle_debug_packet(maybe_packet.unwrap());
+                self.emu_send.send(DebugPacketValueReply!(reply_val)).unwrap();
             }
             // Take ownership of the bus to deal with any pending tasks
             {
@@ -381,12 +388,12 @@ impl Backend for InterpBackend {
 }
 
 impl InterpBackend {
-    fn handle_debug_packet(&mut self, packet: DebugPacket){
+    fn handle_debug_packet(&mut self, packet: DebugPacket) -> u32 {
 
         match packet.new_step {
             Some(new_step) => {
                 self.debug_cycles = new_step;
-                return;
+                return 0;
             },
             None => {},
         }
@@ -396,13 +403,15 @@ impl InterpBackend {
                 match packet.write {
                     Some(write) => {
                         match write {
-                            true => self.cpu.reg[reg] = packet.value.expect("DebugPacket reg->write->value"),
-                            false => todo!("Debug reg read reply"),
+                            true => {
+                                self.cpu.reg[reg] = packet.value.expect("DebugPacket reg->write->value");
+                                return 0;
+                            },
+                            false => return self.cpu.reg[reg],
                         }
                     },
                     None => panic!("DebugPacket Reg but no read/write bool"),
                 }
-                return;
             },
             None => {},
         }
@@ -412,8 +421,13 @@ impl InterpBackend {
                 match packet.write {
                     Some(write) => {
                         match write {
-                            true => todo!("Bus write, u32 to [u8]"),
-                            false => todo!("Bus read reply"),
+                            true => {
+                                self.bus.write().unwrap().write32(addr, packet.value.expect("DebugPacket: mem->write->val"));
+                                return 0;
+                            },
+                            false => {
+                                return self.bus.write().unwrap().read32(addr);
+                            },
                         }
                     },
                     None => panic!("DebugPacket Addr but no read/write bool"),

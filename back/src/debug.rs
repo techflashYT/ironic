@@ -184,9 +184,10 @@ impl DebugBackend {
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
-    fn handle_cmd_step(&mut self, _client: &mut UnixStream, _req: SocketReq) {
+    fn handle_cmd_step(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command Step");
-        todo!();
+        self.dbg_send.send(DebugPacket{ write: None, addr: None, reg: None, value: None, new_step: Some(req.len) }).expect("CPUStep Send");
+        extract_packet_and_reply!(self.dbg_recv; client);
     }
 
 }
