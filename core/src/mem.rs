@@ -1,4 +1,5 @@
 
+use std::path::Path;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
@@ -28,10 +29,10 @@ impl BigEndianMemory {
         BigEndianMemory { data }
     }
 
-    pub fn dump(&self, filename: &str) {
+    pub fn dump(&self, filename: &impl AsRef<Path>) {
         let mut f = File::create(filename).expect("Couldn't create file");
         let res = f.write(self.data.as_slice());
-        println!("Dumped memory to {} ({:?})", filename, res);
+        println!("Dumped memory to {} ({:?})", filename.as_ref().display(), res);
     }
 }
 

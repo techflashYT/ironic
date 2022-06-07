@@ -9,6 +9,7 @@ use ironic_backend::debug::*;
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
 use std::thread::Builder;
+use std::env::temp_dir;
 
 /// User-specified backend type.
 #[derive(ArgEnum, Clone, Debug)]
@@ -34,10 +35,23 @@ struct Args {
 }
 
 fn dump_memory(bus: &Bus) {
-    bus.sram0.dump("/tmp/sram0.bin");
-    bus.sram1.dump("/tmp/sram1.bin");
-    bus.mem1.dump("/tmp/mem1.bin");
-    bus.mem2.dump("/tmp/mem2.bin");
+    let dir = temp_dir();
+
+    let mut sram0_dir = temp_dir().clone();
+    sram0_dir.push("sram0");
+    bus.sram0.dump(&sram0_dir);
+
+    let mut sram1_dir = temp_dir().clone();
+    sram1_dir.push("sram1");
+    bus.sram1.dump(&sram1_dir);
+
+    let mut mem1_dir = temp_dir().clone();
+    mem1_dir.push("mem1");
+    bus.mem1.dump(&mem1_dir);
+
+    let mut mem2_dir = dir;
+    mem2_dir.push("mem2");
+    bus.mem2.dump(&mem2_dir);
 }
 
 fn main() {
