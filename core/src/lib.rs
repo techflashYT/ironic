@@ -1,7 +1,4 @@
 
-/// Emulated system topology.
-pub mod topo;
-
 /// Emulated CPU state and common operations.
 pub mod cpu;
 /// Implementation of emulated memories.
