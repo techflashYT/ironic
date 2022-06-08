@@ -354,6 +354,7 @@ impl Backend for InterpBackend {
                 }
                 let reply_val = self.handle_debug_packet(maybe_packet.unwrap());
                 self.emu_send.send(DebugPacketValueReply!(reply_val)).unwrap();
+                continue 'outer;
             }
             // Take ownership of the bus to deal with any pending tasks
             {
