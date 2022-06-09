@@ -40,19 +40,13 @@ pub fn ldrb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     DispatchRes::RetireOk
 }
 
-pub fn ldrh_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
+pub fn ldrh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     assert_ne!(op.rt(), 15);
-    let res = if op.rn() == 15 {
-        assert_eq!(op.w(), false);
-        let addr = do_amode_lit(cpu.read_exec_pc(), op.imm12(), op.p(), op.u());
-        cpu.read16(addr)
-    } else {
-        let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-            op.imm12(), op.u(), op.p(), op.w());
-        cpu.reg[op.rn()] = wb_addr;
-        cpu.read16(addr)
-    };
+    let offset = (op.imm4h() << 4) | op.imm4l();
+    let (addr,wb_addr) = do_amode(cpu.reg[op.rn()], offset, op.u(), op.p(), op.w());
+    let res = cpu.read16(addr);
     cpu.reg[op.rt()] = res as u32;
+    cpu.reg[op.rn()] = wb_addr;
     DispatchRes::RetireOk
 }
 
