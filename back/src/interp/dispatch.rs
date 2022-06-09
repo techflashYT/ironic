@@ -22,7 +22,9 @@ pub enum DispatchRes {
     /// This instruction retired successfully and the PC must be incremented.
     RetireOk,
     /// This instruction resulted in an exception.
-    Exception(ExceptionType)
+    Exception(ExceptionType),
+    /// A breakpoint instruction has been executed, the emulator pauses and waites for the debugger.
+    Breakpoint
 }
 
 

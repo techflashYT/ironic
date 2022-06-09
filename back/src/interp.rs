@@ -272,6 +272,11 @@ impl InterpBackend {
 
         // Depending on the instruction, adjust the program counter
         let cpu_res = match disp_res {
+            DispatchRes::Breakpoint => {
+                self.debugger_attached = true;
+                self.debug_cycles = 0;
+                CpuRes::StepOk
+            }
             DispatchRes::RetireBranch => { CpuRes::StepOk },
             DispatchRes::RetireOk | 
             DispatchRes::CondFailed => {
