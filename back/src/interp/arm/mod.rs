@@ -6,4 +6,4 @@ pub mod branch;
 pub mod coproc;
 pub mod multiply;
 pub mod status;
-
+pub mod misc;

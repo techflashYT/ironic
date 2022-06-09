@@ -79,6 +79,8 @@ impl BkptBits {
     #[inline(always)]
     pub fn cond(&self) -> u32 { (self.0 & 0xf0000000) >> 28 }
     #[inline(always)]
+    pub fn imm16(&self) -> u32 { (self.imm12() << 4) | (self.imm4()) }
+    #[inline(always)]
     pub fn imm12(&self) -> u32 { (self.0 & 0x000fff00) >> 8 }
     #[inline(always)]
     pub fn imm4(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
