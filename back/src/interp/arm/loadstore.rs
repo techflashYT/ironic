@@ -332,8 +332,9 @@ pub fn stm(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
 }
 
 pub fn strh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
+    let offset = (op.imm4h() << 4) | op.imm4l();
     let (addr, wb_addr) = do_amode(cpu.reg[op.rn()],
-        op.imm4l(), op.u(), op.p(), op.w()
+        offset, op.u(), op.p(), op.w()
     );
     cpu.reg[op.rn()] = wb_addr;
     cpu.write16(addr, cpu.reg[op.rt()]);
