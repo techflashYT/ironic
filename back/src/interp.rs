@@ -336,7 +336,7 @@ impl Backend for InterpBackend {
                     bus.dma_write(header.paddr as u32, &kernel_bytes[start..end]);
                 }
             }
-            self.boot_status = BootStatus::UserKernelStub;
+            self.boot_status = BootStatus::UserKernel;
         }
         'outer: loop {
             'check_for_debug: {
