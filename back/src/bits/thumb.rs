@@ -282,3 +282,11 @@ impl MovRegAltBits {
     pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
 }
 
+/// ['Bkpt']
+#[repr(transparent)]
+pub struct BkptBits(pub u16);
+impl BkptBits{
+    #[inline(always)]
+    pub fn imm8(&self) -> u16 { self.0 & 0xff }
+}
+
