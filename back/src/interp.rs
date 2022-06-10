@@ -311,7 +311,14 @@ impl Backend for InterpBackend {
     fn run(&mut self) {
         if self.custom_kernel.is_some() {
             // Read the user supplied kernel file
-            let mut kernel_file = fs::File::open(&self.custom_kernel.as_ref().unwrap()).unwrap();
+            let filename = &self.custom_kernel.as_ref().unwrap();
+            let maybe_kernel_file = fs::File::open(&filename);
+            let mut kernel_file = match maybe_kernel_file {
+                Ok(f) => f,
+                Err(e) => {
+                    panic!("Error opening kernel file: {}, got error: {}", filename, e)
+                },
+            };
             let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata().expect("Kernel elf file-metadata").len() as usize);
             kernel_file.read_to_end(&mut kernel_bytes).expect("Failed to read custom kernel ELF");
             // Reuse the file for the ELF parser
