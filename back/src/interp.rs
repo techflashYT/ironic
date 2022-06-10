@@ -14,7 +14,7 @@ use std::io::Read;
 extern crate elf;
 
 use crate::back::*;
-use crate::debug::DebugPacket;
+use crate::debug::{DebugCommand, DebugPacket};
 use crate::interp::lut::*;
 use crate::interp::dispatch::DispatchRes;
 
@@ -28,7 +28,7 @@ use ironic_core::cpu::excep::ExceptionType;
 
 macro_rules! DebugPacketValueReply {
     ($val: expr) => {
-        DebugPacket { write: None, addr: None, reg: None, value: Some($val), new_step: None }
+        DebugPacket { command: DebugCommand::Reply, op1:$val, op2: 0 }
     };
 }
 
@@ -274,7 +274,7 @@ impl InterpBackend {
         let cpu_res = match disp_res {
             DispatchRes::Breakpoint => {
                 self.debugger_attached = true;
-                self.debug_cycles = 0;
+                self.cpu.increment_pc();
                 CpuRes::StepOk
             }
             DispatchRes::RetireBranch => { CpuRes::StepOk },
@@ -350,20 +350,19 @@ impl Backend for InterpBackend {
                 let maybe_packet = self.emu_recv.try_recv();
                 if maybe_packet.is_ok(){
                     self.debugger_attached = true;
-                    self.debug_cycles = 0;
                 }
-                if self.debugger_attached && self.debug_cycles == 0 {
+                if self.debug_cycles > 0 {
+                    if self.debugger_attached {
+                        self.debug_cycles -= 1;
+                    }
+                    break 'check_for_debug;
+                }
+                if self.debugger_attached { //debug_cycles <= 0
                     if maybe_packet.is_err(){
                         continue 'outer;
                     }
                 }
-                else if self.debug_cycles > 0 {
-                    self.debug_cycles -= 1;
-                    break 'check_for_debug;
-                }
-                else {
-                    break 'check_for_debug;
-                }
+                else { break 'check_for_debug; }
                 let reply_val = self.handle_debug_packet(maybe_packet.unwrap());
                 self.emu_send.send(DebugPacketValueReply!(reply_val)).unwrap();
                 continue 'outer;
@@ -403,51 +402,19 @@ impl Backend for InterpBackend {
 impl InterpBackend {
     fn handle_debug_packet(&mut self, packet: DebugPacket) -> u32 {
 
-        match packet.new_step {
-            Some(new_step) => {
-                self.debug_cycles = new_step;
+        match packet.command {
+            DebugCommand::PeekReg => { return self.cpu.reg[packet.op1]; },
+            DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; return 0; },
+            DebugCommand::PeekPAddr => {
+                return self.bus.write().expect("DebugPacket Bus").read8(packet.op1) as u32;
+            },
+            DebugCommand::PokePAddr => {
+                self.bus.write().expect("DebugPacket Bus").write8(packet.op1, packet.op2 as u8);
                 return 0;
             },
-            None => {},
+            DebugCommand::Step => { self.debug_cycles = packet.op1; return 0; },
+            DebugCommand::Reply => panic!("Debug packet reply not allowed here"),
+            DebugCommand::Unimpl => panic!("Unhndled debug packet {:#?}", &packet),
         }
-
-        match packet.reg {
-            Some(reg) => {
-                match packet.write {
-                    Some(write) => {
-                        match write {
-                            true => {
-                                self.cpu.reg[reg] = packet.value.expect("DebugPacket reg->write->value");
-                                return 0;
-                            },
-                            false => return self.cpu.reg[reg],
-                        }
-                    },
-                    None => panic!("DebugPacket Reg but no read/write bool"),
-                }
-            },
-            None => {},
-        }
-
-        match packet.addr {
-            Some(addr) => {
-                match packet.write {
-                    Some(write) => {
-                        match write {
-                            true => {
-                                self.bus.write().unwrap().write32(addr, packet.value.expect("DebugPacket: mem->write->val"));
-                                return 0;
-                            },
-                            false => {
-                                return self.bus.write().unwrap().read32(addr);
-                            },
-                        }
-                    },
-                    None => panic!("DebugPacket Addr but no read/write bool"),
-                }
-            },
-            None => {}
-        }
-        panic!("Unhndled debug packet {:#?}", &packet);
     }
 }

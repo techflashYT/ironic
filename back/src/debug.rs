@@ -18,40 +18,44 @@ use uds_windows::{UnixStream, UnixListener};
 
 macro_rules! extract_packet_and_reply {
     ($debug_recv: expr; $client: expr) => {
-        let value = $debug_recv.recv().unwrap().value.unwrap().to_le();
+        let reply: DebugPacket = $debug_recv.recv().unwrap();
+        assert!(reply.command == DebugCommand::Reply);
+        let value = reply.op1.to_le();
         let bytes: [u8;4] = unsafe {std::mem::transmute(value)};
+
         $client.write(&bytes).unwrap();
+
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DebugPacket {
-    pub write: Option<bool>, // True if we are writing, false if we are reading
-    pub addr: Option<u32>, // If we are operating on a memory address
-    pub reg: Option<u32>,  // If we are operating on registers
-    pub value: Option<u32>, //The value to write
-    pub new_step: Option<u32>, // CPU/Bus steps
+    pub command: DebugCommand,
+    pub op1:u32,
+    pub op2:u32,
 }
 
 /// A type of command sent over the socket.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[repr(u32)]
-pub enum Command { 
-    PeekReg, 
-    PokeReg, 
-    PeekAddr, 
-    PokeAddr, 
+pub enum DebugCommand {
+    PeekReg,
+    PokeReg,
+    PeekPAddr,
+    PokePAddr,
     Step,
-    Unimpl 
+    Reply,
+    Unimpl,
 }
-impl Command {
+impl DebugCommand {
     fn from_u32(x: u32) -> Self {
         match x {
             1 => Self::PeekReg,
             2 => Self::PokeReg,
-            3 => Self::PeekAddr,
-            4 => Self::PokeAddr,
+            3 => Self::PeekPAddr,
+            4 => Self::PokePAddr,
             5 => Self::Step,
+            6 => Self::Reply,
             _ => Self::Unimpl,
         }
     }
@@ -60,15 +64,16 @@ impl Command {
 /// A request packet from the socket.
 #[repr(C)]
 pub struct SocketReq {
-    pub cmd: Command,
+    pub cmd: DebugCommand,
     pub addr: u32,
     pub len: u32,
 }
 impl SocketReq {
     pub fn from_buf(s: &[u8; 0xc]) -> Self {
-        let cmd = Command::from_u32(
+        let cmd = DebugCommand::from_u32(
             u32::from_le_bytes(s[0..4].try_into().unwrap())
         );
+        assert_ne!(cmd, DebugCommand::Reply);
         let addr = u32::from_le_bytes(s[0x4..0x8].try_into().unwrap());
         let len = u32::from_le_bytes(s[0x8..0xc].try_into().unwrap());
         SocketReq { cmd, addr, len }
@@ -133,12 +138,13 @@ impl DebugBackend {
                 let res = self.wait_for_request(&mut client);
                 let req = if res.is_none() { break; } else { res.unwrap() };
                 match req.cmd {
-                    Command::PeekReg  => self.handle_cmd_peekreg(&mut client, req),
-                    Command::PokeReg  => self.handle_cmd_pokereg(&mut client, req),
-                    Command::PeekAddr => self.handle_cmd_peekaddr(&mut client, req),
-                    Command::PokeAddr => self.handle_cmd_pokeaddr(&mut client, req),
-                    Command::Step     => self.handle_cmd_step(&mut client, req),
-                    Command::Unimpl => break,
+                    DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req),
+                    DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req),
+                    DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req),
+                    DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req),
+                    DebugCommand::Step     => self.handle_cmd_step(&mut client, req),
+                    DebugCommand::Reply    => panic!("Unsupported"),
+                    DebugCommand::Unimpl => break,
                 }
             }
             client.shutdown(Shutdown::Both).unwrap();
@@ -162,31 +168,31 @@ impl DebugBackend {
 
     fn handle_cmd_peekreg(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command PeekReg");
-        self.dbg_send.send(DebugPacket { write: Some(false), addr: None, reg: Some(req.addr), value: None, new_step: None }).expect("PeekReg send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekReg, op1: req.addr, op2: 0 }).expect("PeekReg send");
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_pokereg(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command PokeReg");
-        self.dbg_send.send(DebugPacket { write: Some(true), addr: None, reg: Some(req.addr), value: Some(req.len), new_step: None }).expect("PokeReg send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekReg, op1: req.addr, op2: req.len }).expect("PokeReg send");
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_peekaddr(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command PeekAddr");
-        self.dbg_send.send(DebugPacket { write: Some(false), addr: Some(req.addr), reg: None, value: None, new_step: None }).expect("PeekAddr send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekPAddr, op1: req.addr, op2: 0 }).expect("PeekAddr send");
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_pokeaddr(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command PokeAddr");
-        self.dbg_send.send(DebugPacket { write: Some(true), addr: Some(req.addr), reg: None, value: Some(req.len), new_step: None }).expect("PokeAddr send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PokePAddr, op1: req.addr, op2: req.len }).expect("PokeAddr send");
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
     fn handle_cmd_step(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[DEBUG] Command Step");
-        self.dbg_send.send(DebugPacket{ write: None, addr: None, reg: None, value: None, new_step: Some(req.len) }).expect("CPUStep Send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::Step, op1: req.addr, op2: 0 }).expect("CPUStep Send");
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 

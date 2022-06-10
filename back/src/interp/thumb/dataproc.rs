@@ -139,7 +139,7 @@ pub fn sbc_reg(cpu: &mut Cpu, op: BitwiseRegBits) -> DispatchRes {
     let (shifted, _) = barrel_shift(ShiftArgs::Reg { rm, 
         stype: ShiftType::Lsl as u32, imm5: 0, c_in: cpu.reg.cpsr.c()
     });
-    let val = if cpu.reg.cpsr.c() { shifted } else { shifted + 1 };
+    let val = if cpu.reg.cpsr.c() { shifted } else { shifted.wrapping_add(1) };
 
     let (alu_out, n, z, c, v) = sub_generic(cpu.reg[op.rdn()], val);
     cpu.reg[op.rdn()] = alu_out;
