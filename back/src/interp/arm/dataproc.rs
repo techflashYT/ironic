@@ -253,6 +253,40 @@ pub fn mov_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
     }
 }
 
+pub fn mov_rsr(cpu: &mut Cpu, op: MovRsrBits) -> DispatchRes {
+    if !op.i() && (op.0 >> 4 == 1) && (op.0 >> 7 == 1) {
+        panic!("Special bits set I==0, bit4==1, bit7==1 means not a mov instruction. See ARM reference: A4.1.35 and A5.1.1");
+    }
+    let (val, carry) = barrel_shift(
+        ShiftArgs::RegShiftReg { rm: op.rm(), stype: op.stype(), rs: op.rs(), c_in: cpu.reg.cpsr.c() }
+    );
+    match (op.s(), op.rd() == 15) {
+        (true, true) => { // S + PC == exception return
+            cpu.exception_return(val);
+            return DispatchRes::RetireBranch;
+        },
+        (true, false) => { // S + no PC == set flags
+            cpu.reg[op.rd()] = val;
+            let (n,z,c, v) = (
+                ((val >> 31) & 0x1 == 1), // N
+                val == 0, // Z
+                carry, // C
+                cpu.reg.cpsr.v() // V
+            );
+            set_all_flags!(cpu, n, z, c, v);
+            return DispatchRes::RetireOk;
+        },
+        (false, true) => { // no S + PC == branch
+            cpu.write_exec_pc(val);
+            return DispatchRes::RetireBranch;
+        },
+        (false, false) => { // no S + no PC == normal move/shift no flags
+            cpu.reg[op.rd()] = val;
+            return DispatchRes::RetireOk;
+        }
+    }
+}
+
 pub fn orr_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
     assert_ne!(op.rd(), 15);
 

@@ -439,6 +439,8 @@ impl MovRsrBits {
     #[inline(always)]
     pub fn s(&self) -> bool { (self.0 & 0x00100000) != 0 }
     #[inline(always)]
+    pub fn i(&self) -> bool { (self.0 & 0x02000000) != 0}
+    #[inline(always)]
     pub fn rd(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
     pub fn rs(&self) -> u32 { (self.0 & 0x00000f00) >> 8 }
