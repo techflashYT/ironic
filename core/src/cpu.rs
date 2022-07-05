@@ -35,7 +35,6 @@ pub struct Cpu {
 
     pub scratch: u32,
     pub dbg_on: bool,
-    pub dbg_steps: u32,
 
     /// Whether or not an interrupt request is currently asserted.
     pub irq_input: bool,
@@ -50,7 +49,6 @@ impl Cpu {
             irq_input: false,
             current_exception: None,
             dbg_on: false,
-            dbg_steps: 1_000_000,
         };
         cpu
     }
