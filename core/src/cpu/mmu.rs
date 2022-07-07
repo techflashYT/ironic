@@ -12,17 +12,17 @@ use crate::cpu::Cpu;
 impl Cpu {
     pub fn read32(&mut self, addr: u32) -> u32 {
         let paddr = self.translate(TLBReq::new(addr, Access::Read));
-        let res = self.bus.write().unwrap().read32(paddr);
+        let res = self.bus.read().unwrap().read32(paddr);
         res
     }
     pub fn read16(&mut self, addr: u32) -> u16 {
         let paddr = self.translate(TLBReq::new(addr, Access::Read));
-        let res = self.bus.write().unwrap().read16(paddr);
+        let res = self.bus.read().unwrap().read16(paddr);
         res
     }
     pub fn read8(&mut self, addr: u32) -> u8 {
         let paddr = self.translate(TLBReq::new(addr, Access::Read));
-        let res = self.bus.write().unwrap().read8(paddr);
+        let res = self.bus.read().unwrap().read8(paddr);
         res
     }
 
@@ -85,7 +85,7 @@ impl Cpu {
     /// Given some virtual address, return the first-level PTE.
     fn l1_fetch(&self, vaddr: VirtAddr) -> L1Descriptor {
         let addr = (self.p15.c2_ttbr0 & 0xffff_c000) | vaddr.l1_idx() << 2;
-        let val = self.bus.write().unwrap().read32(addr);
+        let val = self.bus.read().unwrap().read32(addr);
         let res = L1Descriptor::from_u32(val);
         match res {
             L1Descriptor::Fault(_) => {
@@ -106,7 +106,7 @@ impl Cpu {
             },
             _ => unreachable!(),
         };
-        let val = self.bus.write().unwrap().read32(addr);
+        let val = self.bus.read().unwrap().read32(addr);
         L2Descriptor::from_u32(val)
     }
 
