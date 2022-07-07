@@ -68,7 +68,7 @@ pub fn read_string(cpu: &Cpu, ptr: u32) -> String {
     let paddr = cpu.translate(TLBReq::new(ptr, Access::Debug));
 
     let mut line_buf = [0u8; 64];
-    cpu.bus.write().unwrap().dma_read(paddr, &mut line_buf);
+    cpu.bus.read().unwrap().dma_read(paddr, &mut line_buf);
     //println!("{:?}", line_buf.hex_dump());
 
     let mut end: Option<usize> = None;
