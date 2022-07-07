@@ -212,7 +212,7 @@ impl PpcBackend {
     /// Read from physical memory.
     pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[PPC] read {:x} bytes at {:08x}", req.len, req.addr);
-        self.bus.write().unwrap().dma_read(req.addr, 
+        self.bus.read().unwrap().dma_read(req.addr,
             &mut self.obuf[0..req.len as usize]);
         client.write(&self.obuf[0..req.len as usize]).unwrap();
     }

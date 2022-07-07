@@ -161,7 +161,7 @@ impl InterpBackend {
 
         // Pull the buffer out of guest memory
         let mut line_buf = [0u8; 16];
-        self.bus.write().unwrap().dma_read(paddr, &mut line_buf);
+        self.bus.read().unwrap().dma_read(paddr, &mut line_buf);
 
         let s = std::str::from_utf8(&line_buf).unwrap()
             .trim_matches(char::from(0));
@@ -406,7 +406,7 @@ impl InterpBackend {
             DebugCommand::PeekReg => { return self.cpu.reg[packet.op1]; },
             DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; return 0; },
             DebugCommand::PeekPAddr => {
-                return self.bus.write().expect("DebugPacket Bus").read8(packet.op1) as u32;
+                return self.bus.read().expect("DebugPacket Bus").read8(packet.op1) as u32;
             },
             DebugCommand::PokePAddr => {
                 self.bus.write().expect("DebugPacket Bus").write8(packet.op1, packet.op2 as u8);
