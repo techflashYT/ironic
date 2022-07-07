@@ -43,7 +43,7 @@ impl Bus {
         self.do_dma_write(addr, buf);
     }
     /// Perform a DMA read operation.
-    pub fn dma_read(&mut self, addr: u32, buf: &mut [u8]) {
+    pub fn dma_read(&self, addr: u32, buf: &mut [u8]) {
         self.do_dma_read(addr, buf);
     }
 
@@ -138,7 +138,7 @@ impl Bus {
     }
 
     /// Dispatch a DMA read to some memory device.
-    fn do_dma_read(&mut self, addr: u32, buf: &mut [u8]) {
+    fn do_dma_read(&self, addr: u32, buf: &mut [u8]) {
         use MemDevice::*;
         let handle = self.decode_phys_addr(addr).unwrap_or_else(||
             panic!("Unresolved physical address {:08x}", addr)
