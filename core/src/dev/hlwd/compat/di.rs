@@ -17,7 +17,7 @@ pub struct DriveInterface {
 }
 impl MmioDevice for DriveInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x00 => self.disr,
             0x04 => self.dicvr,

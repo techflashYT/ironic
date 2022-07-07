@@ -42,7 +42,7 @@ impl DdrInterface {
 
 impl MmioDevice for DdrInterface {
     type Width = u16;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x28 => panic!("DDR ahmflush read unimplemented"),
             0x2a => self.ahmflush_ack,

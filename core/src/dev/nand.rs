@@ -193,7 +193,7 @@ impl NandInterface {
 
 impl MmioDevice for NandInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off { 
             //0x00 => self.reg.ctrl,
             0x00 => 0x0000_0001,

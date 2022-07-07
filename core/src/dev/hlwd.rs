@@ -88,7 +88,7 @@ pub struct ArbCfgInterface {
     pub dma: u32,
 }
 impl ArbCfgInterface {
-    fn read_handler(&mut self, off: usize) -> u32 {
+    fn read_handler(&self, off: usize) -> u32 {
         match off {
             0x00 => self.m0,
             0x04 => self.m1,
@@ -134,7 +134,7 @@ pub struct AhbInterface {
 }
 impl MmioDevice for AhbInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x08 => 0,
             0x10 => self.unk_10,
@@ -223,7 +223,7 @@ impl Hollywood {
 
 impl MmioDevice for Hollywood {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x000..=0x00c   => self.ipc.read_handler(off),
             0x010           => self.timer.timer,

@@ -37,7 +37,7 @@ pub struct SDInterface {
 }
 impl MmioDevice for SDInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let _val = match off {
             _ => panic!("SDHC0 read at {:x} unimpl", off),
         };
@@ -59,7 +59,7 @@ pub struct WLANInterface {
 
 impl MmioDevice for WLANInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x24 => self.unk_24,
             //0x24 => 0x0001_0000, //self.unk_24,

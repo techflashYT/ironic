@@ -75,7 +75,7 @@ impl AesInterface {
 impl MmioDevice for AesInterface {
     type Width = u32;
 
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         match off {
             //0x00 => BusPacket::Word(self.ctrl),
             0x00 => BusPacket::Word(0),

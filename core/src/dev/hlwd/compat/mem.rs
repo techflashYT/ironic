@@ -21,7 +21,7 @@ impl MemInterface {
 }
 impl MmioDevice for MemInterface {
     type Width = u16;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x74 => self.ddr_addr,
             0x76 => self.ddr_data,

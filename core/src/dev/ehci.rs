@@ -24,7 +24,7 @@ impl EhcInterface {
 impl MmioDevice for EhcInterface {
     type Width = u32;
 
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0xcc => self.unk_cc,
             _ => panic!("Unimplemented EHCI read at offset {:04x}", off),

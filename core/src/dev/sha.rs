@@ -51,7 +51,7 @@ impl ShaInterface {
 impl MmioDevice for ShaInterface {
     type Width = u32;
 
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x00 => 0, //self.ctrl,
             0x08 => self.state.digest[0],

@@ -38,7 +38,7 @@ pub struct OhcInterface {
 
 impl MmioDevice for OhcInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> BusPacket {
         let val = match off {
             0x00 => 0x0000_0110,
             // NOTE: Everything is wired to 0 in skyeye; good enough for now

@@ -9,14 +9,14 @@ pub trait MmioDevice {
     type Width;
 
     /// Handle a read, returning some result.
-    fn read(&mut self, off: usize) -> BusPacket;
+    fn read(&self, off: usize) -> BusPacket;
     /// Handle a write, optionally returning a task for the bus.
     fn write(&mut self, off: usize, val: Self::Width) -> Option<BusTask>;
 }
 
 impl Bus {
     /// Dispatch a physical read access to some memory-mapped I/O device.
-    pub fn do_mmio_read(&mut self, dev: IoDevice, off: usize, width: BusWidth) -> BusPacket {
+    pub fn do_mmio_read(&self, dev: IoDevice, off: usize, width: BusWidth) -> BusPacket {
         use IoDevice::*;
         match (width, dev) {
             (BusWidth::W, Nand)  => self.nand.read(off),

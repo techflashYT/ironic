@@ -204,7 +204,7 @@ impl EXInterface {
 
 impl MmioDevice for EXInterface {
     type Width = u32;
-    fn read(&mut self, off: usize) -> BusPacket { 
+    fn read(&self, off: usize) -> BusPacket { 
         let val = match off {
             0x00..=0x10 => self.chan0.read(off),
             0x14..=0x24 => self.chan1.read(off - 0x14),
