@@ -8,19 +8,19 @@ use crate::bus::prim::*;
 /// Top-level read/write functions for performing physical memory accesses.
 impl Bus {
     /// Perform a 32-bit physical memory read.
-    pub fn read32(&mut self, addr: u32) -> u32 {
+    pub fn read32(&self, addr: u32) -> u32 {
         let msg = self.do_read(addr, BusWidth::W);
         match msg { BusPacket::Word(res) => res, _ => unreachable!(), }
     }
 
     /// Perform a 16-bit physical memory read.
-    pub fn read16(&mut self, addr: u32) -> u16 {
+    pub fn read16(&self, addr: u32) -> u16 {
         let msg = self.do_read(addr, BusWidth::H);
         match msg { BusPacket::Half(res) => res, _ => unreachable!(), }
     }
 
     /// Perform an 8-bit physical memory read.
-    pub fn read8(&mut self, addr: u32) -> u8 {
+    pub fn read8(&self, addr: u32) -> u8 {
         let msg = self.do_read(addr, BusWidth::B);
         match msg { BusPacket::Byte(res) => res, _ => unreachable!(), }
     }
@@ -51,7 +51,7 @@ impl Bus {
 
 impl Bus {
     /// Dispatch a physical read access (to memory, or some I/O device).
-    fn do_read(&mut self, addr: u32, width: BusWidth) -> BusPacket {
+    fn do_read(&self, addr: u32, width: BusWidth) -> BusPacket {
         let handle = self.decode_phys_addr(addr).unwrap_or_else(||
             panic!("Unresolved physical address {:08x}. current cycle count: {}", addr, self.cycle)
         );
@@ -80,7 +80,7 @@ impl Bus {
 
 impl Bus {
     /// Dispatch a physical read access to some memory device.
-    fn do_mem_read(&mut self, dev: MemDevice, off: usize, width: BusWidth) -> BusPacket {
+    fn do_mem_read(&self, dev: MemDevice, off: usize, width: BusWidth) -> BusPacket {
         use MemDevice::*;
         use BusPacket::*;
         let target_ref = match dev {
