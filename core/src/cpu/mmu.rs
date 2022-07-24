@@ -6,21 +6,18 @@ use crate::cpu::mmu::prim::*;
 use crate::cpu::Cpu;
 
 /// These are the top-level "public" functions providing read/write accesses.
-///
-/// Right now, in order to perform any memory accesses, we must acquire a
-/// mutable reference to the bus. This is expensive.
 impl Cpu {
-    pub fn read32(&mut self, addr: u32) -> u32 {
+    pub fn read32(&self, addr: u32) -> u32 {
         let paddr = self.translate(TLBReq::new(addr, Access::Read));
         let res = self.bus.read().unwrap().read32(paddr);
         res
     }
-    pub fn read16(&mut self, addr: u32) -> u16 {
+    pub fn read16(&self, addr: u32) -> u16 {
         let paddr = self.translate(TLBReq::new(addr, Access::Read));
         let res = self.bus.read().unwrap().read16(paddr);
         res
     }
-    pub fn read8(&mut self, addr: u32) -> u8 {
+    pub fn read8(&self, addr: u32) -> u8 {
         let paddr = self.translate(TLBReq::new(addr, Access::Read));
         let res = self.bus.read().unwrap().read8(paddr);
         res
