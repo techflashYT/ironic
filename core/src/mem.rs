@@ -18,8 +18,9 @@ impl BigEndianMemory {
         let data = if init_fn.is_some() {
             let filename = init_fn.unwrap();
             let mut f = File::open(filename)
-                .expect("Couldn't initialize BigEndianMemory.");
-
+                .unwrap_or_else(|err|
+                    panic!("Couldn't initialize BigEndianMemory. File: {} - {}", filename, err)
+            );
             let mut data = vec![0u8; len];
             f.read(&mut data).unwrap();
             data
