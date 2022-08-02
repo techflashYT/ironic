@@ -6,10 +6,13 @@ use ironic_backend::back::*;
 use ironic_backend::ppc::*;
 use ironic_backend::debug::*;
 
+use std::panic;
+use std::process;
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
-use std::thread::Builder;
+use std::thread::{Builder, JoinHandle};
 use std::env::temp_dir;
+use std::io::Write;
 
 /// User-specified backend type.
 #[derive(ArgEnum, Clone, Debug)]
@@ -55,6 +58,14 @@ fn dump_memory(bus: &Bus) {
 }
 
 fn main() {
+    // Terminate the process on any thread panic
+    let original_panic = panic::take_hook();
+    panic::set_hook(Box::new( move |panic_deets|{
+        original_panic(panic_deets);
+        std::io::stdout().flush().ok();
+        std::io::stderr().flush().ok();
+        process::exit(1);
+    }));
     let args = Args::parse();
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle.unwrap_or(true);
@@ -79,25 +90,34 @@ fn main() {
     };
 
     // Fork off the PPC HLE thread
+    let ppc_thread: Option<JoinHandle<()>>;
     if enable_ppc_hle {
         let ppc_bus = bus.clone();
-        let _ppc_thread = Builder::new().name("IpcThread".to_owned()).spawn(move || {
+        ppc_thread = Some(Builder::new().name("IpcThread".to_owned()).spawn(move || {
             let mut back = PpcBackend::new(ppc_bus);
             back.run();
-        }).unwrap();
+        }).unwrap());
     }
+    else { ppc_thread = None; }
 
     // Finally fork the DEBUG thread
+    let debug_thread: Option<JoinHandle<()>>;
     if enable_debug_server {
-        let _debug_thread = Builder::new().name("DebugThread".to_owned()).spawn( move || {
+        debug_thread = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
             println!("DEBUG");
             let mut back = DebugBackend::new(dbg_send, dbg_recv);
             back.run();
-        });
+        }).unwrap());
     }
+    else { debug_thread = None; }
 
-    //ppc_thread.join().unwrap();
-    emu_thread.join().unwrap();
+    let _ = emu_thread.join();
+    if let Some(ppc_thread) = ppc_thread {
+        let _ = ppc_thread.join();
+    }
+    if let Some(debug_thread) = debug_thread {
+        let _ = debug_thread.join();
+    }
 
     let bus_ref = bus.write().unwrap();
     dump_memory(&bus_ref);
