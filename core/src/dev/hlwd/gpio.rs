@@ -128,7 +128,7 @@ impl PpcGpio {
         match off {
             0x00 => self.output = data,
             0x04 => self.dir = data,
-            _ => panic!("unimplemented PpcGpio write {:08x}", off),
+            _ => println!("FIXME: unimplemented PpcGpio write {:08x}: 0x{:08x}", off, data),
         }
     }
     pub fn read_handler(&self, off: usize) -> u32 {

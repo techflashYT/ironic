@@ -138,6 +138,10 @@ impl MmioDevice for AhbInterface {
         let val = match off {
             0x08 => 0,
             0x10 => self.unk_10,
+            0x3fe4 => {
+                println!("FIXME: AHB Read from weird (0x3fe4) - returning 0");
+                0
+            }
             _ => panic!("AHB read to undefined offset {:x}", off),
         };
         BusPacket::Word(val)
@@ -148,6 +152,9 @@ impl MmioDevice for AhbInterface {
                 self.unk_08 = val;
             },
             0x10 => self.unk_10 = val,
+            0x3fe4..=0x3fe8 => {
+                println!("FIXME: AHB write to weird ({:x}) offset: {:x}", off, val)
+            }
             _ => panic!("AHB write {:08x} to undefined offset {:x}", val, off),
         }
         None
