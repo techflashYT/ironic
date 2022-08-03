@@ -4,3 +4,6 @@ members = [
 	"back",
 	"tui",
 ]
+
+[profile.release]
+lto = true
