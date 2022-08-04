@@ -84,16 +84,10 @@ pub fn mov_imm(cpu: &mut Cpu, op: MovImmBits) -> DispatchRes {
 
 
 pub fn add_reg_alt(cpu: &mut Cpu, op: AddRegAltBits) -> DispatchRes {
-    // ???
-    //assert_ne!(op.rm(), 13);
-
     let rd = if op.dn() { op.rdn() | 0x8 } else { op.rdn() };
     let rn = rd;
     let (alu_out, _n, _z, _c, _v) = add_generic(cpu.reg[rn], cpu.reg[op.rm()]);
     cpu.reg[rd] = alu_out;
-
-    // ???
-    //set_all_flags!(cpu, n, z, c, v);
     DispatchRes::RetireOk
 }
 
