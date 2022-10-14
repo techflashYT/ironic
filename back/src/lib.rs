@@ -1,6 +1,6 @@
 
 // For evaluating lookup tables at compile-time.
-#![feature(const_mut_refs,label_break_value)]
+#![feature(const_mut_refs)]
 
 pub mod back;
 pub mod bits;
