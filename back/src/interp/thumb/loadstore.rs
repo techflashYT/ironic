@@ -110,7 +110,8 @@ pub fn ldrsh_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
 
 
 /// Generic load (immediate).
-fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) {
+fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> Result<(), String> {
+    let mut failure_reason: Option<String> = None;
     let imm = match width {
         Width::Byte => imm_n, 
         Width::Half => imm_n << 1,
@@ -120,28 +121,51 @@ fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) {
 
     let addr = cpu.reg[rn].wrapping_add(imm);
     let res: u32 = match width {
-        Width::Byte => cpu.read8(addr).expect("BIG FIXME!!") as u32,
-        Width::Half => cpu.read16(addr).expect("BIG FIXME!!") as u32,
-        Width::Word => cpu.read32(addr).expect("BIG FIXME!!"),
-        _ => unreachable!(),
+        Width::Byte => cpu.read8(addr).unwrap_or_else(|reason|{
+            failure_reason = Some(reason);
+            0
+        }) as u32,
+        Width::Half => cpu.read16(addr).unwrap_or_else(|reason|{
+            failure_reason = Some(reason);
+            0
+        }) as u32,
+        Width::Word => cpu.read32(addr).unwrap_or_else(|reason|{
+            failure_reason = Some(reason);
+            0
+        }),
+        _ => unreachable!()
     };
-    cpu.reg[rt] = res;
+    match failure_reason {
+        None => {
+            cpu.reg[rt] = res;
+            return Ok(());
+        },
+        Some(reason) => return Err(reason),
+    }
 }
 pub fn ldr_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
-    load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Word);
-    DispatchRes::RetireOk
+    match load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Word) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldrb_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
-    load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Byte);
-    DispatchRes::RetireOk
+    match load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Byte) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldrh_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
-    load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Half);
-    DispatchRes::RetireOk
+    match load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Half) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldr_imm_sp(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
-    load_imm(cpu, 13, op.rt(), op.imm8() as u32, Width::Word);
-    DispatchRes::RetireOk
+    match load_imm(cpu, 13, op.rt(), op.imm8() as u32, Width::Word) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 
 
