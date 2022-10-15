@@ -20,7 +20,13 @@ pub fn ldr_lit(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
     let imm = (op.imm8() * 4) as u32;
     let addr = (cpu.read_exec_pc() & 0xffff_fffc).wrapping_add(imm);
 
-    let res = cpu.read32(addr);
+    let res = match cpu.read32(addr){
+        Ok(val) => val,
+        Err(reason) => {
+            println!("FIXME: got error {}", reason);
+            return DispatchRes::FatalErr;
+        }
+    };
     if op.rt() == 15 {
         cpu.write_exec_pc(res);
         DispatchRes::RetireBranch
@@ -35,13 +41,13 @@ pub fn ldr_lit(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
 fn load_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) {
     let addr = cpu.reg[rn].wrapping_add(cpu.reg[rm]);
     let res: u32 = match width {
-        Width::Byte => cpu.read8(addr) as u32,
-        Width::Half => cpu.read16(addr) as u32,
-        Width::Word => cpu.read32(addr),
+        Width::Byte => cpu.read8(addr).expect("BIG FIXME!!") as u32,
+        Width::Half => cpu.read16(addr).expect("BIG FIXME!!") as u32,
+        Width::Word => cpu.read32(addr).expect("BIG FIXME!!"),
         Width::SignedHalf => 
-            sign_extend(cpu.read16(addr) as u32, 16) as u32,
+            sign_extend(cpu.read16(addr).expect("BIG FIXME!!") as u32, 16) as u32,
         Width::SignedByte => 
-            sign_extend(cpu.read8(addr) as u32, 8) as u32,
+            sign_extend(cpu.read8(addr).expect("BIG FIXME!!") as u32, 8) as u32,
     };
     cpu.reg[rt] = res;
 }
@@ -79,9 +85,9 @@ fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) {
 
     let addr = cpu.reg[rn].wrapping_add(imm);
     let res: u32 = match width {
-        Width::Byte => cpu.read8(addr) as u32,
-        Width::Half => cpu.read16(addr) as u32,
-        Width::Word => cpu.read32(addr),
+        Width::Byte => cpu.read8(addr).expect("BIG FIXME!!") as u32,
+        Width::Half => cpu.read16(addr).expect("BIG FIXME!!") as u32,
+        Width::Word => cpu.read32(addr).expect("BIG FIXME!!"),
         _ => unreachable!(),
     };
     cpu.reg[rt] = res;
@@ -177,7 +183,13 @@ pub fn ldm(cpu: &mut Cpu, op: LoadStoreMultiBits) -> DispatchRes {
     let mut addr = start_addr;
     for i in 0..8 {
         if (op.register_list() & (1 << i)) != 0 {
-            let val = cpu.read32(addr);
+            let val = match cpu.read32(addr){
+                Ok(val) => val,
+                Err(reason) => {
+                    println!("FIXME: got error {}", reason);
+                    return DispatchRes::FatalErr;
+                }
+            };
             cpu.reg[i as u32] = val;
             addr += 4;
         }
@@ -242,7 +254,13 @@ pub fn pop(cpu: &mut Cpu, op: PopBits) -> DispatchRes {
     let mut addr = start_addr;
     for i in 0..8 {
         if (op.register_list() & (1 << i)) != 0 {
-            let val = cpu.read32(addr);
+            let val = match cpu.read32(addr){
+                Ok(val) => val,
+                Err(reason) => {
+                    println!("FIXME: got error {}", reason);
+                    return DispatchRes::FatalErr;
+                }
+            };
             cpu.reg[i as u32] = val;
             addr += 4;
         }
@@ -259,7 +277,13 @@ pub fn pop(cpu: &mut Cpu, op: PopBits) -> DispatchRes {
     cpu.reg[Reg::Sp] = end_addr;
 
     if new_pc.is_some() {
-        let dest_pc = new_pc.unwrap();
+        let dest_pc = match new_pc.unwrap(){
+            Ok(val) => val,
+            Err(reason) => {
+                println!("FIXME: got error {}", reason);
+                return DispatchRes::FatalErr;
+            }
+        };
         cpu.reg.cpsr.set_thumb(dest_pc & 1 != 0);
         cpu.write_exec_pc(dest_pc & 0xffff_fffe);
         DispatchRes::RetireBranch

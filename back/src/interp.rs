@@ -157,7 +157,7 @@ impl InterpBackend {
         // request to MMU code in order to resolve the actual location.
         let paddr = self.cpu.translate(
             TLBReq::new(self.cpu.reg.r[1], Access::Debug)
-        );
+        ).expect("FIXME");
 
         // Pull the buffer out of guest memory
         let mut line_buf = [0u8; 16];
@@ -181,26 +181,33 @@ impl InterpBackend {
     }
 
     /// Write the current instruction to stdout.
-    pub fn dbg_print(&mut self) {
+    pub fn dbg_print(&mut self) -> Result<(), String>{
         let pc = self.cpu.read_fetch_pc();
         if self.cpu.dbg_on {
             if self.cpu.reg.cpsr.thumb() {
-                let opcd = self.cpu.read16(pc);
+                let opcd = match self.cpu.read16(pc) {
+                    Ok(val) => val,
+                    Err(reason) => return Err(reason)
+                };
                 let inst = ThumbInst::decode(opcd);
                 match inst {
-                    ThumbInst::BlImmSuffix => return,
+                    ThumbInst::BlImmSuffix => return Ok(()),
                     _ => {}
                 }
                 let name = format!("{:?}", ThumbInst::decode(opcd));
                 println!("({:08x}) {:12} {:x?}", opcd, name, self.cpu.reg);
                 //println!("{:?}", self.cpu.reg);
             } else {
-                let opcd = self.cpu.read32(pc);
+                let opcd = match self.cpu.read32(pc) {
+                    Ok(val) => val,
+                    Err(reason) => return Err(reason)
+                };
                 let name = format!("{:?}", ArmInst::decode(opcd));
                 println!("({:08x}) {:12} {:x?}", opcd, name, self.cpu.reg);
                 //println!("{:?}", self.cpu.reg);
             };
         }
+        Ok(())
     }
 
     /// Patch containing a call to ThreadCancel()
@@ -233,7 +240,7 @@ impl InterpBackend {
             } else {
                 let paddr = self.cpu.translate(
                     TLBReq::new(vaddr.unwrap(), Access::Debug)
-                );
+                ).unwrap_or_else(|_|{panic!("FIXME")});
                 println!("DBG hotpatching module entrypoint {:08x}", paddr);
                 println!("{:?}", self.cpu.reg);
                 self.bus.write().unwrap().dma_write(paddr, 
@@ -255,13 +262,27 @@ impl InterpBackend {
         // Fetch/decode/execute an ARM or Thumb instruction depending on
         // the state of the Thumb flag in the CPSR.
         let disp_res = if self.cpu.reg.cpsr.thumb() {
-            self.dbg_print();
-            let opcd = self.cpu.read16(self.cpu.read_fetch_pc());
+            self.dbg_print().unwrap_or(()); // maybe FIXME?
+            let opcd = match self.cpu.read16(self.cpu.read_fetch_pc()) {
+                Ok(val) => val,
+                Err(reason) => {
+                    println!("FIXME - err handling can go further up the chain");
+                    println!("Reason for failure: {}", reason);
+                    return CpuRes::HaltEmulation;
+                }
+            };
             let func = INTERP_LUT.thumb.lookup(opcd);
             func.0(&mut self.cpu, opcd)
         } else {
-            self.dbg_print();
-            let opcd = self.cpu.read32(self.cpu.read_fetch_pc());
+            self.dbg_print().unwrap_or(()); //maybe FIXME?
+            let opcd = match self.cpu.read32(self.cpu.read_fetch_pc()) {
+                Ok(val) => val,
+                Err(reason) => {
+                    println!("FIXME - err handling can go further up the chain");
+                    println!("Reason for failure: {}", reason);
+                    return CpuRes::HaltEmulation;
+                }
+            };
             if self.cpu.reg.cond_pass(opcd) {
                 let func = INTERP_LUT.arm.lookup(opcd);
                 func.0(&mut self.cpu, opcd)
@@ -406,7 +427,7 @@ impl InterpBackend {
             DebugCommand::PeekReg => { return self.cpu.reg[packet.op1]; },
             DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; return 0; },
             DebugCommand::PeekPAddr => {
-                return self.bus.read().expect("DebugPacket Bus").read8(packet.op1) as u32;
+                return self.bus.read().expect("DebugPacket Bus").read8(packet.op1).expect("FIXME") as u32;
             },
             DebugCommand::PokePAddr => {
                 self.bus.write().expect("DebugPacket Bus").write8(packet.op1, packet.op2 as u8);

@@ -7,32 +7,32 @@ use crate::cpu::Cpu;
 
 /// These are the top-level "public" functions providing read/write accesses.
 impl Cpu {
-    pub fn read32(&self, addr: u32) -> u32 {
-        let paddr = self.translate(TLBReq::new(addr, Access::Read));
-        let res = self.bus.read().unwrap().read32(paddr);
-        res
+    pub fn read32(&self, addr: u32) -> Result<u32, String> {
+        let paddr = self.translate(TLBReq::new(addr, Access::Read))?;
+        let res = self.bus.read().unwrap().read32(paddr)?;
+        Ok(res)
     }
-    pub fn read16(&self, addr: u32) -> u16 {
-        let paddr = self.translate(TLBReq::new(addr, Access::Read));
-        let res = self.bus.read().unwrap().read16(paddr);
-        res
+    pub fn read16(&self, addr: u32) -> Result<u16, String> {
+        let paddr = self.translate(TLBReq::new(addr, Access::Read))?;
+        let res = self.bus.read().unwrap().read16(paddr)?;
+        Ok(res)
     }
-    pub fn read8(&self, addr: u32) -> u8 {
-        let paddr = self.translate(TLBReq::new(addr, Access::Read));
-        let res = self.bus.read().unwrap().read8(paddr);
-        res
+    pub fn read8(&self, addr: u32) -> Result<u8, String> {
+        let paddr = self.translate(TLBReq::new(addr, Access::Read))?;
+        let res = self.bus.read().unwrap().read8(paddr)?;
+        Ok(res)
     }
 
     pub fn write32(&mut self, addr: u32, val: u32) {
-        let paddr = self.translate(TLBReq::new(addr, Access::Write));
+        let paddr = self.translate(TLBReq::new(addr, Access::Write)).expect("FIXME");
         self.bus.write().unwrap().write32(paddr, val);
     }
     pub fn write16(&mut self, addr: u32, val: u32) {
-        let paddr = self.translate(TLBReq::new(addr, Access::Write));
+        let paddr = self.translate(TLBReq::new(addr, Access::Write)).expect("FIXME");
         self.bus.write().unwrap().write16(paddr, val as u16);
     }
     pub fn write8(&mut self, addr: u32, val: u32) {
-        let paddr = self.translate(TLBReq::new(addr, Access::Write));
+        let paddr = self.translate(TLBReq::new(addr, Access::Write)).expect("FIXME");
         self.bus.write().unwrap().write8(paddr, val as u8);
     }
 }
@@ -52,20 +52,23 @@ impl Cpu {
 
     /// Resolve a coarse descriptor, returning a physical address.
     #[allow(unreachable_patterns)]
-    fn resolve_coarse(&self, req: TLBReq, d: CoarseDescriptor) -> u32 {
-        let desc = self.l2_fetch(req.vaddr, L1Descriptor::Coarse(d));
+    fn resolve_coarse(&self, req: TLBReq, d: CoarseDescriptor) -> Result<u32, String> {
+        let desc = match self.l2_fetch(req.vaddr, L1Descriptor::Coarse(d)) {
+            Ok(val) => val,
+            Err(reason) => return Err(reason),
+        };
         match desc {
             L2Descriptor::SmallPage(entry) => {
                 let ctx = self.get_ctx(d.domain());
                 if ctx.validate(&req, entry.get_ap(req.vaddr)) {
-                    entry.base_addr() | req.vaddr.small_page_idx()
+                    Ok(entry.base_addr() | req.vaddr.small_page_idx())
                 } else {
-                    panic!("Domain access faults are unimplemented, vaddr={:08x}",
-                        req.vaddr.0);
+                    Err(format!("Domain access faults are unimplemented, vaddr={:08x}",
+                        req.vaddr.0))
                 }
             },
-            _ => panic!("L2 descriptor {:?} unimplemented, vaddr={:08x}", 
-                desc, req.vaddr.0),
+            _ => Err(format!("L2 descriptor {:?} unimplemented, vaddr={:08x}", 
+                desc, req.vaddr.0)),
         }
     }
 
@@ -80,9 +83,12 @@ impl Cpu {
     }
 
     /// Given some virtual address, return the first-level PTE.
-    fn l1_fetch(&self, vaddr: VirtAddr) -> L1Descriptor {
+    fn l1_fetch(&self, vaddr: VirtAddr) -> Result<L1Descriptor, String> {
         let addr = (self.p15.c2_ttbr0 & 0xffff_c000) | vaddr.l1_idx() << 2;
-        let val = self.bus.read().unwrap().read32(addr);
+        let val = match self.bus.read().unwrap().read32(addr) {
+            Ok(val) => val,
+            Err(reason) => return Err(reason),
+        };
         let res = L1Descriptor::from_u32(val);
         match res {
             L1Descriptor::Fault(_) => {
@@ -91,33 +97,39 @@ impl Cpu {
             },
             _ => {},
         }
-        res
+        Ok(res)
     }
 
     /// Given some virtual address and a particular first-level PTE, return
     /// the second-level PTE.
-    fn l2_fetch(&self, vaddr: VirtAddr, d: L1Descriptor) -> L2Descriptor {
+    fn l2_fetch(&self, vaddr: VirtAddr, d: L1Descriptor) -> Result<L2Descriptor, String> {
         let addr = match d {
             L1Descriptor::Coarse(e) => {
                 e.base_addr() | vaddr.l2_idx_coarse() << 2
             },
             _ => unreachable!(),
         };
-        let val = self.bus.read().unwrap().read32(addr);
-        L2Descriptor::from_u32(val)
+        let val = match self.bus.read().unwrap().read32(addr) {
+            Ok(val) => val,
+            Err(reason) => return Err(reason),
+        };
+        Ok(L2Descriptor::from_u32(val))
     }
 
     /// Translate a virtual address into a physical address.
-    pub fn translate(&self, req: TLBReq) -> u32 {
+    pub fn translate(&self, req: TLBReq) -> Result<u32, String> {
         if self.p15.c1_ctrl.mmu_enabled() {
-            let desc = self.l1_fetch(req.vaddr);
+            let desc = match self.l1_fetch(req.vaddr){ 
+                Ok(val) => val,
+                Err(reason) => return Err(reason),
+            };
             match desc {
-                L1Descriptor::Section(entry) => self.resolve_section(req, entry),
+                L1Descriptor::Section(entry) => Ok(self.resolve_section(req, entry)),
                 L1Descriptor::Coarse(entry) => self.resolve_coarse(req, entry),
-                _ => panic!("TLB first-level descriptor {:?} unimplemented", desc),
+                _ => Err(format!("TLB first-level descriptor {:?} unimplemented", desc)),
             }
         } else {
-            req.vaddr.0
+            Ok(req.vaddr.0)
         }
     }
 }

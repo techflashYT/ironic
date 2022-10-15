@@ -65,7 +65,7 @@ macro_rules! scdef {
 /// 
 /// NOTE: This is not particularly rigorous or safe.
 pub fn read_string(cpu: &Cpu, ptr: u32) -> String {
-    let paddr = cpu.translate(TLBReq::new(ptr, Access::Debug));
+    let paddr = cpu.translate(TLBReq::new(ptr, Access::Debug)).expect("FIXME");
 
     let mut line_buf = [0u8; 64];
     cpu.bus.read().unwrap().dma_read(paddr, &mut line_buf);

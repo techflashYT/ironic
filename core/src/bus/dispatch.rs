@@ -8,21 +8,33 @@ use crate::bus::prim::*;
 /// Top-level read/write functions for performing physical memory accesses.
 impl Bus {
     /// Perform a 32-bit physical memory read.
-    pub fn read32(&self, addr: u32) -> u32 {
+    pub fn read32(&self, addr: u32) -> Result<u32, String> {
         let msg = self.do_read(addr, BusWidth::W);
-        match msg { BusPacket::Word(res) => res, _ => unreachable!(), }
+        match msg {
+            Ok(BusPacket::Word(res)) => Ok(res),
+            Ok(_) => unreachable!(),
+            Err(reason) => Err(reason),
+        }
     }
 
     /// Perform a 16-bit physical memory read.
-    pub fn read16(&self, addr: u32) -> u16 {
+    pub fn read16(&self, addr: u32) -> Result<u16, String> {
         let msg = self.do_read(addr, BusWidth::H);
-        match msg { BusPacket::Half(res) => res, _ => unreachable!(), }
+        match msg {
+            Ok(BusPacket::Half(res)) => Ok(res),
+            Ok(_) => unreachable!(),
+            Err(reason) => Err(reason),
+        }
     }
 
     /// Perform an 8-bit physical memory read.
-    pub fn read8(&self, addr: u32) -> u8 {
+    pub fn read8(&self, addr: u32) -> Result<u8, String> {
         let msg = self.do_read(addr, BusWidth::B);
-        match msg { BusPacket::Byte(res) => res, _ => unreachable!(), }
+        match msg {
+            Ok(BusPacket::Byte(res)) => Ok(res),
+            Ok(_) => unreachable!(),
+            Err(reason) => Err(reason),
+        }
     }
 
     /// Perform a 32-bit physical memory write.
@@ -51,17 +63,18 @@ impl Bus {
 
 impl Bus {
     /// Dispatch a physical read access (to memory, or some I/O device).
-    fn do_read(&self, addr: u32, width: BusWidth) -> BusPacket {
-        let handle = self.decode_phys_addr(addr).unwrap_or_else(||
-            panic!("Unresolved physical address {:08x}. current cycle count: {}", addr, self.cycle)
-        );
+    fn do_read(&self, addr: u32, width: BusWidth) -> Result<BusPacket, String> {
+        let handle = match self.decode_phys_addr(addr) {
+            Some (h)=> {h},
+            None => { return Err(format!("Unresolved physical address {:08x}. current cycle count: {}", addr, self.cycle)); }
+        };
 
         let off = (addr & handle.mask) as usize;
         let resp = match handle.dev {
             Device::Mem(dev) => self.do_mem_read(dev, off, width),
             Device::Io(dev) => self.do_mmio_read(dev, off, width),
         };
-        resp
+        Ok(resp)
     }
 
     /// Dispatch a physical write access (to memory, or some I/O device).
