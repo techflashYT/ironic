@@ -274,9 +274,7 @@ impl InterpBackend {
             let opcd = match self.cpu.read16(self.cpu.read_fetch_pc()) {
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME - err handling can go further up the chain");
-                    println!("Reason for failure: {}", reason);
-                    return CpuRes::HaltEmulation;
+                    return CpuRes::HaltEmulation(reason);
                 }
             };
             let func = INTERP_LUT.thumb.lookup(opcd);
@@ -286,9 +284,7 @@ impl InterpBackend {
             let opcd = match self.cpu.read32(self.cpu.read_fetch_pc()) {
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME - err handling can go further up the chain");
-                    println!("Reason for failure: {}", reason);
-                    return CpuRes::HaltEmulation;
+                    return CpuRes::HaltEmulation(reason);
                 }
             };
             if self.cpu.reg.cond_pass(opcd) {
@@ -326,9 +322,7 @@ impl InterpBackend {
             },
 
             DispatchRes::FatalErr(reason) => {
-                println!("Fatal error encountered: {}", reason);
-                println!("CPU halted at pc={:08x}", self.cpu.read_fetch_pc());
-                CpuRes::HaltEmulation
+                CpuRes::HaltEmulation(reason)
             },
         };
 
@@ -411,7 +405,10 @@ impl Backend for InterpBackend {
             let res = self.cpu_step();
             match res {
                 CpuRes::StepOk => {},
-                CpuRes::HaltEmulation => break,
+                CpuRes::HaltEmulation(reason) => {
+                    println!("CPU returned fatal error: {}", reason);
+                    break;
+                },
                 CpuRes::StepException(e) => {
                     match e {
                         ExceptionType::Undef(_) => {},
