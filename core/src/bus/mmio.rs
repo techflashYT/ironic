@@ -9,14 +9,14 @@ pub trait MmioDevice {
     type Width;
 
     /// Handle a read, returning some result.
-    fn read(&self, off: usize) -> BusPacket;
+    fn read(&self, off: usize) -> Result<BusPacket, String>;
     /// Handle a write, optionally returning a task for the bus.
     fn write(&mut self, off: usize, val: Self::Width) -> Option<BusTask>;
 }
 
 impl Bus {
     /// Dispatch a physical read access to some memory-mapped I/O device.
-    pub fn do_mmio_read(&self, dev: IoDevice, off: usize, width: BusWidth) -> BusPacket {
+    pub fn do_mmio_read(&self, dev: IoDevice, off: usize, width: BusWidth) -> Result<BusPacket, String> {
         use IoDevice::*;
         match (width, dev) {
             (BusWidth::W, Nand)  => self.nand.read(off),
@@ -34,7 +34,7 @@ impl Bus {
             (BusWidth::W, Exi)   => self.hlwd.exi.read(off),
             (BusWidth::H, Mi)    => self.hlwd.mi.read(off),
             (BusWidth::H, Ddr)   => self.hlwd.ddr.read(off),
-            _ => panic!("Unsupported read {:?} for {:?} at {:x}", width, dev, off),
+            _ => { return Err(format!("Unsupported read {:?} for {:?} at {:x}", width, dev, off)); },
         }
     }
 

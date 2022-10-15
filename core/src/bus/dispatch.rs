@@ -72,7 +72,7 @@ impl Bus {
         let off = (addr & handle.mask) as usize;
         let resp = match handle.dev {
             Device::Mem(dev) => self.do_mem_read(dev, off, width),
-            Device::Io(dev) => self.do_mmio_read(dev, off, width),
+            Device::Io(dev) => self.do_mmio_read(dev, off, width)?,
         };
         Ok(resp)
     }

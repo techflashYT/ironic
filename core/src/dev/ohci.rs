@@ -38,7 +38,7 @@ pub struct OhcInterface {
 
 impl MmioDevice for OhcInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x00 => 0x0000_0110,
             // NOTE: Everything is wired to 0 in skyeye; good enough for now
@@ -48,10 +48,10 @@ impl MmioDevice for OhcInterface {
             0x4c |
             0x50 => 0,
 
-            _ => panic!("OHCI#{} read at {:x} unimpl", self.idx, off),
+            _ => { return Err(format!("OHCI#{} read at {:x} unimpl", self.idx, off)); },
         };
         println!("OH{} read {:08x} at {:x}", self.idx, val, off);
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
         println!("OH{} write {:08x} at {:x}", self.idx, val, off);

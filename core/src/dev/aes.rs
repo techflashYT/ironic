@@ -75,11 +75,11 @@ impl AesInterface {
 impl MmioDevice for AesInterface {
     type Width = u32;
 
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         match off {
             //0x00 => BusPacket::Word(self.ctrl),
-            0x00 => BusPacket::Word(0),
-            _ => panic!("Unhandled AES interface read {:x}", off),
+            0x00 => Ok(BusPacket::Word(0)),
+            _ => Err(format!("Unhandled AES interface read {:x}", off)),
         }
     }
 

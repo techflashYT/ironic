@@ -193,7 +193,7 @@ impl NandInterface {
 
 impl MmioDevice for NandInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off { 
             //0x00 => self.reg.ctrl,
             0x00 => 0x0000_0001,
@@ -206,9 +206,9 @@ impl MmioDevice for NandInterface {
                 println!("NND unimpl read from 0x18");
                 self.reg.unk
             },
-            _ => panic!("Unhandled NND read at {:x} ", off),
+            _ => { return Err(format!("Unhandled NND read at {:x} ", off)); },
         };
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
 
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {

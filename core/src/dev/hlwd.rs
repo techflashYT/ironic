@@ -134,7 +134,7 @@ pub struct AhbInterface {
 }
 impl MmioDevice for AhbInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x08 => 0,
             0x10 => self.unk_10,
@@ -142,9 +142,9 @@ impl MmioDevice for AhbInterface {
                 println!("FIXME: AHB Read from weird (0x3fe4) - returning 0");
                 0
             }
-            _ => panic!("AHB read to undefined offset {:x}", off),
+            _ => { return Err(format!("AHB read to undefined offset {:x}", off));},
         };
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
         match off {
@@ -230,7 +230,7 @@ impl Hollywood {
 
 impl MmioDevice for Hollywood {
     type Width = u32;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x000..=0x00c   => self.ipc.read_handler(off),
             0x010           => self.timer.timer,
@@ -260,9 +260,9 @@ impl MmioDevice for Hollywood {
             0x1ec           => self.otp.cmd,
             0x1f0           => self.otp.out,
             0x214           => 0x0000_0000,
-            _ => panic!("Unimplemented Hollywood read at {:x}", off),
+            _ => { return Err(format!("Unimplemented Hollywood read at {:x}", off)); },
         };
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
 
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {

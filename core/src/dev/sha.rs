@@ -51,7 +51,7 @@ impl ShaInterface {
 impl MmioDevice for ShaInterface {
     type Width = u32;
 
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x00 => 0, //self.ctrl,
             0x08 => self.state.digest[0],
@@ -59,9 +59,9 @@ impl MmioDevice for ShaInterface {
             0x10 => self.state.digest[2],
             0x14 => self.state.digest[3],
             0x18 => self.state.digest[4],
-            _ => panic!("Unimplemented SHA read at offset {:04x}", off),
+            _ => { return Err(format!("Unimplemented SHA read at offset {:04x}", off)); },
         };
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
 
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {

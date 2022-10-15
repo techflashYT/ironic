@@ -42,15 +42,15 @@ impl DdrInterface {
 
 impl MmioDevice for DdrInterface {
     type Width = u16;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
-            0x28 => panic!("DDR ahmflush read unimplemented"),
+            0x28 => { return Err(format!("DDR ahmflush read unimplemented")); },
             0x2a => self.ahmflush_ack,
             0xc4 => self.seq_data,
             0xc6 => self.seq_addr,
             _ => self.ddr_reg[off / 2],
         };
-        BusPacket::Half(val)
+        Ok(BusPacket::Half(val))
     }
     fn write(&mut self, off: usize, val: u16) -> Option<BusTask> {
         match off {

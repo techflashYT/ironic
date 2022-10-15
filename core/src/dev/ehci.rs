@@ -24,12 +24,11 @@ impl EhcInterface {
 impl MmioDevice for EhcInterface {
     type Width = u32;
 
-    fn read(&self, off: usize) -> BusPacket {
-        let val = match off {
-            0xcc => self.unk_cc,
-            _ => panic!("Unimplemented EHCI read at offset {:04x}", off),
-        };
-        BusPacket::Word(val)
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
+        match off {
+            0xcc => Ok(BusPacket::Word(self.unk_cc)),
+            _ => Err(format!("Unimplemented EHCI read at offset {:04x}", off)),
+        }
     }
 
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {

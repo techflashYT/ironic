@@ -17,14 +17,14 @@ pub struct DriveInterface {
 }
 impl MmioDevice for DriveInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x00 => self.disr,
             0x04 => self.dicvr,
             0x24 => self.dicfg,
-            _ => panic!("DI read to undefined offset {:x}", off),
+            _ => {return Err(format!("DI read to undefined offset {:x}", off)); },
         };
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
         match off {

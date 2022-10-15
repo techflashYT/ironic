@@ -21,13 +21,13 @@ impl MemInterface {
 }
 impl MmioDevice for MemInterface {
     type Width = u16;
-    fn read(&self, off: usize) -> BusPacket {
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x74 => self.ddr_addr,
             0x76 => self.ddr_data,
             _ => self.reg[off / 2],
         };
-        BusPacket::Half(val)
+        Ok(BusPacket::Half(val))
     }
     fn write(&mut self, off: usize, val: u16) -> Option<BusTask> {
         let task = match off {
@@ -46,7 +46,9 @@ impl Bus {
                 assert!(data >= 0x0100);
                 self.hlwd.mi.ddr_addr = data;
                 let off = ((data * 2) - 0x0200) as usize;
-                let res = self.hlwd.ddr.read(off);
+                let res = self.hlwd.ddr.read(off).unwrap_or_else(|reason| {
+                    panic!("FIXME: Got error from ddr mmio: {}", reason);
+                });
                 self.hlwd.mi.ddr_data = match res {
                     BusPacket::Half(val) => val,
                     _ => unreachable!(),

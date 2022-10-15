@@ -204,16 +204,16 @@ impl EXInterface {
 
 impl MmioDevice for EXInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> BusPacket { 
+    fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
             0x00..=0x10 => self.chan0.read(off),
             0x14..=0x24 => self.chan1.read(off - 0x14),
             0x28..=0x38 => self.chan2.read(off - 0x28),
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4],
-            _ => panic!("EXI read to undef offset {:x}", off),
+            _ => { return Err(format!("EXI read to undef offset {:x}", off)); },
         };
-        BusPacket::Word(val)
+        Ok(BusPacket::Word(val))
     }
     fn write(&mut self, off: usize, val: u32) -> Option<BusTask> { 
         match off { 
