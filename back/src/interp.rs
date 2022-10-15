@@ -270,7 +270,7 @@ impl InterpBackend {
         // Fetch/decode/execute an ARM or Thumb instruction depending on
         // the state of the Thumb flag in the CPSR.
         let disp_res = if self.cpu.reg.cpsr.thumb() {
-            self.dbg_print().unwrap_or(()); // maybe FIXME?
+            self.dbg_print().unwrap_or_default(); // Ok to fail - just a debug print
             let opcd = match self.cpu.read16(self.cpu.read_fetch_pc()) {
                 Ok(val) => val,
                 Err(reason) => {
@@ -280,7 +280,7 @@ impl InterpBackend {
             let func = INTERP_LUT.thumb.lookup(opcd);
             func.0(&mut self.cpu, opcd)
         } else {
-            self.dbg_print().unwrap_or(()); //maybe FIXME?
+            self.dbg_print().unwrap_or_default(); // Ok to fail - just a debug print
             let opcd = match self.cpu.read32(self.cpu.read_fetch_pc()) {
                 Ok(val) => val,
                 Err(reason) => {

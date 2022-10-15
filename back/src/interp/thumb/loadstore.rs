@@ -247,7 +247,6 @@ pub fn ldm(cpu: &mut Cpu, op: LoadStoreMultiBits) -> DispatchRes {
             let val = match cpu.read32(addr){
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME: got error {}", reason);
                     return DispatchRes::FatalErr(reason);
                 }
             };
