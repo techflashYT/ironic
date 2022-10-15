@@ -185,7 +185,7 @@ impl InterpBackend {
     }
 
     /// Write the current instruction to stdout.
-    pub fn dbg_print(&mut self) -> Result<(), String>{
+    pub fn dbg_print(&mut self) -> Result<(), String> {
         let pc = self.cpu.read_fetch_pc();
         if self.cpu.dbg_on {
             if self.cpu.reg.cpsr.thumb() {
