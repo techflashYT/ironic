@@ -38,38 +38,74 @@ pub fn ldr_lit(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
 
 
 /// Generic load (register).
-fn load_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) {
+fn load_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> Result<(), String> {
+    let mut failure_reason: Option<String> = None;
     let addr = cpu.reg[rn].wrapping_add(cpu.reg[rm]);
     let res: u32 = match width {
-        Width::Byte => cpu.read8(addr).expect("BIG FIXME!!") as u32,
-        Width::Half => cpu.read16(addr).expect("BIG FIXME!!") as u32,
-        Width::Word => cpu.read32(addr).expect("BIG FIXME!!"),
-        Width::SignedHalf => 
-            sign_extend(cpu.read16(addr).expect("BIG FIXME!!") as u32, 16) as u32,
-        Width::SignedByte => 
-            sign_extend(cpu.read8(addr).expect("BIG FIXME!!") as u32, 8) as u32,
+        Width::Byte => cpu.read8(addr).unwrap_or_else(|reason|{
+            failure_reason = Some(reason);
+            0
+        }) as u32,
+        Width::Half => cpu.read16(addr).unwrap_or_else(|reason|{
+            failure_reason = Some(reason);
+            0
+        }) as u32,
+        Width::Word => cpu.read32(addr).unwrap_or_else(|reason|{
+            failure_reason = Some(reason);
+            0
+        }),
+        Width::SignedHalf => {
+            let val = cpu.read16(addr).unwrap_or_else(|reason|{
+                failure_reason = Some(reason);
+                0
+            }) as u32;
+            sign_extend(val, 16) as u32
+        },
+        Width::SignedByte => {
+            let val = cpu.read8(addr).unwrap_or_else(|reason|{
+                failure_reason = Some(reason);
+                0
+            }) as u32;
+            sign_extend(val, 8) as u32
+        }
     };
-    cpu.reg[rt] = res;
+    match failure_reason {
+        None => {
+            cpu.reg[rt] = res;
+            return Ok(());
+        },
+        Some(reason) => return Err(reason),
+    }
 }
 pub fn ldr_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Word);
-    DispatchRes::RetireOk
+    match load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Word) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldrh_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Half);
-    DispatchRes::RetireOk
+    match load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Half) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldrb_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Byte);
-    DispatchRes::RetireOk
+    match load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Byte) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldrsb_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::SignedByte);
-    DispatchRes::RetireOk
+    match load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::SignedByte) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn ldrsh_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::SignedHalf);
-    DispatchRes::RetireOk
+    match load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::SignedHalf) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 
 
