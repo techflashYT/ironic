@@ -149,15 +149,18 @@ impl InterpBackend {
     }
 
     /// Write semihosting debug strings to stdout.
-    pub fn svc_read(&mut self) {
+    pub fn svc_read(&mut self) -> Result<(), String> {
         use ironic_core::cpu::mmu::prim::{TLBReq, Access};
 
         // On the SVC calls, r1 should contain a pointer to some buffer.
         // They might be virtual addresses, so we need to do an out-of-band
         // request to MMU code in order to resolve the actual location.
-        let paddr = self.cpu.translate(
+        let paddr = match self.cpu.translate(
             TLBReq::new(self.cpu.reg.r[1], Access::Debug)
-        ).expect("FIXME");
+        ) {
+            Ok(val) => val,
+            Err(reason) => return Err(reason),
+        };
 
         // Pull the buffer out of guest memory
         let mut line_buf = [0u8; 16];
@@ -173,6 +176,7 @@ impl InterpBackend {
             println!("SVC {}", string);
             self.svc_buf.clear();
         }
+        Ok(())
     }
 
     /// Log IOS syscalls to stdout.
@@ -411,7 +415,9 @@ impl Backend for InterpBackend {
                     }
                 },
                 CpuRes::Semihosting => {
-                    self.svc_read();
+                    self.svc_read().unwrap_or_else(|reason|{
+                        println!("FIXME: svc_read got error {}", reason);
+                    });
                 }
             }
             self.cpu_cycle += 1;
