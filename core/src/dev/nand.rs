@@ -250,18 +250,15 @@ impl Bus {
     }
 
     /// Perform a NAND read into memory
-    fn nand_read_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) {
+    fn nand_read_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
         let mut len = cmd.len as usize;
         // Ok, I have no idea why official software is trying to read with size != 0x800 or 0x840
         // but it happens. I feel reasonably confident about reads sized 0x40, since they probably
         // want the ECC. Anything else I have no idea, and I just bail. This should probably be
         // addressed at some point.
         if len != 0x800 && len != 0x840 {
-            println!("WARNING: requested a really weird read size {:#06x} from the NAND interface", len);
             if len != 0x40 {
-                //panic!("Invalid read size: {:#06x} from NAND interface.", len);
-                println!("Bailing out of NAND interface!");
-                return;
+                return Err(format!("Refusing to process a really weird read size {:#06x} from the NAND interface", len));
             }
             len = 0x840;
         }
@@ -282,12 +279,13 @@ impl Bus {
             let new_ecc = calc_ecc(&mut local_buf[(i * 0x200)..]);
             // let old_ecc = self.read32(addr);
             //println!("NND old_ecc={:08x} new_ecc={:08x}", old_ecc, new_ecc);
-            self.write32(addr, new_ecc);
+            self.write32(addr, new_ecc)?;
         }
+        Ok(())
     }
 
     /// Write a NAND page (its okay that this is a mess, for now..)
-    fn nand_write_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) {
+    fn nand_write_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
         // Read from memory
         let mut local_buf = vec![0; cmd.len as usize];
         self.dma_read(reg.databuf, &mut local_buf);
@@ -301,11 +299,10 @@ impl Bus {
             for i in 0..4 {
                 let addr = (reg.eccbuf ^ 0x40) + (i as u32 * 4);
                 let new_ecc = calc_ecc(&mut local_buf[(i * 0x200)..]);
-                self.write32(addr, new_ecc);
+                self.write32(addr, new_ecc)?;
             }
         }
-
-
+        Ok(())
     }
 
     /// Handle a NAND command
@@ -327,7 +324,7 @@ impl Bus {
                 match cmd.opcd {
                     SerialInput => {
                         next_cycle = reg._cycle + 1;
-                        self.nand_write_page(&cmd, &reg);
+                        self.nand_write_page(&cmd, &reg).unwrap_or_else(|reason| {panic!("FIXME: error handling. Error in nand_write_page: {}", reason)});
                     },
                     PrefixRead  => next_cycle = reg._cycle + 1,
                     PrefixErase => next_cycle = reg._cycle + 1,
@@ -343,9 +340,9 @@ impl Bus {
             1 => match cmd.opcd {
                 RandInput => {
                     next_cycle = reg._cycle + 1;
-                    self.nand_write_page(&cmd, &reg);
+                    self.nand_write_page(&cmd, &reg).unwrap_or_else(|reason| {panic!("FIXME: error handling. Error in nand_write_page: {}", reason);});
                 },
-                Read    => self.nand_read_page(&cmd, &reg),
+                Read    => self.nand_read_page(&cmd, &reg).unwrap_or_else(|reason| {panic!("FIXME: error handling. Error in nand_read_page: {}", reason);}),
                 Erase   => self.nand_erase_page(&cmd, &reg),
                 _ => panic!("NAND unknown cycle 1 opcd {:?}", cmd.opcd),
             },

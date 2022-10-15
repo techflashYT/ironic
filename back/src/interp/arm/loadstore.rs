@@ -96,16 +96,20 @@ pub fn str_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
         op.imm12(), op.u(), op.p(), op.w()
     );
     cpu.reg[op.rn()] = wb_addr;
-    cpu.write32(addr, cpu.reg[op.rt()]);
-    DispatchRes::RetireOk
+    match cpu.write32(addr, cpu.reg[op.rt()]) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn strb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
         op.imm12(), op.u(), op.p(), op.w()
     );
     cpu.reg[op.rn()] = wb_addr;
-    cpu.write8(addr, cpu.reg[op.rt()]);
-    DispatchRes::RetireOk
+    match cpu.write8(addr, cpu.reg[op.rt()]) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 
 
@@ -146,9 +150,13 @@ pub fn str_reg(cpu: &mut Cpu, op: LsRegBits) -> DispatchRes {
     );
 
     let val = cpu.reg[op.rt()];
-    cpu.write32(addr, val);
-    cpu.reg[op.rn()] = wb_addr;
-    DispatchRes::RetireOk
+    match cpu.write32(addr, val) {
+        Ok(_) => {
+            cpu.reg[op.rn()] = wb_addr;
+            DispatchRes::RetireOk
+        },
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 
 
@@ -175,7 +183,10 @@ pub fn stm_user(cpu: &mut Cpu, op: StmRegUserBits) -> DispatchRes {
     for i in 0..16 {
         if (reglist & (1 << i)) != 0 {
             let val = cpu.reg[i as u32];
-            cpu.write32(addr, val);
+            match cpu.write32(addr, val) {
+                Ok(_) => {},
+                Err(reason) => { return DispatchRes::FatalErr(reason); } 
+            }
             addr += 4;
         }
     }
@@ -349,7 +360,10 @@ pub fn stmdb(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
             } else {
                 cpu.reg[i as u32]
             };
-            cpu.write32(addr, val);
+            match cpu.write32(addr, val)  {
+                Ok(_) => {},
+                Err(reason) => { return DispatchRes::FatalErr(reason); }
+            };
             addr += 4;
         }
     }
@@ -373,7 +387,10 @@ pub fn stm(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
             } else {
                 cpu.reg[i as u32]
             };
-            cpu.write32(addr, val);
+            match cpu.write32(addr, val) {
+                Ok(_) => {},
+                Err(reason) => { return DispatchRes::FatalErr(reason); }
+            };
             addr += 4;
         }
     }
@@ -391,7 +408,9 @@ pub fn strh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
         offset, op.u(), op.p(), op.w()
     );
     cpu.reg[op.rn()] = wb_addr;
-    cpu.write16(addr, cpu.reg[op.rt()]);
-    DispatchRes::RetireOk
+    match cpu.write16(addr, cpu.reg[op.rt()]) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 

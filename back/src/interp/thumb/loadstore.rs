@@ -172,7 +172,7 @@ pub fn ldr_imm_sp(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
 
 
 /// Generic store (register).
-fn store_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) {
+fn store_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> Result<(), String> { //FIXME Proper gaurd against Width variants
     let addr = cpu.reg[rn].wrapping_add(cpu.reg[rm]);
     let val: u32 = cpu.reg[rt];
     match width {
@@ -183,22 +183,28 @@ fn store_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) {
     }
 }
 pub fn str_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    store_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Word);
-    DispatchRes::RetireOk
+    match store_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Word) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn strb_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    store_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Byte);
-    DispatchRes::RetireOk
+    match store_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Byte) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn strh_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
-    store_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Half);
-    DispatchRes::RetireOk
+    match store_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Half) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 
 
 
 /// Generic store (immediate).
-fn store_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) {
+fn store_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> Result<(), String> {
     let imm = match width {
         Width::Byte => imm_n, 
         Width::Half => imm_n << 1,
@@ -216,20 +222,28 @@ fn store_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) {
     }
 }
 pub fn str_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
-    store_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Word);
-    DispatchRes::RetireOk
+    match store_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Word) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn strb_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
-    store_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Byte);
-    DispatchRes::RetireOk
+    match store_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Byte) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn strh_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
-    store_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Half);
-    DispatchRes::RetireOk
+    match store_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Half) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 pub fn str_imm_sp(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
-    store_imm(cpu, 13, op.rt(), op.imm8() as u32, Width::Word);
-    DispatchRes::RetireOk
+    match store_imm(cpu, 13, op.rt(), op.imm8() as u32, Width::Word) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
 }
 
 
@@ -269,7 +283,10 @@ pub fn stm(cpu: &mut Cpu, op: LoadStoreMultiBits) -> DispatchRes {
     let mut addr = start_addr;
     for i in 0..8 {
         if (op.register_list() & (1 << i)) != 0 {
-            cpu.write32(addr, cpu.reg[i as u32]);
+            match cpu.write32(addr, cpu.reg[i as u32]) {
+                Ok(_) => {},
+                Err(reason) => { return DispatchRes::FatalErr(reason); }
+            };
             addr += 4;
         }
     }
@@ -289,12 +306,18 @@ pub fn push(cpu: &mut Cpu, op: PushBits) -> DispatchRes {
     let mut addr = start_addr;
     for i in 0..8 {
         if (op.register_list() & (1 << i)) != 0 {
-            cpu.write32(addr, cpu.reg[i as u32]);
+            match cpu.write32(addr, cpu.reg[i as u32]) {
+                Ok(_) => {},
+                Err(reason) => {return DispatchRes::FatalErr(reason) }
+            };
             addr += 4;
         }
     }
     if op.m() {
-        cpu.write32(addr, cpu.reg[Reg::Lr]);
+        match cpu.write32(addr, cpu.reg[Reg::Lr]) {
+            Ok(_) => {},
+            Err(reason) => { return DispatchRes::FatalErr(reason); }
+        };
         addr += 4;
     }
     assert!(end_addr == addr - 4);

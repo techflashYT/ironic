@@ -38,16 +38,16 @@ impl Bus {
     }
 
     /// Perform a 32-bit physical memory write.
-    pub fn write32(&mut self, addr: u32, val: u32) {
-        self.do_write(addr, BusPacket::Word(val));
+    pub fn write32(&mut self, addr: u32, val: u32) -> Result<(), String> {
+        self.do_write(addr, BusPacket::Word(val))
     }
     /// Perform a 16-bit physical memory write.
-    pub fn write16(&mut self, addr: u32, val: u16) {
-        self.do_write(addr, BusPacket::Half(val));
+    pub fn write16(&mut self, addr: u32, val: u16) -> Result<(), String> {
+        self.do_write(addr, BusPacket::Half(val))
     }
     /// Perform an 8-bit physical memory write.
-    pub fn write8(&mut self, addr: u32, val: u8) {
-        self.do_write(addr, BusPacket::Byte(val));
+    pub fn write8(&mut self, addr: u32, val: u8) -> Result<(), String> {
+        self.do_write(addr, BusPacket::Byte(val))
     }
 
     /// Perform a DMA write operation.
@@ -78,16 +78,18 @@ impl Bus {
     }
 
     /// Dispatch a physical write access (to memory, or some I/O device).
-    fn do_write(&mut self, addr: u32, msg: BusPacket) {
-        let handle = self.decode_phys_addr(addr).unwrap_or_else(||
-            panic!("Unresolved physical address {:08x}", addr)
-        );
+    fn do_write(&mut self, addr: u32, msg: BusPacket) -> Result<(), String> {
+        let handle = match self.decode_phys_addr(addr) {
+            Some(val) => val,
+            None => { return Err(format!("Unresolved physical address {:08x}", addr)); },
+        };
 
         let off = (addr & handle.mask) as usize;
         let _resp = match handle.dev {
             Device::Mem(dev) => self.do_mem_write(dev, off, msg),
             Device::Io(dev) => self.do_mmio_write(dev, off, msg),
         };
+        Ok(())
     }
 }
 

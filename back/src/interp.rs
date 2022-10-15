@@ -441,7 +441,7 @@ impl InterpBackend {
                 return self.bus.read().expect("DebugPacket Bus").read8(packet.op1).expect("FIXME") as u32;
             },
             DebugCommand::PokePAddr => {
-                self.bus.write().expect("DebugPacket Bus").write8(packet.op1, packet.op2 as u8);
+                self.bus.write().expect("DebugPacket Bus").write8(packet.op1, packet.op2 as u8).expect("FIXME");
                 return 0;
             },
             DebugCommand::Step => { self.debug_cycles = packet.op1; return 0; },

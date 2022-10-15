@@ -23,17 +23,17 @@ impl Cpu {
         Ok(res)
     }
 
-    pub fn write32(&mut self, addr: u32, val: u32) {
-        let paddr = self.translate(TLBReq::new(addr, Access::Write)).expect("FIXME");
-        self.bus.write().unwrap().write32(paddr, val);
+    pub fn write32(&mut self, addr: u32, val: u32) -> Result<(), String> {
+        let paddr = self.translate(TLBReq::new(addr, Access::Write))?;
+        self.bus.write().unwrap().write32(paddr, val)
     }
-    pub fn write16(&mut self, addr: u32, val: u32) {
-        let paddr = self.translate(TLBReq::new(addr, Access::Write)).expect("FIXME");
-        self.bus.write().unwrap().write16(paddr, val as u16);
+    pub fn write16(&mut self, addr: u32, val: u32) -> Result<(), String> {
+        let paddr = self.translate(TLBReq::new(addr, Access::Write))?;
+        self.bus.write().unwrap().write16(paddr, val as u16)
     }
-    pub fn write8(&mut self, addr: u32, val: u32) {
-        let paddr = self.translate(TLBReq::new(addr, Access::Write)).expect("FIXME");
-        self.bus.write().unwrap().write8(paddr, val as u8);
+    pub fn write8(&mut self, addr: u32, val: u32) -> Result<(), String> {
+        let paddr = self.translate(TLBReq::new(addr, Access::Write))?;
+        self.bus.write().unwrap().write8(paddr, val as u8)
     }
 }
 
