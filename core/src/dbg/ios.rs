@@ -64,8 +64,8 @@ macro_rules! scdef {
 /// Read a NUL-terminated string from memory.  
 /// 
 /// NOTE: This is not particularly rigorous or safe.
-pub fn read_string(cpu: &Cpu, ptr: u32) -> String {
-    let paddr = cpu.translate(TLBReq::new(ptr, Access::Debug)).expect("FIXME");
+pub fn read_string(cpu: &Cpu, ptr: u32) -> Result<String, String> {
+    let paddr = cpu.translate(TLBReq::new(ptr, Access::Debug))?;
 
     let mut line_buf = [0u8; 64];
     cpu.bus.read().unwrap().dma_read(paddr, &mut line_buf);
@@ -80,7 +80,7 @@ pub fn read_string(cpu: &Cpu, ptr: u32) -> String {
     } else {
         std::str::from_utf8(&line_buf).unwrap()
     };
-    s.trim_matches(char::from(0)).to_string()
+    Ok(s.trim_matches(char::from(0)).to_string())
 }
 
 pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
