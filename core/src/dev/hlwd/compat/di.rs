@@ -26,13 +26,13 @@ impl MmioDevice for DriveInterface {
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0x00 => self.disr = val,
             0x04 => self.dicvr = val,
-            _ => panic!("DI write {:08x?} to undefined offset {:x}", val, off),
+            _ => {return Err(format!("DI write {:08x?} to undefined offset {:x}", val, off)); },
         }
-        None
+        Ok(None)
     }
 }
 

@@ -83,12 +83,12 @@ impl MmioDevice for AesInterface {
         }
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0x00 => {
                 self.ctrl = val;
                 if val & 0x8000_0000 != 0 { 
-                    return Some(BusTask::Aes(val));
+                    return Ok(Some(BusTask::Aes(val)));
                 }
             },
             0x04 => self.src = val,
@@ -117,9 +117,9 @@ impl MmioDevice for AesInterface {
                 }
                 self.iv_fifo.make_contiguous();
             }
-            _ => panic!("Unimplemented AES write to offset {:x}", off),
+            _ => { return Err(format!("Unimplemented AES write to offset {:x}", off)); },
         }
-        None
+        Ok(None)
     }
 }
 

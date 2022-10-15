@@ -64,13 +64,13 @@ impl MmioDevice for ShaInterface {
         Ok(BusPacket::Word(val))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0x00 => {
                 self.ctrl = val;
                 //println!("SHA ctrl write {:08x}", val);
                 if (val & 0x8000_0000) != 0 {
-                    return Some(BusTask::Sha(val));
+                    return Ok(Some(BusTask::Sha(val)));
                 }
             },
             0x04 => self.src = val,
@@ -79,9 +79,9 @@ impl MmioDevice for ShaInterface {
             0x10 => self.state.digest[2] = val,
             0x14 => self.state.digest[3] = val,
             0x18 => self.state.digest[4] = val,
-            _ => panic!("Unhandled write32 to {:08x}", off),
+            _ => { return Err(format!("Unhandled write32 to {:08x}", off)); },
         }
-        None
+        Ok(None)
     }
 }
 

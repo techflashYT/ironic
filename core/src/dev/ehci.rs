@@ -31,15 +31,15 @@ impl MmioDevice for EhcInterface {
         }
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0xa4 => self.unk_a4 = val,
             0xb0 => self.unk_b0 = val,
             0xb4 => self.unk_b4 = val,
             0xcc => self.unk_cc = val,
-            _ => panic!("Unimplemented EHCI write to {:04x}", off),
+            _ => { return Err(format!("Unimplemented EHCI write to {:04x}", off)); },
         }
-        None
+        Ok(None)
     }
 }
 

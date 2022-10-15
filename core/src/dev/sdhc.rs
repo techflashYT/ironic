@@ -40,10 +40,8 @@ impl MmioDevice for SDInterface {
     fn read(&self, off: usize) -> Result<BusPacket, String> {
         return Err(format!("SDHC0 read at {:x} unimplemented", off));
     }
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
-        match off {
-            _ => panic!("SDHC0 write {:08x} at {:x} unimpl", val, off),
-        }
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+        Err(format!("SDHC0 write {:08x} at {:x} unimpl", val, off))
     }
 }
 
@@ -66,9 +64,7 @@ impl MmioDevice for WLANInterface {
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
-        match off {
-            _ => panic!("SDHC1 write {:08x} at {:x} unimpl", val, off),
-        }
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+        Err(format!("SDHC1 write {:08x} at {:x} unimpl", val, off))
     }
 }

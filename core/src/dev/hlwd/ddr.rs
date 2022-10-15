@@ -52,18 +52,18 @@ impl MmioDevice for DdrInterface {
         };
         Ok(BusPacket::Half(val))
     }
-    fn write(&mut self, off: usize, val: u16) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u16) -> Result<Option<BusTask>, String> {
         match off {
             // Always immediately ACK some request
             0x28 => {
                 self.ahmflush = val;
                 self.ahmflush_ack = val;
             },
-            0x2a => panic!("DDR ahmflush_ack write unimplemented"),
+            0x2a => { return Err(format!("DDR ahmflush_ack write unimplemented")); },
             0xc4 => self.seq_write(val),
             0xc6 => self.seq_read(val),
             _ => self.ddr_reg[off / 2] = val,
         }
-        None
+        Ok(None)
     }
 }

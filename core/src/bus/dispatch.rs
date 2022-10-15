@@ -87,7 +87,7 @@ impl Bus {
         let off = (addr & handle.mask) as usize;
         let _resp = match handle.dev {
             Device::Mem(dev) => self.do_mem_write(dev, off, msg),
-            Device::Io(dev) => self.do_mmio_write(dev, off, msg),
+            Device::Io(dev) => self.do_mmio_write(dev, off, msg)?,
         };
         Ok(())
     }

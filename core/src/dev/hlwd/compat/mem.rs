@@ -29,13 +29,13 @@ impl MmioDevice for MemInterface {
         };
         Ok(BusPacket::Half(val))
     }
-    fn write(&mut self, off: usize, val: u16) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u16) -> Result<Option<BusTask>, String> {
         let task = match off {
             0x74 => Some(BusTask::Mi { kind: IndirAccess::Read, data: val }),
             0x76 => Some(BusTask::Mi { kind: IndirAccess::Write, data: val }),
             _ => { self.reg[off / 2] = val; None }
         };
-        task
+        Ok(task)
     }
 }
 
@@ -58,7 +58,9 @@ impl Bus {
                 let ddr_addr = self.hlwd.mi.ddr_addr;
                 assert!(ddr_addr >= 0x0100);
                 let off = ((self.hlwd.mi.ddr_addr * 2) - 0x200) as usize;
-                self.hlwd.ddr.write(off, data);
+                self.hlwd.ddr.write(off, data).unwrap_or_else(|reason| {
+                    panic!("FIXME: Got error from ddr mmio: {}", reason);
+                });
             }
         }
     }

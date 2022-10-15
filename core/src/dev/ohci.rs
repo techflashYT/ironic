@@ -53,7 +53,7 @@ impl MmioDevice for OhcInterface {
         println!("OH{} read {:08x} at {:x}", self.idx, val, off);
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         println!("OH{} write {:08x} at {:x}", self.idx, val, off);
         match off {
             0x04 => self.ctrl = val,
@@ -69,8 +69,8 @@ impl MmioDevice for OhcInterface {
             0x48 => self.rh_desc_a = val,
             0x4c => self.rh_desc_b = val,
             0x50 => self.rh_status = val,
-            _ => panic!("OHCI#{} write {:08x} at {:x} unimpl", self.idx, val, off),
+            _ => { return Err(format!("OHCI#{} write {:08x} at {:x} unimpl", self.idx, val, off)); },
         }
-        None
+        Ok(None)
     }
 }

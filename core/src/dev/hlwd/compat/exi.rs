@@ -215,7 +215,7 @@ impl MmioDevice for EXInterface {
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> { 
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off { 
             0x00..=0x10 => self.chan0.write(off, val),
             0x14..=0x24 => self.chan1.write(off - 0x14, val),
@@ -223,9 +223,9 @@ impl MmioDevice for EXInterface {
 
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4] = val,
-            _ => panic!("EXI write {:08x} to {:x}", val, off),
+            _ => { return Err(format!("EXI write {:08x} to {:x}", val, off)); },
         }
-        None
+        Ok(None)
     }
 }
 

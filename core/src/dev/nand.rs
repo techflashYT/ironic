@@ -211,14 +211,14 @@ impl MmioDevice for NandInterface {
         Ok(BusPacket::Word(val))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0x00 => {
                 // When this bit is set, emit command to NAND flash
                 if val & 0x8000_0000 != 0 {
                     self.reg.ctrl = val;
                     self.send_addr(val);
-                    return Some(BusTask::Nand(val));
+                    return Ok(Some(BusTask::Nand(val)));
                 } 
             },
             0x04 => self.reg.cfg = val,
@@ -230,9 +230,9 @@ impl MmioDevice for NandInterface {
                 println!("NND unimpl write to 0x18");
                 self.reg.unk = val;
             }
-            _ => panic!("Unhandled write32 on {:08x}", off),
+            _ => { return Err(format!("Unhandled write32 on {:08x}", off)); },
         }
-        None
+        Ok(None)
     }
 }
 

@@ -146,7 +146,7 @@ impl MmioDevice for AhbInterface {
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0x08 => {
                 self.unk_08 = val;
@@ -155,9 +155,9 @@ impl MmioDevice for AhbInterface {
             0x3fe4..=0x3fe8 => {
                 println!("FIXME: AHB write to weird ({:x}) offset: {:x}", off, val)
             }
-            _ => panic!("AHB write {:08x} to undefined offset {:x}", val, off),
+            _ => { return Err(format!("AHB write {:08x} to undefined offset {:x}", val, off)); },
         }
-        None
+        Ok(None)
     }
 }
 
@@ -265,7 +265,7 @@ impl MmioDevice for Hollywood {
         Ok(BusPacket::Word(val))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Option<BusTask> {
+    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
             0x000..=0x00c => self.ipc.write_handler(off, val),
             0x014 => {
@@ -282,7 +282,7 @@ impl MmioDevice for Hollywood {
                 } else {
                     None
                 };
-                return task;
+                return Ok(task);
             }
             0x064 => self.busctrl.ahbprot = val,
             0x070 => self.busctrl.aipprot = val,
@@ -312,7 +312,7 @@ impl MmioDevice for Hollywood {
                 } else { 
                     None
                 };
-                return task;
+                return Ok(task);
             },
             0x190 => self.clocks = val,
             0x194 => {
@@ -341,9 +341,9 @@ impl MmioDevice for Hollywood {
             0x1e0 => self.io_str_ctrl0 = val,
             0x1e4 => self.io_str_ctrl1 = val,
             0x1ec => self.otp.write_handler(val),
-            _ => panic!("Unimplemented Hollywood write at {:x}", off),
+            _ => { return Err(format!("Unimplemented Hollywood write at {:x}", off)); },
         }
-        None
+        Ok(None)
     }
 
 }

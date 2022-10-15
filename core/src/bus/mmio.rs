@@ -11,7 +11,7 @@ pub trait MmioDevice {
     /// Handle a read, returning some result.
     fn read(&self, off: usize) -> Result<BusPacket, String>;
     /// Handle a write, optionally returning a task for the bus.
-    fn write(&mut self, off: usize, val: Self::Width) -> Option<BusTask>;
+    fn write(&mut self, off: usize, val: Self::Width) -> Result<Option<BusTask>, String>;
 }
 
 impl Bus {
@@ -39,7 +39,7 @@ impl Bus {
     }
 
     /// Dispatch a physical write access to some memory-mapped I/O device.
-    pub fn do_mmio_write(&mut self, dev: IoDevice, off: usize, msg: BusPacket) {
+    pub fn do_mmio_write(&mut self, dev: IoDevice, off: usize, msg: BusPacket) -> Result<(), String>{
         use IoDevice::*;
         use BusPacket::*;
         let task = match (msg, dev) {
@@ -60,22 +60,18 @@ impl Bus {
             (Half(val), Mi)    => self.hlwd.mi.write(off, val),
             (Half(val), Ddr)   => self.hlwd.ddr.write(off, val),
 
-            _ => panic!("Unsupported write {:?} for {:?} at {:x}", msg, dev, off),
+            _ => { return Err(format!("Unsupported write {:?} for {:?} at {:x}", msg, dev, off)); },
         };
-
-        // If the device returned some task, schedule it
-        if task.is_some() {
-            let t = task.unwrap();
-            let c = match t {
-                BusTask::Nand(_) => 0,
-                BusTask::Aes(_) => 0,
-                BusTask::Sha(_) => 0,
-
-                BusTask::Mi{..} => 0,
-                BusTask::SetRomDisabled(_) => 0,
-                BusTask::SetMirrorEnabled(_) => 0,
-            };
-            self.tasks.push(Task { kind: t, target_cycle: self.cycle + c });
+        match task {
+            // If the device returned some task, schedule it
+            Ok(task) => {
+                if let Some(t) = task {
+                    self.tasks.push(Task { kind: t, target_cycle: self.cycle }); // All types get scheduled on this cycle
+                    Ok(())
+                }
+                else {Ok(())}
+            },
+            Err(reason) => Err(reason)
         }
     }
 }
