@@ -400,7 +400,10 @@ impl Backend for InterpBackend {
             }
 
             // Before each CPU step, check if we need to patch any close code
-            self.hotpatch_check().unwrap_or(()); // maybe FIXME?
+            // I'm ok swallowing the possible Err result here because the only way this can error is
+            // failing to translate the address the PC is at. This is obviously very rare, and in
+            // the case it does happen we will know very soon anyway.
+            self.hotpatch_check().unwrap_or_default();
 
             let res = self.cpu_step();
             match res {
