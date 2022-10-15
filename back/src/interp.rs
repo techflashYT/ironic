@@ -228,7 +228,7 @@ impl InterpBackend {
 
     /// Skyeye intentionally kills a bunch of threads, specifically NCD, KD,
     /// WL, and WD; presumably to avoid having to deal with emulating WLAN.
-    pub fn hotpatch_check(&mut self) {
+    pub fn hotpatch_check(&mut self) -> Result<(), String> {
         use ironic_core::cpu::mmu::prim::{TLBReq, Access};
         if self.boot_status == BootStatus::IOSKernel {
             let pc = self.cpu.read_fetch_pc();
@@ -240,17 +240,21 @@ impl InterpBackend {
                 _ => None
             };
             if vaddr.is_none() { 
-                return; 
+                return Ok(());
             } else {
-                let paddr = self.cpu.translate(
+                let paddr = match self.cpu.translate(
                     TLBReq::new(vaddr.unwrap(), Access::Debug)
-                ).unwrap_or_else(|_|{panic!("FIXME")});
+                ) {
+                    Ok(val) => val,
+                    Err(reason) => return Err(reason),
+                };
                 println!("DBG hotpatching module entrypoint {:08x}", paddr);
                 println!("{:?}", self.cpu.reg);
                 self.bus.write().unwrap().dma_write(paddr, 
                     &Self::THREAD_CANCEL_PATCH);
             }
         }
+        Ok(())
     }
 
     /// Do a single step of the CPU.
@@ -401,7 +405,7 @@ impl Backend for InterpBackend {
             }
 
             // Before each CPU step, check if we need to patch any close code
-            self.hotpatch_check();
+            self.hotpatch_check().unwrap_or(()); // maybe FIXME?
 
             let res = self.cpu_step();
             match res {
