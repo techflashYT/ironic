@@ -12,7 +12,7 @@ use crate::decode::thumb::ThumbInst;
 pub enum DispatchRes {
     /// There was some fatal error dispatching the instruction.
     /// This probably means that emulation should halt.
-    FatalErr,
+    FatalErr(String),
     /// This instruction was not executed because the associated condition 
     /// could not be met, and the program counter must be incremented. 
     CondFailed,
@@ -31,20 +31,16 @@ pub enum DispatchRes {
 /// Handler for unimplemented ARM instructions.
 pub fn arm_unimpl_instr(cpu: &mut Cpu, op: u32) -> DispatchRes {
     if (op & 0xe600_0000) != 0xe600_0000 {
-        println!("pc={:08x} Couldn't dispatch instruction {:08x} ({:?})",
-            cpu.read_fetch_pc(), op, ArmInst::decode(op));
-        println!("Bus cycle count: {}", cpu.bus.read().expect("couldn't get bus read-lock in un-impl instruction handler").cycle);
-        return DispatchRes::FatalErr;
+        return DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch instruction {:08x} ({:?})",
+        cpu.read_fetch_pc(), op, ArmInst::decode(op)));
     }
     DispatchRes::Exception(ExceptionType::Undef(op))
 }
 
 /// Handler for unimplemented Thumb instructions.
 pub fn thumb_unimpl_instr(cpu: &mut Cpu, op: u16) -> DispatchRes {
-    println!("Bus cycle count: {}", cpu.bus.read().expect("couldn't get bus read-lock in un-impl instruction handler").cycle);
-    println!("pc={:08x} Couldn't dispatch Thumb instruction {:04x} ({:?})",
-        cpu.read_fetch_pc(), op, ThumbInst::decode(op));
-    DispatchRes::FatalErr
+    DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch Thumb instruction {:04x} ({:?})",
+        cpu.read_fetch_pc(), op, ThumbInst::decode(op)))
 }
 
 // We use these macros to coerce the borrow checker into taking pointers to

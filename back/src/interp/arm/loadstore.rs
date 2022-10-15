@@ -39,8 +39,7 @@ pub fn ldrb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     let res = match res {
         Ok(val) => val,
         Err(reason) => {
-            println!("FIXME: got error {}", reason);
-            return DispatchRes::FatalErr;
+            return DispatchRes::FatalErr(reason);
         }
     };
     cpu.reg[op.rt()] = res as u32;
@@ -54,8 +53,7 @@ pub fn ldrh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     let res = match cpu.read16(addr) {
         Ok(val) => val,
         Err(reason) => {
-            println!("FIXME: got error {}", reason);
-            return DispatchRes::FatalErr;
+            return DispatchRes::FatalErr(reason);
         }
     };
     cpu.reg[op.rt()] = res as u32;
@@ -80,8 +78,7 @@ pub fn ldr_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     let res = match res {
         Ok(val) => val,
         Err(reason) => {
-            println!("FIXME: got error {}", reason);
-            return DispatchRes::FatalErr;
+            return DispatchRes::FatalErr(reason);
         }
     };
     if op.rt() == 15 {
@@ -125,8 +122,7 @@ pub fn ldr_reg(cpu: &mut Cpu, op: LsRegBits) -> DispatchRes {
     let val = match cpu.read32(addr) {
         Ok(val) => val,
         Err(reason) => {
-            println!("FIXME: got error {}", reason);
-            return DispatchRes::FatalErr;
+            return DispatchRes::FatalErr(reason);
         }
     };
 
@@ -216,8 +212,7 @@ pub fn ldm_user(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
             let val = match cpu.read32(addr) {
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME: got error {}", reason);
-                    return DispatchRes::FatalErr;
+                    return DispatchRes::FatalErr(reason);
                 }
             };
             cpu.reg[i as u32] = val;
@@ -247,8 +242,7 @@ pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
             let val = match cpu.read32(addr) {
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME: got error {}", reason);
-                    return DispatchRes::FatalErr;
+                    return DispatchRes::FatalErr(reason);
                 }
             };
             cpu.reg[i as u32] = val;
@@ -259,8 +253,7 @@ pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
     let new_pc = match cpu.read32(addr) {
         Ok(val) => val,
         Err(reason) => {
-            println!("FIXME: got error {}", reason);
-            return DispatchRes::FatalErr;
+            return DispatchRes::FatalErr(reason);
         }
     };
     cpu.exception_return(new_pc);
@@ -282,8 +275,7 @@ pub fn ldmib(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
             cpu.reg[i as u32] = match cpu.read32(addr){
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME: got error {}", reason);
-                    return DispatchRes::FatalErr;
+                    return DispatchRes::FatalErr(reason);
                 }
             };
             addr += 4;
@@ -310,8 +302,7 @@ pub fn ldmia(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
                 let temp_addr = match cpu.read32(addr) {
                     Ok(val) => val,
                     Err(reason) => {
-                        println!("FIXME: got error {}", reason);
-                        return DispatchRes::FatalErr;
+                        return DispatchRes::FatalErr(reason);
                     }
                 };
                 let new_pc = temp_addr & 0xfffffffe;
@@ -323,8 +314,7 @@ pub fn ldmia(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
                 let temp_addr = match cpu.read32(addr) {
                     Ok(val) => val,
                     Err(reason) => {
-                        println!("FIXME: got error {}", reason);
-                        return DispatchRes::FatalErr;
+                        return DispatchRes::FatalErr(reason);
                     }
                 };
                 cpu.reg[i as u32] = temp_addr;

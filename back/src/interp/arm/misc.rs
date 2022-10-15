@@ -36,7 +36,7 @@ pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
     println!("Breakpoint instruction: {:#x}", cmd);
 
     match cmd {
-        0xffff => { return DispatchRes::FatalErr }
+        0xffff => { return DispatchRes::FatalErr("Breakpoint 0xffff - stopping emulation".to_string()) }
         0xfffc..=0xfffe => {
             match cmd & 0x3 {
                 0b10 => { cpu.dbg_on = !cpu.dbg_on; }

@@ -24,7 +24,7 @@ pub fn ldr_lit(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
         Ok(val) => val,
         Err(reason) => {
             println!("FIXME: got error {}", reason);
-            return DispatchRes::FatalErr;
+            return DispatchRes::FatalErr(reason);
         }
     };
     if op.rt() == 15 {
@@ -187,7 +187,7 @@ pub fn ldm(cpu: &mut Cpu, op: LoadStoreMultiBits) -> DispatchRes {
                 Ok(val) => val,
                 Err(reason) => {
                     println!("FIXME: got error {}", reason);
-                    return DispatchRes::FatalErr;
+                    return DispatchRes::FatalErr(reason);
                 }
             };
             cpu.reg[i as u32] = val;
@@ -257,8 +257,7 @@ pub fn pop(cpu: &mut Cpu, op: PopBits) -> DispatchRes {
             let val = match cpu.read32(addr){
                 Ok(val) => val,
                 Err(reason) => {
-                    println!("FIXME: got error {}", reason);
-                    return DispatchRes::FatalErr;
+                    return DispatchRes::FatalErr(reason);
                 }
             };
             cpu.reg[i as u32] = val;
@@ -280,8 +279,7 @@ pub fn pop(cpu: &mut Cpu, op: PopBits) -> DispatchRes {
         let dest_pc = match new_pc.unwrap(){
             Ok(val) => val,
             Err(reason) => {
-                println!("FIXME: got error {}", reason);
-                return DispatchRes::FatalErr;
+                return DispatchRes::FatalErr(reason);
             }
         };
         cpu.reg.cpsr.set_thumb(dest_pc & 1 != 0);

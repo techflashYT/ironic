@@ -325,7 +325,8 @@ impl InterpBackend {
                 }
             },
 
-            DispatchRes::FatalErr => {
+            DispatchRes::FatalErr(reason) => {
+                println!("Fatal error encountered: {}", reason);
                 println!("CPU halted at pc={:08x}", self.cpu.read_fetch_pc());
                 CpuRes::HaltEmulation
             },
