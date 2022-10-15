@@ -165,12 +165,12 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
 
 
 /// Resolve information about an IOS syscall and its arguments.
-pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) {
+pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> Result<(), String> {
     // Get the syscall index (and ignore some)
     let idx = (opcd & 0x00ff_ffe0) >> 5;
     let res = get_syscall_desc(idx);
     if res.is_none() {
-        return;
+        return Ok(());
     }
     let syscall = res.unwrap();
     let mut arg_buf = String::new();
@@ -181,7 +181,10 @@ pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) {
                 arg_buf.push_str(&format!("0x{:08x}", val));
             },
             ArgType::StrPtr => {
-                let s = read_string(cpu, val);
+                let s = match read_string(cpu, val){
+                    Ok(val) => val,
+                    Err(reason) => {return Err(reason);},
+                };
                 arg_buf.push_str(&format!("\"{}\"", s));
             },
             ArgType::Int => {
@@ -199,5 +202,6 @@ pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) {
         ExecutionCtx::from(cpu.read_fetch_pc()),
         syscall.name, arg_buf, cpu.reg[Reg::Lr]
     );
+    Ok(())
 }
 

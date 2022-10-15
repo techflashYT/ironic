@@ -85,7 +85,9 @@ impl Cpu {
 
 
         match e {
-            ExceptionType::Undef(opcd) => ios::resolve_syscall(self, opcd),
+            ExceptionType::Undef(opcd) => {
+                ios::resolve_syscall(self, opcd).unwrap_or_default(); // Just a println. Ok to fail
+            },
             _ => {},
         }
 
