@@ -60,7 +60,7 @@ pub fn blx_reg(cpu: &mut Cpu, op: BxBits) -> DispatchRes {
 pub fn b_unconditional(cpu: &mut Cpu, op: BranchAltBits) -> DispatchRes {
     let offset = sign_extend(op.imm11() as u32, 11) << 1;
     if offset == -4 {
-        panic!("Unconditional branch would loop forever pc={:08x}", cpu.read_fetch_pc());
+        return DispatchRes::FatalErr(format!("Unconditional branch would loop forever pc={:08x}", cpu.read_fetch_pc()));
     }
     let dest_pc = (cpu.read_exec_pc() as i32).wrapping_add(offset) as u32;
 
