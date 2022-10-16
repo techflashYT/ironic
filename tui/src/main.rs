@@ -12,7 +12,6 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
 use std::thread::{Builder, JoinHandle};
 use std::env::temp_dir;
-use std::io::Write;
 
 /// User-specified backend type.
 #[derive(ArgEnum, Clone, Debug)]
@@ -58,25 +57,17 @@ fn dump_memory(bus: &Bus) {
 }
 
 fn main() {
-    // Terminate the process on any thread panic
-    let original_panic = panic::take_hook();
-    panic::set_hook(Box::new( move |panic_deets|{
-        original_panic(panic_deets);
-        std::io::stdout().flush().ok();
-        std::io::stderr().flush().ok();
-        process::exit(1);
-    }));
     let args = Args::parse();
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle.unwrap_or(true);
     let enable_debug_server = args.debug_server.unwrap_or(false);
 
-
     // The bus is shared between any threads we spin up
     let bus = match Bus::new() {
         Ok(val) => val,
         Err(reason) => {
-            panic!("Failed to construct Arc<RwLock<Bus>>: {}", reason);
+            println!("Failed to construct emulator Bus: {}", reason);
+            process::exit(-1);
         }
     };
     let bus = Arc::new(RwLock::new(bus));
