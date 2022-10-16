@@ -52,17 +52,17 @@ pub struct SeepromState {
     pub write_buffer: Option<u16>,
 }
 impl SeepromState {
-    pub fn new() -> Self {
-        SeepromState {
+    pub fn new() -> Result<Self, std::io::Error> {
+        Ok(SeepromState {
             in_buf: 0,
             num_bits: 0,
             out_buf: None,
             opcd: SeepromOp::Init,
-            data: BigEndianMemory::new(0x100, Some("seeprom.bin")),
+            data: BigEndianMemory::new(0x100, Some("seeprom.bin"))?,
             wren: false,
             addr: None,
             write_buffer: None,
-        }
+        })
     }
 }
 

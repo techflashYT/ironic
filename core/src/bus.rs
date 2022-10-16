@@ -49,16 +49,16 @@ pub struct Bus {
     pub debug_allowed_cycles: u64,
 }
 impl Bus {
-    pub fn new()-> Self {
-        Bus { 
-            mrom: BigEndianMemory::new(0x0000_2000, Some("./boot0.bin")),
-            sram0: BigEndianMemory::new(0x0001_0000, None),
-            sram1: BigEndianMemory::new(0x0001_0000, None),
-            mem1: BigEndianMemory::new(0x0180_0000, None),
-            mem2: BigEndianMemory::new(0x0400_0000, None),
+    pub fn new()-> Result<Self, std::io::Error> {
+        Ok(Bus {
+            mrom: BigEndianMemory::new(0x0000_2000, Some("./boot0.bin"))?,
+            sram0: BigEndianMemory::new(0x0001_0000, None)?,
+            sram1: BigEndianMemory::new(0x0001_0000, None)?,
+            mem1: BigEndianMemory::new(0x0180_0000, None)?,
+            mem2: BigEndianMemory::new(0x0400_0000, None)?,
 
-            hlwd: Hollywood::new(),
-            nand: NandInterface::new("./nand.bin"),
+            hlwd: Hollywood::new()?,
+            nand: NandInterface::new("./nand.bin")?,
             aes: AesInterface::new(),
             sha: ShaInterface::new(),
             ehci: EhcInterface::new(),
@@ -73,7 +73,7 @@ impl Bus {
             cycle: 0,
             debug: false,
             debug_allowed_cycles: 0,
-        }
+        })
     }
 }
 

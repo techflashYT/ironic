@@ -128,7 +128,7 @@ pub struct NandInterface {
 }
 impl NandInterface {
     /// Create a new instance of the NAND interface.
-    pub fn new(filename: &str) -> Self {
+    pub fn new(filename: &str) -> Result<Self, std::io::Error> {
         let reg = NandRegisters {
             ctrl: 0,
             cfg: 0,
@@ -141,10 +141,10 @@ impl NandInterface {
             current_page: 0,
             current_poff: 0,
         };
-        NandInterface {
-            data: Box::new(BigEndianMemory::new(NAND_SIZE, Some(filename))),
+        Ok(NandInterface {
+            data: Box::new(BigEndianMemory::new(NAND_SIZE, Some(filename))?),
             reg,
-        }
+        })
     }
     /// Read data from the specified offset in the NAND flash into some buffer
     pub fn read_data(&self, off: usize, dst: &mut [u8]) {

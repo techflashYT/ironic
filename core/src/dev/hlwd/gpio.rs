@@ -32,12 +32,12 @@ pub struct GpioInterface {
     pub seeprom: SeepromState,
 }
 impl GpioInterface {
-    pub fn new() -> Self {
-        GpioInterface {
+    pub fn new() -> Result<Self, std::io::Error> {
+        Ok(GpioInterface {
             arm: ArmGpio::default(),
             ppc: PpcGpio::default(),
-            seeprom: SeepromState::new(),
-        }
+            seeprom: SeepromState::new()?,
+        })
     }
 }
 

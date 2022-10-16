@@ -73,7 +73,14 @@ fn main() {
 
 
     // The bus is shared between any threads we spin up
-    let bus = Arc::new(RwLock::new(Bus::new()));
+    let bus = match Bus::new() {
+        Ok(val) => val,
+        Err(reason) => {
+            panic!("Failed to construct Arc<RwLock<Bus>>: {}", reason);
+        }
+    };
+    let bus = Arc::new(RwLock::new(bus));
+
     let (dbg_send, emu_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
     let (emu_send, dbg_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
 

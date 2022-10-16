@@ -194,16 +194,16 @@ pub struct Hollywood {
     pub ppc_on: bool,
 }
 impl Hollywood {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self,std::io::Error> {
         // TODO: Where do the initial values for these registers matter?
-        let res = Hollywood {
+        Ok(Hollywood {
             task: None,
             ipc: ipc::IpcInterface::new(),
             busctrl: BusCtrlInterface::default(),
             timer: TimerInterface::default(),
             irq: irq::IrqInterface::default(),
             otp: otp::OtpInterface::new(),
-            gpio: gpio::GpioInterface::new(),
+            gpio: gpio::GpioInterface::new()?,
             pll: ClockInterface::default(),
 
             ahb: AhbInterface::default(),
@@ -222,8 +222,7 @@ impl Hollywood {
             io_str_ctrl0: 0,
             io_str_ctrl1: 0,
             ppc_on: false,
-        };
-        res
+        })
     }
 }
 

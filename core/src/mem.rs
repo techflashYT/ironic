@@ -14,20 +14,17 @@ pub struct BigEndianMemory {
     pub data: Vec<u8>,
 }
 impl BigEndianMemory {
-    pub fn new(len: usize, init_fn: Option<&str>) -> Self {
+    pub fn new(len: usize, init_fn: Option<&str>) -> Result<Self, std::io::Error> {
         let data = if init_fn.is_some() {
             let filename = init_fn.unwrap();
-            let mut f = File::open(filename)
-                .unwrap_or_else(|err|
-                    panic!("Couldn't initialize BigEndianMemory. File: {} - {}", filename, err)
-            );
+            let mut f = File::open(filename)?;
             let mut data = vec![0u8; len];
-            f.read(&mut data).unwrap();
+            f.read(&mut data)?;
             data
         } else {
             vec![0u8; len]
         };
-        BigEndianMemory { data }
+        Ok(BigEndianMemory { data })
     }
 
     pub fn dump(&self, filename: &impl AsRef<Path>) {
