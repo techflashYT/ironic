@@ -72,8 +72,10 @@ impl From<ExceptionType> for CpuMode {
 impl Cpu {
 
     /// Change CPU state to reflect the fact that we've entered an exception.
-    pub fn generate_exception(&mut self, e: ExceptionType) {
-        assert_ne!(e, ExceptionType::Swi);
+    pub fn generate_exception(&mut self, e: ExceptionType) -> Result<(), String> {
+        if e == ExceptionType::Swi {
+            return Err("Swi exceptions are not allowed.".to_string());
+        }
 
         let old_cpsr = self.reg.cpsr;
         let target_mode = CpuMode::from(e);
@@ -103,7 +105,7 @@ impl Cpu {
         self.reg.write_cpsr(new_cpsr);
 
         // Save the old CPSR in the exception mode's SPSR bank
-        self.reg.spsr.write(target_mode, old_cpsr);
+        self.reg.spsr.write(target_mode, old_cpsr)?;
 
         // The return value is stored in the target mode's LR
         self.reg[Reg::Lr] = return_pc;
@@ -116,21 +118,21 @@ impl Cpu {
         //    panic!("pc={:08x} CPU tried to take {:x?} exception inside {:x?} exception",
         //        current_pc, e, self.current_exception.unwrap());
         //}
-
+        Ok(())
     }
 
     /// Return from an exception.
-    pub fn exception_return(&mut self, dest_pc: u32) {
-        assert_ne!(self.reg.cpsr.mode(), CpuMode::Usr);
-        assert_ne!(self.reg.cpsr.mode(), CpuMode::Sys);
+    pub fn exception_return(&mut self, dest_pc: u32) -> Result<(), String> {
+        match self.reg.cpsr.mode() {
+            CpuMode::Usr | CpuMode::Sys => { return Err("Tried returning from an exception, but the CPU is not in an exception mode.".to_string()); }
+            _ => {}
+        }
 
         let current_mode = self.reg.cpsr.mode();
-        let spsr = self.reg.spsr.read(current_mode);
+        let spsr = self.reg.spsr.read(current_mode)?;
         self.reg.write_cpsr(spsr);
         self.write_exec_pc(dest_pc & 0xffff_fffe);
 
-        //if self.current_exception.is_some() {
-        //    self.current_exception = None
-        //}
+        Ok(())
     }
 }

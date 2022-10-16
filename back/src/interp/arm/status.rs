@@ -8,7 +8,13 @@ use crate::interp::DispatchRes;
 
 pub fn mrs(cpu: &mut Cpu, op: MrsBits) -> DispatchRes {
     let res = match op.r() {
-        true =>  cpu.reg.spsr.read(cpu.reg.cpsr.mode()).0,
+        true =>  {
+            let psr = match cpu.reg.spsr.read(cpu.reg.cpsr.mode()) {
+                Ok(val) => val,
+                Err(reason) => { return DispatchRes::FatalErr(reason); }
+            };
+            psr.0
+        },
         false => cpu.reg.cpsr.0,
     };
     cpu.reg[op.rd()] = res;
@@ -32,9 +38,17 @@ pub fn do_msr(cpu: &mut Cpu, val: u32, r: bool, m: u32) -> DispatchRes {
         let current_mode = cpu.reg.cpsr.mode();
         assert_ne!(current_mode, CpuMode::Usr);
         assert_ne!(current_mode, CpuMode::Sys);
-        let old_spsr = cpu.reg.spsr.read(current_mode);
+        let old_spsr = match cpu.reg.spsr.read(current_mode){
+            Ok(val) => val,
+            Err(reason) => {
+                return DispatchRes::FatalErr(reason);
+            }
+        };
         let new_spsr = Psr((old_spsr.0 & !mask) | (val & mask));
-        cpu.reg.spsr.write(current_mode, new_spsr);
+        match cpu.reg.spsr.write(current_mode, new_spsr) {
+            Ok(()) => {},
+            Err(reason) => { return DispatchRes::FatalErr(reason); }
+        };
     } else {
         // Write the CPSR
         let old_cpsr = cpu.reg.cpsr;

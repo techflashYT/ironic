@@ -264,7 +264,9 @@ impl InterpBackend {
         // Sample the IRQ line. If the IRQ line is high and IRQs are not 
         // disabled in the CPSR, take an IRQ exception. 
         if !self.cpu.reg.cpsr.irq_disable() && self.cpu.irq_input {
-            self.cpu.generate_exception(ExceptionType::Irq);
+            if let Err(reason) = self.cpu.generate_exception(ExceptionType::Irq){
+                return CpuRes::HaltEmulation(reason);
+            };
         }
 
         // Fetch/decode/execute an ARM or Thumb instruction depending on
@@ -323,7 +325,9 @@ impl InterpBackend {
                     self.cpu.increment_pc();
                     CpuRes::Semihosting
                 } else {
-                    self.cpu.generate_exception(e);
+                    if let Err(reason) = self.cpu.generate_exception(e){
+                        return CpuRes::HaltEmulation(reason);
+                    };
                     CpuRes::StepException(e)
                 }
             },

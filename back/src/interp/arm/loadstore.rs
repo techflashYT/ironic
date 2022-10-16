@@ -284,7 +284,9 @@ pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
             return DispatchRes::FatalErr(reason);
         }
     };
-    cpu.exception_return(new_pc);
+    if let Err(reason) = cpu.exception_return(new_pc){
+        return DispatchRes::FatalErr(reason);
+    };
     addr += 4;
     if op.w() {
         cpu.reg[op.rn()] = addr;

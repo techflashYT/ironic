@@ -63,29 +63,29 @@ impl SavedStatusBank {
     }
 
     /// Write the SPSR for the provided mode.
-    pub fn write(&mut self, mode: CpuMode, val: Psr) {
+    pub fn write(&mut self, mode: CpuMode, val: Psr) -> Result<(), String> {
         use CpuMode::*;
-        match mode {
+        Ok(match mode {
             Svc => self.svc = val,
             Abt => self.abt = val,
             Und => self.und = val,
             Irq => self.irq = val,
             Fiq => self.fiq = val,
-            _ => panic!("Invalid mode {:?} has no SPSR to write", mode),
-        }
+            _ => { return Err(format!("Invalid mode {:?} has no SPSR to write", mode)); },
+        })
     }
 
     /// Read the SPSR for the provided mode.
-    pub fn read(&self, mode: CpuMode) -> Psr {
+    pub fn read(&self, mode: CpuMode) -> Result<Psr, String> {
         use CpuMode::*;
-        match mode {
+        Ok(match mode {
             Svc => self.svc,
             Abt => self.abt,
             Und => self.und,
             Irq => self.irq,
             Fiq => self.fiq,
-            _ => panic!("Invalid mode {:?} has no SPSR to read", mode),
-        }
+            _ => { return Err(format!("Invalid mode {:?} has no SPSR to read", mode)); },
+        })
     }
 }
 

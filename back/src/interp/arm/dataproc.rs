@@ -22,7 +22,9 @@ pub fn add_imm(cpu: &mut Cpu, op: DpImmBits) -> DispatchRes {
     let (res, n, z, c, v) = add_generic(cpu.reg[op.rn()], val);
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -43,7 +45,9 @@ pub fn rsb_imm(cpu: &mut Cpu, op: DpImmBits) -> DispatchRes {
     let (res, n, z, c, v) = sub_generic(val, cpu.reg[op.rn()]);
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -70,7 +74,9 @@ pub fn sub_imm(cpu: &mut Cpu, op: DpImmBits) -> DispatchRes {
     let (res, n, z, c, v) = sub_generic(rn_val, val);
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -93,7 +99,9 @@ pub fn mvn_imm(cpu: &mut Cpu, op: MovImmBits) -> DispatchRes {
     let res = !val;
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -116,7 +124,9 @@ pub fn mov_imm(cpu: &mut Cpu, op: MovImmBits) -> DispatchRes {
     });
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -149,7 +159,9 @@ pub fn add_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
 
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -170,7 +182,9 @@ pub fn rsb_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
     let (res, n, z, c, v) = sub_generic(val, cpu.reg[op.rn()]);
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -192,7 +206,9 @@ pub fn sub_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
     let (res, n, z, c, v) = sub_generic(cpu.reg[op.rn()], val);
     if op.rd() == 15 {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -214,7 +230,9 @@ pub fn mvn_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
     let res = !val;
     if op.rd() == 15  {
         if op.s() {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -237,7 +255,9 @@ pub fn mov_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
     });
     if op.rd() == 15 {
         if op.s() { 
-            cpu.exception_return(res); 
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else { 
             cpu.write_exec_pc(res); 
         }
@@ -262,7 +282,9 @@ pub fn mov_rsr(cpu: &mut Cpu, op: MovRsrBits) -> DispatchRes {
     );
     match (op.s(), op.rd() == 15) {
         (true, true) => { // S + PC == exception return
-            cpu.exception_return(val);
+            if let Err(reason) = cpu.exception_return(val){
+                return DispatchRes::FatalErr(reason);
+            };
             return DispatchRes::RetireBranch;
         },
         (true, false) => { // S + no PC == set flags
@@ -345,7 +367,9 @@ fn do_bitwise_reg(cpu: &mut Cpu, rn: u32, rm: u32, rd: u32, imm5: u32,
     };
     if rd == 15 {
         if s {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
@@ -395,7 +419,9 @@ fn do_bitwise_imm(cpu: &mut Cpu, rn: u32, rd: u32, imm: u32,
     };
     if rd == 15 {
         if s {
-            cpu.exception_return(res);
+            if let Err(reason) = cpu.exception_return(res){
+                return DispatchRes::FatalErr(reason);
+            };
         } else {
             cpu.write_exec_pc(res);
         }
