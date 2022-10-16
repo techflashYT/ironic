@@ -102,7 +102,7 @@ impl PpcBackend {
     }
 
     /// Handle clients connected to the socket.
-    pub fn server_loop(&mut self, sock: UnixListener) {
+    pub fn server_loop(&mut self, sock: UnixListener) -> Result<(), String> {
         loop {
             let res = sock.accept();
             let mut client = match res {
@@ -120,12 +120,12 @@ impl PpcBackend {
                 let req = if res.is_none() { break; } else { res.unwrap() };
                 match req.cmd {
                     Command::Ack => self.handle_ack(req),
-                    Command::HostRead => self.handle_read(&mut client, req),
-                    Command::HostWrite => self.handle_write(&mut client, req),
+                    Command::HostRead => self.handle_read(&mut client, req)?,
+                    Command::HostWrite => self.handle_write(&mut client, req)?,
                     Command::Message => {
                         self.handle_message(&mut client, req);
                         let armmsg = self.wait_for_resp();
-                        client.write(&u32::to_le_bytes(armmsg)).unwrap();
+                        client.write(&u32::to_le_bytes(armmsg)).map_err(|e|e.to_string())?;
                     },
                     Command::MessageNoReturn => {
                         self.handle_message(&mut client, req);
@@ -133,8 +133,9 @@ impl PpcBackend {
                     Command::Unimpl => break,
                 }
             }
-            client.shutdown(Shutdown::Both).unwrap();
+            client.shutdown(Shutdown::Both).map_err(|e|e.to_string())?;
         }
+        Ok(())
     }
 
     /// Block until we get a response from ARM-world.
@@ -210,19 +211,21 @@ impl PpcBackend {
     }
 
     /// Read from physical memory.
-    pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) {
+    pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[PPC] read {:x} bytes at {:08x}", req.len, req.addr);
         self.bus.read().unwrap().dma_read(req.addr,
-            &mut self.obuf[0..req.len as usize]).expect("FIXME error propogation");
-        client.write(&self.obuf[0..req.len as usize]).unwrap();
+            &mut self.obuf[0..req.len as usize])?;
+        client.write(&self.obuf[0..req.len as usize]).map_err(|e| e.to_string())?;
+        Ok(())
     }
 
     /// Write to physical memory.
-    pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) {
+    pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[PPC] write {:x} bytes at {:08x}", req.len, req.addr);
         let data = &self.ibuf[0xc..(0xc + req.len as usize)];
-        self.bus.write().unwrap().dma_write(req.addr, data).expect("FIXME error propogation");
-        client.write("OK".as_bytes()).unwrap();
+        self.bus.write().unwrap().dma_write(req.addr, data)?;
+        client.write("OK".as_bytes()).map_err(|e| e.to_string())?;
+        Ok(())
     }
 
     /// Tell ARM-world that an IPC request is ready at the location indicated
@@ -282,7 +285,7 @@ impl Backend for PpcBackend {
 
         // If we successfully bind, run the server until it exits
         if sock.is_some() {
-            self.server_loop(sock.unwrap());
+            self.server_loop(sock.unwrap())?;
         }
         println!("[PPC] thread exited");
         Ok(())
