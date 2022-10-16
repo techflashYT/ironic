@@ -69,7 +69,7 @@ pub struct NandCmd {
     pub len: u32,
 }
 impl NandCmd {
-    pub fn new(x: u32) -> Self {
+    pub fn new(x: u32) -> Result<Self, String> {
         use NandOpcd::*;
         let irq  = (x & 0x4000_0000) != 0;
         let err  = (x & 0x2000_0000) != 0;
@@ -85,14 +85,14 @@ impl NandCmd {
             0x90 => ReadId, 
             0xd0 => Erase, 
             0xff => Reset,
-            _ => panic!("unhandled NAND opcd {:02x}", (x & 0x00ff_0000) >> 16),
+            _ => { return Err(format!("unhandled NAND opcd {:02x}", (x & 0x00ff_0000) >> 16)); },
         };
         let wait = (x & 0x0000_8000) != 0;
         let wr   = (x & 0x0000_4000) != 0;
         let rd   = (x & 0x0000_2000) != 0;
         let ecc  = (x & 0x0000_1000) != 0;
         let len  =  x & 0x0000_0fff;
-        NandCmd { irq, err, addr, opcd, wait, wr, rd, ecc, len }
+        Ok(NandCmd { irq, err, addr, opcd, wait, wr, rd, ecc, len })
     }
 }
 
@@ -159,8 +159,8 @@ impl NandInterface {
         self.data.memset(off, len, 0xff)
     }
 
-    pub fn send_addr(&mut self, x: u32) {
-        let cmd = NandCmd::new(x);
+    pub fn send_addr(&mut self, x: u32) -> Result<(), String> {
+        let cmd = NandCmd::new(x)?;
         let addr2 = self.reg.addr2;
         let addr1 = self.reg.addr1;
 
@@ -187,7 +187,7 @@ impl NandInterface {
             self.reg.current_poff = (addr1 & 0x0000_ff00) |
                 (self.reg.current_poff & !0x0000_ff00);
         }
-
+        Ok(())
     }
 }
 
@@ -217,7 +217,7 @@ impl MmioDevice for NandInterface {
                 // When this bit is set, emit command to NAND flash
                 if val & 0x8000_0000 != 0 {
                     self.reg.ctrl = val;
-                    self.send_addr(val);
+                    self.send_addr(val)?;
                     return Ok(Some(BusTask::Nand(val)));
                 } 
             },
@@ -307,7 +307,7 @@ impl Bus {
     /// Handle a NAND command
     pub fn handle_task_nand(&mut self, val: u32) -> Result<(), String> {
         use NandOpcd::*;
-        let cmd = NandCmd::new(val);
+        let cmd = NandCmd::new(val)?;
         let reg = self.read_nand_regs();
         let mut next_cycle = 0;
 
