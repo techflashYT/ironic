@@ -10,7 +10,7 @@ use std::panic;
 use std::process;
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
-use std::thread::{Builder, JoinHandle};
+use std::thread::Builder;
 use std::env::temp_dir;
 
 /// User-specified backend type.
@@ -89,36 +89,34 @@ fn main() {
     };
 
     // Fork off the PPC HLE thread
-    let ppc_thread: Option<JoinHandle<()>>;
     if enable_ppc_hle {
         let ppc_bus = bus.clone();
-        ppc_thread = Some(Builder::new().name("IpcThread".to_owned()).spawn(move || {
+        let _ = Some(Builder::new().name("IpcThread".to_owned()).spawn(move || {
             let mut back = PpcBackend::new(ppc_bus);
             back.run();
         }).unwrap());
     }
-    else { ppc_thread = None; }
 
     // Finally fork the DEBUG thread
-    let debug_thread: Option<JoinHandle<()>>;
     if enable_debug_server {
-        debug_thread = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
+        let _ = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
             let mut back = DebugBackend::new(dbg_send, dbg_recv);
             back.run();
         }).unwrap());
     }
-    else { debug_thread = None; }
 
     let _ = emu_thread.join();
-    if let Some(ppc_thread) = ppc_thread {
-        let _ = ppc_thread.join();
-    }
-    if let Some(debug_thread) = debug_thread {
-        let _ = debug_thread.join();
-    }
 
-    let bus_ref = bus.write().unwrap();
-    dump_memory(&bus_ref);
-    println!("Bus cycles elapsed: {}", bus_ref.cycle);
+    match bus.write() {
+        Ok(bus_ref) => {
+            dump_memory(&bus_ref);
+            println!("Bus cycles elapsed: {}", bus_ref.cycle);
+        },
+        Err(reason) => {
+            println!("Could not dump Bus memory because it is poisoned: {}", reason);
+        }
+    };
+    process::exit(0);
+
 }
 
