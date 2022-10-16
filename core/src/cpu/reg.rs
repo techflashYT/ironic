@@ -19,16 +19,17 @@ pub enum CpuMode {
 impl CpuMode {
     pub fn is_privileged(self) -> bool { self != CpuMode::Usr }
 }
-impl From<u32> for CpuMode {
-    fn from(x: u32) -> Self {
+impl TryFrom<u32> for CpuMode {
+    type Error = String;
+    fn try_from(x: u32) -> Result<Self, String> {
         use CpuMode::*;
-        match x {
+        Ok(match x {
             0b10000 => Usr, 0b10001 => Fiq,
             0b10010 => Irq, 0b10011 => Svc,
             0b10111 => Abt, 0b11011 => Und,
             0b11111 => Sys,
-            _ => panic!("Invalid mode bits {:08x}", x),
-        }
+            _ => { return Err(format!("Invalid mode bits {:08x}", x)); },
+        })
     }
 }
 
@@ -44,10 +45,11 @@ pub enum Cond {
     GT = 0b1100, LE = 0b1101,
     AL = 0b1110, UNC = 0b1111,
 }
-impl From<u32> for Cond {
-    fn from(x: u32) -> Self {
+impl TryFrom<u32> for Cond {
+    type Error = String;
+    fn try_from(x: u32) -> Result<Self, String> {
         use Cond::*;
-        match x {
+        Ok(match x {
             0b0000 => EQ, 0b0001 => NE,
             0b0010 => CS, 0b0011 => CC,
             0b0100 => MI, 0b0101 => PL,
@@ -56,8 +58,8 @@ impl From<u32> for Cond {
             0b1010 => GE, 0b1011 => LT,
             0b1100 => GT, 0b1101 => LE,
             0b1110 => AL, 0b1111 => UNC,
-            _ => panic!("Invalid condition bits {:08x}", x),
-        }
+            _ => { return Err(format!("Invalid condition bits {:08x}", x)); },
+        })
     }
 }
 
@@ -197,8 +199,8 @@ impl RegisterFile {
 /// These functions are used for determining whether or not some condition is
 /// satisfied when dispatching/executing some instruction.
 impl RegisterFile {
-    pub fn cond_pass(&self, opcd: u32) -> bool {
-        self.is_cond_satisfied(Cond::from((opcd & 0xf000_0000) >> 28))
+    pub fn cond_pass(&self, opcd: u32) -> Result<bool, String> {
+        Ok(self.is_cond_satisfied(Cond::try_from((opcd & 0xf000_0000) >> 28)?))
     }
     pub fn is_cond_satisfied(&self, cond: Cond) -> bool {
         use Cond::*;

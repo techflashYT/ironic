@@ -69,13 +69,21 @@ pub fn b_unconditional(cpu: &mut Cpu, op: BranchAltBits) -> DispatchRes {
 }
 
 pub fn b(cpu: &mut Cpu, op: BranchBits) -> DispatchRes {
-    if cpu.reg.is_cond_satisfied(Cond::from(op.cond() as u32)) {
-        let offset = sign_extend(op.imm8() as u32, 8) << 1;
-        //let offset = ((op.imm8() as u32) << 1) as i32;
-        let dest_pc = (cpu.read_exec_pc() as i32).wrapping_add(offset) as u32;
-        cpu.write_exec_pc(dest_pc);
-        DispatchRes::RetireBranch
-    } else {
-        DispatchRes::RetireOk
+    let op_cond = Cond::try_from(op.cond() as u32);
+    match op_cond {
+        Ok(cond) => {
+            if cpu.reg.is_cond_satisfied(cond) {
+                let offset = sign_extend(op.imm8() as u32, 8) << 1;
+                //let offset = ((op.imm8() as u32) << 1) as i32;
+                let dest_pc = (cpu.read_exec_pc() as i32).wrapping_add(offset) as u32;
+                cpu.write_exec_pc(dest_pc);
+                DispatchRes::RetireBranch
+            } else {
+                DispatchRes::RetireOk
+            }
+        },
+        Err(reason) => {
+            DispatchRes::FatalErr(reason)
+        }
     }
 }

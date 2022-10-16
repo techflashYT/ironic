@@ -11,7 +11,7 @@ impl Psr {
         self.0 = (self.0 & !(1 << idx)) | (val as u32) << idx
     }
 
-    pub fn mode(&self) -> CpuMode { CpuMode::from(self.0 & 0x1f) }
+    pub fn mode(&self) -> CpuMode { CpuMode::try_from(self.0 & 0x1f).expect("Extreme error: an invalid CPU mode was set.") }
     pub fn thumb(&self) -> bool { (self.0 & 0x0000_0020) != 0 }
     pub fn fiq_disable(&self) -> bool { (self.0 & 0x0000_0040) != 0 }
     pub fn irq_disable(&self) -> bool { (self.0 & 0x0000_0080) != 0 }

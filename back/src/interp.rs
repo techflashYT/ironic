@@ -287,11 +287,18 @@ impl InterpBackend {
                     return CpuRes::HaltEmulation(reason);
                 }
             };
-            if self.cpu.reg.cond_pass(opcd) {
-                let func = INTERP_LUT.arm.lookup(opcd);
-                func.0(&mut self.cpu, opcd)
-            } else {
-                DispatchRes::CondFailed
+            match self.cpu.reg.cond_pass(opcd) {
+                Ok(cond_did_pass) => {
+                    if cond_did_pass {
+                        let func = INTERP_LUT.arm.lookup(opcd);
+                        func.0(&mut self.cpu, opcd)
+                    } else {
+                        DispatchRes::CondFailed
+                    }
+                },
+                Err(reason) => {
+                    DispatchRes::FatalErr(reason)
+                }
             }
         };
 
