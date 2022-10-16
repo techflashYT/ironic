@@ -137,19 +137,19 @@ impl EXIChannel {
 
 /// Per-channel read/write handlers.
 impl EXIChannel {
-    pub fn read(&self, off: usize) -> u32 {
+    pub fn read(&self, off: usize) -> Result<u32, String> {
         let res = match off {
             0x00 => self.csr,
             0x04 => self.mar,
             0x08 => self.len,
             0x0c => self.ctrl,
             0x10 => self.data,
-            _ => panic!("EXI chn{} OOB read at {:08x}", self.idx, off),
+            _ => { return Err(format!("EXI chn{} OOB read at {:08x}", self.idx, off)); },
         };
         println!("EXI chn{} read {:08x} from offset {:x}", self.idx, res, off);
-        res
+        Ok(res)
     }
-    pub fn write(&mut self, off: usize, val: u32) {
+    pub fn write(&mut self, off: usize, val: u32) -> Result<(), String> {
         match off {
             0x00 => {
                 self.csr = val;
@@ -162,9 +162,10 @@ impl EXIChannel {
                 self.update_state();
             },
             0x10 => self.data = val,
-            _ => panic!("EXI chn{} OOB write {:08x} at {:08x}", 
-                self.idx, val, off),
+            _ => { return Err(format!("EXI chn{} OOB write {:08x} at {:08x}", 
+                self.idx, val, off)); },
         }
+        Ok(())
     }
 
     pub fn update_state(&mut self) {
@@ -206,9 +207,9 @@ impl MmioDevice for EXInterface {
     type Width = u32;
     fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
-            0x00..=0x10 => self.chan0.read(off),
-            0x14..=0x24 => self.chan1.read(off - 0x14),
-            0x28..=0x38 => self.chan2.read(off - 0x28),
+            0x00..=0x10 => self.chan0.read(off)?,
+            0x14..=0x24 => self.chan1.read(off - 0x14)?,
+            0x28..=0x38 => self.chan2.read(off - 0x28)?,
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4],
             _ => { return Err(format!("EXI read to undef offset {:x}", off)); },
@@ -217,9 +218,9 @@ impl MmioDevice for EXInterface {
     }
     fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off { 
-            0x00..=0x10 => self.chan0.write(off, val),
-            0x14..=0x24 => self.chan1.write(off - 0x14, val),
-            0x28..=0x38 => self.chan2.write(off - 0x28, val),
+            0x00..=0x10 => self.chan0.write(off, val)?,
+            0x14..=0x24 => self.chan1.write(off - 0x14, val)?,
+            0x28..=0x38 => self.chan2.write(off - 0x28, val)?,
 
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4] = val,
