@@ -353,7 +353,7 @@ pub enum HlwdTask {
 }
 
 impl Bus {
-    pub fn handle_step_hlwd(&mut self, cpu_cycle: usize) {
+    pub fn handle_step_hlwd(&mut self, cpu_cycle: usize) -> Result<(), String>{
 
         // Potentially assert an IRQ
         let timer_irq = self.hlwd.timer.step(cpu_cycle);
@@ -369,10 +369,11 @@ impl Bus {
 
         if self.hlwd.task.is_some() {
             match self.hlwd.task.unwrap() {
-                HlwdTask::GpioOutput(val) => self.hlwd.gpio.handle_output(val),
+                HlwdTask::GpioOutput(val) => self.hlwd.gpio.handle_output(val)?,
             }
             self.hlwd.task = None;
         }
+        Ok(())
     }
 }
 

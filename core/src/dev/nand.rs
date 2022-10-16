@@ -147,16 +147,16 @@ impl NandInterface {
         })
     }
     /// Read data from the specified offset in the NAND flash into some buffer
-    pub fn read_data(&self, off: usize, dst: &mut [u8]) {
-        self.data.read_buf(off, dst);
+    pub fn read_data(&self, off: usize, dst: &mut [u8]) -> Result<(), String> {
+        self.data.read_buf(off, dst)
     }
     /// Write the provided data to the specified offset in the NAND flash
-    pub fn write_data(&mut self, off: usize, src: &[u8]) {
-        self.data.write_buf(off, src);
+    pub fn write_data(&mut self, off: usize, src: &[u8]) -> Result<(), String> {
+        self.data.write_buf(off, src)
     }
     /// Zero out the provided region in the NAND flash
-    pub fn clear_data(&mut self, off: usize, len: usize) {
-        self.data.memset(off, len, 0xff);
+    pub fn clear_data(&mut self, off: usize, len: usize) -> Result<(), String> {
+        self.data.memset(off, len, 0xff)
     }
 
     pub fn send_addr(&mut self, x: u32) {
@@ -241,12 +241,11 @@ impl Bus {
         self.nand.reg
     }
 
-    fn nand_erase_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) {
+    fn nand_erase_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
         assert_ne!(cmd.ecc, true);
         assert_ne!(cmd.rd, true);
         let off = reg.addr2 as usize * NAND_PAGE_LEN;
-        self.nand.clear_data(off, NAND_BLOCK_LEN);
-        //panic!("nand erase unimpl");
+        self.nand.clear_data(off, NAND_BLOCK_LEN)
     }
 
     /// Perform a NAND read into memory
@@ -266,7 +265,7 @@ impl Bus {
         let mut local_buf = vec![0; len];
 
         let off = reg.addr2 as usize * NAND_PAGE_LEN;
-        self.nand.read_data(off, &mut local_buf);
+        self.nand.read_data(off, &mut local_buf)?;
 
         //println!("{:?}", local_buf.hex_dump());
         // Do the DMA writes to memory
@@ -292,7 +291,7 @@ impl Bus {
 
         let off = (reg.current_page as usize * NAND_PAGE_LEN) + 
             reg.current_poff as usize;
-        self.nand.write_data(off, &local_buf);
+        self.nand.write_data(off, &local_buf)?;
 
         if cmd.ecc {
             assert!(cmd.len == 0x800);
@@ -343,7 +342,7 @@ impl Bus {
                     self.nand_write_page(&cmd, &reg)?;
                 },
                 Read    => self.nand_read_page(&cmd, &reg)?,
-                Erase   => self.nand_erase_page(&cmd, &reg),
+                Erase   => self.nand_erase_page(&cmd, &reg)?,
                 _ => { return Err(format!("NAND unknown cycle 1 opcd {:?}", cmd.opcd)); },
             },
             2 => match cmd.opcd {

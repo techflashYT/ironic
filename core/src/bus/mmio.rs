@@ -80,7 +80,7 @@ impl Bus {
 impl Bus {
     /// Emulate a slice of work on the system bus.
     pub fn step(&mut self, cpu_cycle: usize) -> Result<(), String> {
-        self.handle_step_hlwd(cpu_cycle);
+        self.handle_step_hlwd(cpu_cycle)?;
         if !self.tasks.is_empty() {
             self.drain_tasks()?;
         }

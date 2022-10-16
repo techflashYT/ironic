@@ -76,7 +76,7 @@ impl SeepromState {
         self.write_buffer = None;
     }
 
-    pub fn step(&mut self, mosi: u32, input: u32) -> Option<u32> {
+    pub fn step(&mut self, mosi: u32, input: u32) -> Result<Option<u32>, String> {
         use SeepromOp::*;
 
         // Shift in a bit
@@ -88,7 +88,7 @@ impl SeepromState {
             // All valid instructions start with 0b1
             0x01 => if self.in_buf != 0b1 { 
                 self.reset();
-                return Some(input | GpioPin::SeepromMiso as u32);
+                return Ok(Some(input | GpioPin::SeepromMiso as u32));
             },
 
             // After reading three bits, we can determine the opcode
@@ -101,7 +101,7 @@ impl SeepromState {
                 match extop {
                     Ewen => self.wren = true,
                     Ewds => self.wren = false,
-                    _ => panic!("SEEPROM ext. op {:?} unimplemented", extop),
+                    _ => { return Err(format!("SEEPROM ext. op {:?} unimplemented", extop)); },
                 }
                 println!("SEEPROM {:?}", extop);
             },
@@ -131,22 +131,22 @@ impl SeepromState {
                 // Prepare the bits we're going to shift out next cycle
                 if self.num_bits == 0xb {
                     let addr = self.addr.unwrap();
-                    let res = self.data.read::<u16>(addr * 2);
+                    let res = self.data.read::<u16>(addr * 2)?;
                     self.out_buf = Some(res);
                     //println!("SEEPROM read {:04x} @ {:02x}", res, addr);
-                    None
+                    Ok(None)
                 } 
                 // Shift out bits from the read command
                 else if self.num_bits >= 0x0c {
                     let out = self.out_buf.unwrap();
                     let bit_idx = self.num_bits - 0x0c;
                     if (out & (0x8000 >> bit_idx)) != 0 {
-                        Some(input | GpioPin::SeepromMiso as u32)
+                        Ok(Some(input | GpioPin::SeepromMiso as u32))
                     } else {
-                        Some(input & !(GpioPin::SeepromMiso as u32))
+                        Ok(Some(input & !(GpioPin::SeepromMiso as u32)))
                     }
                 } else {
-                    None
+                    Ok(None)
                 }
             },
             Write => {
@@ -154,23 +154,23 @@ impl SeepromState {
                     let val = self.write_buffer.unwrap();
                     let addr = self.addr.unwrap();
                     if self.wren {
-                        self.data.write::<u16>(addr * 2, val);
+                        self.data.write::<u16>(addr * 2, val)?;
                         println!("SEEPROM write {:04x} @ {:02x}", val, addr);
                     } else {
-                        panic!("SEEPROM write {:04x} @ {:02x} without WREN", val, addr);
+                        return Err(format!("SEEPROM write {:04x} @ {:02x} without WREN", val, addr));
                     }
-                    None
+                    Ok(None)
                 } else {
-                    None
+                    Ok(None)
                 }
             },
-            _ => None,
+            _ => Ok(None),
         }
     }
 }
 
 impl GpioInterface {
-    pub fn handle_seeprom(&mut self, val: u32) {
+    pub fn handle_seeprom(&mut self, val: u32) -> Result<(), String> {
         let mosi = ((val & GpioPin::SeepromMosi as u32) != 0) as u32;
         let cs = (val & GpioPin::SeepromCs as u32) != 0;
         let clk_rise = (self.arm.output & GpioPin::SeepromClk as u32) == 0 
@@ -188,7 +188,7 @@ impl GpioInterface {
         // If CS is asserted and we're at the rising edge of the clock,
         // compute the next step of the serial/SPI state machine.
         if cs && clk_rise {
-            let new_input = self.seeprom.step(mosi, self.arm.input);
+            let new_input = self.seeprom.step(mosi, self.arm.input)?;
             if new_input.is_some() {
                 self.arm.input = new_input.unwrap();
             }
@@ -196,6 +196,7 @@ impl GpioInterface {
 
         // Commit the value to the output register
         self.arm.output = val;
+        Ok(())
     }
 }
 

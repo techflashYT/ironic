@@ -42,17 +42,18 @@ impl GpioInterface {
 }
 
 impl GpioInterface {
-    pub fn handle_output(&mut self, val: u32) {
+    pub fn handle_output(&mut self, val: u32) -> Result<(), String> {
         let diff = self.arm.output ^ val;
         if (diff & 0x0000_1c00) != 0 {
-            self.handle_seeprom(val);
+            self.handle_seeprom(val)?;
         } else if (diff & 0x00ff_0000) != 0 {
             println!("GPIO DEBUG pins [{:02x}]", (val & 0x00ff_0000) >> 16);
         } else if (diff & 0x0000_000c) != 0 {
             println!("GPIO Fan/DCDC output {:08x}", diff);
         } else {
-            panic!("Unhandled GPIO output diff={:08x}", diff);
+            return Err(format!("Unhandled GPIO output diff={:08x}", diff));
         }
+        Ok(())
     }
 }
 

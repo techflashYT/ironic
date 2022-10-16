@@ -18,13 +18,13 @@ use uds_windows::{UnixStream, UnixListener};
 
 macro_rules! extract_packet_and_reply {
     ($debug_recv: expr; $client: expr) => {
-        let reply: DebugPacket = $debug_recv.recv().unwrap();
+        let reply: DebugPacket = $debug_recv.recv().map_err(|e| e.to_string())?;
         assert!(reply.command == DebugCommand::Reply);
         let value = reply.op1.to_le();
         let bytes: [u8;4] = unsafe {std::mem::transmute(value)};
 
-        $client.write(&bytes).unwrap();
-
+        $client.write(&bytes).map_err(|e| e.to_string())?;
+        return Ok(());
     };
 }
 
@@ -121,16 +121,9 @@ impl DebugBackend {
     }
 
     /// Handle clients connected to the socket.
-    pub fn server_loop(&mut self, sock: UnixListener) {
+    pub fn server_loop(&mut self, sock: UnixListener) -> Result<(), String> {
         loop {
-            let res = sock.accept();
-            let mut client = match res {
-                Ok((stream, _)) => stream,
-                Err(e) => { 
-                    println!("[DEBUG] accept() error {:?}", e);
-                    break;
-                }
-            };
+            let (mut client, _) = sock.accept().map_err(|e| e.to_string())?;
 
             loop {
                 println!("[DEBUG] waiting for command ...");
@@ -138,17 +131,17 @@ impl DebugBackend {
                 let res = self.wait_for_request(&mut client);
                 let req = if res.is_none() { break; } else { res.unwrap() };
                 match req.cmd {
-                    DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req),
-                    DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req),
-                    DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req),
-                    DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req),
-                    DebugCommand::Step     => self.handle_cmd_step(&mut client, req),
-                    DebugCommand::Reply    => panic!("Unsupported"),
+                    DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req).map_err(|e| e.to_string())?,
+                    DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req).map_err(|e| e.to_string())?,
+                    DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req).map_err(|e| e.to_string())?,
+                    DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req).map_err(|e| e.to_string())?,
+                    DebugCommand::Step     => self.handle_cmd_step(&mut client, req).map_err(|e| e.to_string())?,
+                    DebugCommand::Reply    => { return Err(format!("Unsupported")); },
                     DebugCommand::Unimpl => break,
                 }
             }
-            client.shutdown(Shutdown::Both).unwrap();
-        }
+            return client.shutdown(Shutdown::Both).map_err(|e| e.to_string());
+        };
     }
 
     /// Block until we receive some command message from a client.
@@ -166,33 +159,33 @@ impl DebugBackend {
         Some(req)
     }
 
-    fn handle_cmd_peekreg(&mut self, client: &mut UnixStream, req: SocketReq) {
+    fn handle_cmd_peekreg(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[DEBUG] Command PeekReg");
-        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekReg, op1: req.addr, op2: 0 }).expect("PeekReg send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekReg, op1: req.addr, op2: 0 }).map_err(|e| e.to_string())?;
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
-    fn handle_cmd_pokereg(&mut self, client: &mut UnixStream, req: SocketReq) {
+    fn handle_cmd_pokereg(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[DEBUG] Command PokeReg");
-        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekReg, op1: req.addr, op2: req.len }).expect("PokeReg send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekReg, op1: req.addr, op2: req.len }).map_err(|e| e.to_string())?;
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
-    fn handle_cmd_peekaddr(&mut self, client: &mut UnixStream, req: SocketReq) {
+    fn handle_cmd_peekaddr(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[DEBUG] Command PeekAddr");
-        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekPAddr, op1: req.addr, op2: 0 }).expect("PeekAddr send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PeekPAddr, op1: req.addr, op2: 0 }).map_err(|e| e.to_string())?;
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
-    fn handle_cmd_pokeaddr(&mut self, client: &mut UnixStream, req: SocketReq) {
+    fn handle_cmd_pokeaddr(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[DEBUG] Command PokeAddr");
-        self.dbg_send.send(DebugPacket { command: DebugCommand::PokePAddr, op1: req.addr, op2: req.len }).expect("PokeAddr send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::PokePAddr, op1: req.addr, op2: req.len }).map_err(|e| e.to_string())?;
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
-    fn handle_cmd_step(&mut self, client: &mut UnixStream, req: SocketReq) {
+    fn handle_cmd_step(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
         println!("[DEBUG] Command Step");
-        self.dbg_send.send(DebugPacket { command: DebugCommand::Step, op1: req.addr, op2: 0 }).expect("CPUStep Send");
+        self.dbg_send.send(DebugPacket { command: DebugCommand::Step, op1: req.addr, op2: 0 }).map_err(|e| e.to_string())?;
         extract_packet_and_reply!(self.dbg_recv; client);
     }
 
@@ -202,25 +195,22 @@ impl DebugBackend {
 impl Backend for DebugBackend {
     fn run(&mut self) -> Result<(), String> {
         println!("[DEBUG] DEBUG backend thread started");
-
+        let path = DebugBackend::resolve_socket_path();
         // Try binding to the socket
-        let res = std::fs::remove_file(DebugBackend::resolve_socket_path());
-        match res {
-            Ok(_) => {},
-            Err(_e) => {},
-        }
-        let res = UnixListener::bind(DebugBackend::resolve_socket_path());
+        let _ = std::fs::remove_file(&path);
+
+        let res = UnixListener::bind(&path);
         let sock = match res {
             Ok(sock) => Some(sock),
             Err(e) => {
-                println!("[DEBUG] Couldn't bind to {},\n{:?}", DebugBackend::resolve_socket_path().to_string_lossy(), e);
+                println!("[DEBUG] Couldn't bind to {},\n{:?}", &path.to_string_lossy(), e);
                 None
             }
         };
 
         // If we successfully bind, run the server until it exits
-        if sock.is_some() {
-            self.server_loop(sock.unwrap());
+        if let Some(sock) = sock {
+            self.server_loop(sock)?;
         }
         println!("[DEBUG] thread exited");
         Ok(())
