@@ -340,20 +340,20 @@ impl Backend for InterpBackend {
             let mut kernel_file = match maybe_kernel_file {
                 Ok(f) => f,
                 Err(e) => {
-                    panic!("Error opening kernel file: {}, got error: {}", filename, e)
+                    return Err(format!("Error opening kernel file: {}, got error: {}", filename, e));
                 },
             };
-            let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata().expect("Kernel elf file-metadata").len() as usize);
-            kernel_file.read_to_end(&mut kernel_bytes).expect("Failed to read custom kernel ELF");
+            let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata().map_err(|e| e.to_string())?.len() as usize);
+            kernel_file.read_to_end(&mut kernel_bytes).map_err(|e|e.to_string())?;
             // Reuse the file for the ELF parser
-            kernel_file.rewind().unwrap();
+            kernel_file.rewind().map_err(|e| e.to_string())?;
             let kernel_elf = match elf::File::open_stream(&mut kernel_file) {
                 Ok(res) => res,
-                Err(e)  => panic!("Custom Kernel ELF error: {:?}", e),
+                Err(e)  => { return Err(format!("Custom Kernel ELF error: {:?}", e)); },
             };
             let headers = kernel_elf.phdrs;
             // We have a valid ELF (probably)
-            let mut bus = self.bus.write().expect("RW bus access for custom kernel");
+            let mut bus = self.bus.write().map_err(|e| e.to_string())?;
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
             bus.rom_disabled = true;
@@ -387,7 +387,7 @@ impl Backend for InterpBackend {
                     }
                 }
                 else { break 'check_for_debug; }
-                let reply_val = self.handle_debug_packet(maybe_packet.unwrap());
+                let reply_val = self.handle_debug_packet(maybe_packet.unwrap())?;
                 self.emu_send.send(DebugPacketValueReply!(reply_val)).unwrap();
                 continue 'outer;
             }
@@ -416,7 +416,10 @@ impl Backend for InterpBackend {
                     match e {
                         ExceptionType::Undef(_) => {},
                         ExceptionType::Irq => {},
-                        _ => panic!("Unimplemented exception type {:?}", e),
+                        _ => {
+                            println!("Unimplemented exception type {:?}", e);
+                            break;
+                        }
                     }
                 },
                 CpuRes::Semihosting => {
@@ -433,21 +436,21 @@ impl Backend for InterpBackend {
 }
 
 impl InterpBackend {
-    fn handle_debug_packet(&mut self, packet: DebugPacket) -> u32 {
+    fn handle_debug_packet(&mut self, packet: DebugPacket) -> Result<u32, String> {
 
         match packet.command {
-            DebugCommand::PeekReg => { return self.cpu.reg[packet.op1]; },
-            DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; return 0; },
+            DebugCommand::PeekReg => { return Ok(self.cpu.reg[packet.op1]); },
+            DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; return Ok(0); },
             DebugCommand::PeekPAddr => {
-                return self.bus.read().expect("DebugPacket Bus").read8(packet.op1).expect("FIXME") as u32;
+                return Ok(self.bus.read().map_err(|e| e.to_string())?.read8(packet.op1)? as u32);
             },
             DebugCommand::PokePAddr => {
-                self.bus.write().expect("DebugPacket Bus").write8(packet.op1, packet.op2 as u8).expect("FIXME");
-                return 0;
+                self.bus.write().map_err(|e| e.to_string())?.write8(packet.op1, packet.op2 as u8)?;
+                return Ok(0);
             },
-            DebugCommand::Step => { self.debug_cycles = packet.op1; return 0; },
-            DebugCommand::Reply => panic!("Debug packet reply not allowed here"),
-            DebugCommand::Unimpl => panic!("Unhndled debug packet {:#?}", &packet),
+            DebugCommand::Step => { self.debug_cycles = packet.op1; return Ok(0); },
+            DebugCommand::Reply => Err(format!("Debug packet reply not allowed here")),
+            DebugCommand::Unimpl => Err(format!("Unhndled debug packet {:#?}", &packet)),
         }
     }
 }
