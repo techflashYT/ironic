@@ -270,8 +270,8 @@ impl Bus {
 
         //println!("{:?}", local_buf.hex_dump());
         // Do the DMA writes to memory
-        self.dma_write(reg.databuf, &local_buf[..0x800]);
-        self.dma_write(reg.eccbuf, &local_buf[0x800..]);
+        self.dma_write(reg.databuf, &local_buf[..0x800])?;
+        self.dma_write(reg.eccbuf, &local_buf[0x800..])?;
 
         // Compute and write the ECC bytes for the data
         for i in 0..4 {
@@ -288,7 +288,7 @@ impl Bus {
     fn nand_write_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
         // Read from memory
         let mut local_buf = vec![0; cmd.len as usize];
-        self.dma_read(reg.databuf, &mut local_buf);
+        self.dma_read(reg.databuf, &mut local_buf)?;
 
         let off = (reg.current_page as usize * NAND_PAGE_LEN) + 
             reg.current_poff as usize;
@@ -306,7 +306,7 @@ impl Bus {
     }
 
     /// Handle a NAND command
-    pub fn handle_task_nand(&mut self, val: u32) {
+    pub fn handle_task_nand(&mut self, val: u32) -> Result<(), String> {
         use NandOpcd::*;
         let cmd = NandCmd::new(val);
         let reg = self.read_nand_regs();
@@ -324,27 +324,27 @@ impl Bus {
                 match cmd.opcd {
                     SerialInput => {
                         next_cycle = reg._cycle + 1;
-                        self.nand_write_page(&cmd, &reg).unwrap_or_else(|reason| {panic!("FIXME: error handling. Error in nand_write_page: {}", reason)});
+                        self.nand_write_page(&cmd, &reg)?;
                     },
                     PrefixRead  => next_cycle = reg._cycle + 1,
                     PrefixErase => next_cycle = reg._cycle + 1,
-                    ReadId      => self.dma_write(reg.databuf, &NAND_ID),
+                    ReadId      => self.dma_write(reg.databuf, &NAND_ID)?,
                     ReadStatus  => {
                         let status_register: [u8;1] = [0xe0];
-                        self.dma_write(reg.databuf, &status_register);
+                        self.dma_write(reg.databuf, &status_register)?;
                     },
                     Reset       => {},
-                    _ => panic!("NAND unknown cycle 0 opcd {:?}", cmd.opcd),
+                    _ => { return Err(format!("NAND unknown cycle 0 opcd {:?}", cmd.opcd)); },
                 }
             },
             1 => match cmd.opcd {
                 RandInput => {
                     next_cycle = reg._cycle + 1;
-                    self.nand_write_page(&cmd, &reg).unwrap_or_else(|reason| {panic!("FIXME: error handling. Error in nand_write_page: {}", reason);});
+                    self.nand_write_page(&cmd, &reg)?;
                 },
-                Read    => self.nand_read_page(&cmd, &reg).unwrap_or_else(|reason| {panic!("FIXME: error handling. Error in nand_read_page: {}", reason);}),
+                Read    => self.nand_read_page(&cmd, &reg)?,
                 Erase   => self.nand_erase_page(&cmd, &reg),
-                _ => panic!("NAND unknown cycle 1 opcd {:?}", cmd.opcd),
+                _ => { return Err(format!("NAND unknown cycle 1 opcd {:?}", cmd.opcd)); },
             },
             2 => match cmd.opcd {
                 // NOTE: For now, we can probably just do the page programming
@@ -352,9 +352,9 @@ impl Bus {
                 // do anything when we see the actual program command
                 Program => {
                 },
-                _ => panic!("NAND unknown cycle 2 opcd {:?}", cmd.opcd),
+                _ => { return Err(format!("NAND unknown cycle 2 opcd {:?}", cmd.opcd)); },
             },
-            _ => panic!("NAND desync cycle {}", reg._cycle),
+            _ => { return Err(format!("NAND desync cycle {}", reg._cycle)); },
         }
 
         // Get a mutable reference to the system devices and commit any state 
@@ -374,7 +374,7 @@ impl Bus {
             // Increment cycle counter for NAND state machine
             self.nand.reg._cycle = next_cycle;
         }
-
+        Ok(())
     }
 }
 

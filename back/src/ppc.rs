@@ -213,7 +213,7 @@ impl PpcBackend {
     pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[PPC] read {:x} bytes at {:08x}", req.len, req.addr);
         self.bus.read().unwrap().dma_read(req.addr,
-            &mut self.obuf[0..req.len as usize]);
+            &mut self.obuf[0..req.len as usize]).expect("FIXME error propogation");
         client.write(&self.obuf[0..req.len as usize]).unwrap();
     }
 
@@ -221,7 +221,7 @@ impl PpcBackend {
     pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) {
         println!("[PPC] write {:x} bytes at {:08x}", req.len, req.addr);
         let data = &self.ibuf[0xc..(0xc + req.len as usize)];
-        self.bus.write().unwrap().dma_write(req.addr, data);
+        self.bus.write().unwrap().dma_write(req.addr, data).expect("FIXME error propogation");
         client.write("OK".as_bytes()).unwrap();
     }
 
@@ -245,7 +245,7 @@ impl PpcBackend {
 
 
 impl Backend for PpcBackend {
-    fn run(&mut self) {
+    fn run(&mut self) -> Result<(), String> {
         println!("[PPC] PPC backend thread started");
         self.bus.write().unwrap().hlwd.ipc.state.ppc_ctrl_write(0x36);
 
@@ -285,6 +285,7 @@ impl Backend for PpcBackend {
             self.server_loop(sock.unwrap());
         }
         println!("[PPC] thread exited");
+        Ok(())
     }
 }
 

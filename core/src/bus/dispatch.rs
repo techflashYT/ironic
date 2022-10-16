@@ -51,12 +51,12 @@ impl Bus {
     }
 
     /// Perform a DMA write operation.
-    pub fn dma_write(&mut self, addr: u32, buf: &[u8]) {
-        self.do_dma_write(addr, buf);
+    pub fn dma_write(&mut self, addr: u32, buf: &[u8]) -> Result<(), String> {
+        self.do_dma_write(addr, buf)
     }
     /// Perform a DMA read operation.
-    pub fn dma_read(&self, addr: u32, buf: &mut [u8]) {
-        self.do_dma_read(addr, buf);
+    pub fn dma_read(&self, addr: u32, buf: &mut [u8]) -> Result<(), String> {
+        self.do_dma_read(addr, buf)
     }
 
 }
@@ -133,11 +133,14 @@ impl Bus {
 
 impl Bus {
     /// Dispatch a DMA write to some memory device.
-    fn do_dma_write(&mut self, addr: u32, buf: &[u8]) {
+    fn do_dma_write(&mut self, addr: u32, buf: &[u8]) -> Result<(), String> {
         use MemDevice::*;
-        let handle = self.decode_phys_addr(addr).unwrap_or_else(||
-            panic!("Unresolved physical address {:08x}", addr)
-        );
+        let handle = match self.decode_phys_addr(addr){
+            Some(val) => val,
+            None => {
+                return Err(format!("Unresolved physical address {:08x}", addr));
+            }
+        };
 
         let off = (addr & handle.mask) as usize;
         match handle.dev {
@@ -148,16 +151,18 @@ impl Bus {
                 Mem1    => self.mem1.write_buf(off, buf),
                 Mem2    => self.mem2.write_buf(off, buf),
             }},
-            _ => panic!("Bus error: DMA write on memory-mapped I/O region"),
+            _ => { return Err(format!("Bus error: DMA write on memory-mapped I/O region")); },
         }
+        Ok(())
     }
 
     /// Dispatch a DMA read to some memory device.
-    fn do_dma_read(&self, addr: u32, buf: &mut [u8]) {
+    fn do_dma_read(&self, addr: u32, buf: &mut [u8]) -> Result<(), String> {
         use MemDevice::*;
-        let handle = self.decode_phys_addr(addr).unwrap_or_else(||
-            panic!("Unresolved physical address {:08x}", addr)
-        );
+        let handle = match self.decode_phys_addr(addr) {
+                Some(val) => val,
+                None => { return Err(format!("Unresolved physical address {:08x}", addr)); }
+        };
 
         let off = (addr & handle.mask) as usize;
         match handle.dev {
@@ -168,8 +173,9 @@ impl Bus {
                 Mem1    => self.mem1.read_buf(off, buf),
                 Mem2    => self.mem2.read_buf(off, buf),
             }},
-            _ => panic!("Bus error: DMA read on memory-mapped I/O region"),
+            _ => { return Err(format!("Bus error: DMA read on memory-mapped I/O region")); },
         }
+        Ok(())
     }
 }
 

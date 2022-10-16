@@ -200,7 +200,7 @@ impl DebugBackend {
 
 
 impl Backend for DebugBackend {
-    fn run(&mut self) {
+    fn run(&mut self) -> Result<(), String> {
         println!("[DEBUG] DEBUG backend thread started");
 
         // Try binding to the socket
@@ -223,6 +223,7 @@ impl Backend for DebugBackend {
             self.server_loop(sock.unwrap());
         }
         println!("[DEBUG] thread exited");
+        Ok(())
     }
 }
 

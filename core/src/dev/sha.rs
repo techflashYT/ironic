@@ -86,11 +86,11 @@ impl MmioDevice for ShaInterface {
 }
 
 impl Bus {
-    pub fn handle_task_sha(&mut self, val: u32) {
+    pub fn handle_task_sha(&mut self, val: u32) -> Result<(), String> {
         let cmd = ShaCommand::from(val);
 
         let mut sha_buf = vec![0u8; cmd.len as usize];
-        self.dma_read(self.sha.src, &mut sha_buf);
+        self.dma_read(self.sha.src, &mut sha_buf)?;
         //println!("{:?}", sha_buf.hex_dump());
 
         self.sha.state.update(&sha_buf);
@@ -105,6 +105,7 @@ impl Bus {
         if cmd.irq { 
             self.hlwd.irq.assert(HollywoodIrq::Sha);
         }
+        Ok(())
     }
 }
 

@@ -82,7 +82,9 @@ fn main() {
         BackendType::Interp => {
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
                 let mut back = InterpBackend::new(emu_bus, custom_kernel, emu_send, emu_recv);
-                back.run();
+                if let Err(reason) = back.run() {
+                    println!("InterpBackend returned an Err: {}", reason);
+                };
             }).unwrap()
         },
         _ => panic!("unimplemented backend"),
@@ -93,7 +95,9 @@ fn main() {
         let ppc_bus = bus.clone();
         let _ = Some(Builder::new().name("IpcThread".to_owned()).spawn(move || {
             let mut back = PpcBackend::new(ppc_bus);
-            back.run();
+            if let Err(reason) = back.run(){
+                println!("PPC Backend returned an Err: {}", reason);
+            };
         }).unwrap());
     }
 
@@ -101,7 +105,9 @@ fn main() {
     if enable_debug_server {
         let _ = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
             let mut back = DebugBackend::new(dbg_send, dbg_recv);
-            back.run();
+            if let Err(reason) = back.run() {
+                println!("Debug Thead returned en Err: {}", reason);
+            };
         }).unwrap());
     }
 

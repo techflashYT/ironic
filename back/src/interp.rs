@@ -164,7 +164,7 @@ impl InterpBackend {
 
         // Pull the buffer out of guest memory
         let mut line_buf = [0u8; 16];
-        self.bus.read().unwrap().dma_read(paddr, &mut line_buf);
+        self.bus.read().unwrap().dma_read(paddr, &mut line_buf)?;
 
         let s = std::str::from_utf8(&line_buf).unwrap()
             .trim_matches(char::from(0));
@@ -251,7 +251,7 @@ impl InterpBackend {
                 println!("DBG hotpatching module entrypoint {:08x}", paddr);
                 println!("{:?}", self.cpu.reg);
                 self.bus.write().unwrap().dma_write(paddr, 
-                    &Self::THREAD_CANCEL_PATCH);
+                    &Self::THREAD_CANCEL_PATCH)?;
             }
         }
         Ok(())
@@ -332,7 +332,7 @@ impl InterpBackend {
 }
 
 impl Backend for InterpBackend {
-    fn run(&mut self) {
+    fn run(&mut self) -> Result<(), String> {
         if self.custom_kernel.is_some() {
             // Read the user supplied kernel file
             let filename = self.custom_kernel.as_ref().unwrap();
@@ -364,7 +364,7 @@ impl Backend for InterpBackend {
                     let start = header.offset as usize;
                     let end = start + header.filesz as usize;
                     println!("CUSTOM KERNEL: LOADING offset: {:#10x}  phys addr: {:#10x} filesz: {:#10x}", header.offset, header.paddr, header.filesz);
-                    bus.dma_write(header.paddr as u32, &kernel_bytes[start..end]);
+                    bus.dma_write(header.paddr as u32, &kernel_bytes[start..end])?;
                 }
             }
             self.boot_status = BootStatus::UserKernel;
@@ -394,7 +394,7 @@ impl Backend for InterpBackend {
             // Take ownership of the bus to deal with any pending tasks
             {
                 let mut bus = self.bus.write().unwrap();
-                bus.step(self.cpu_cycle);
+                bus.step(self.cpu_cycle)?;
                 self.bus_cycle += 1;
                 self.cpu.irq_input = bus.hlwd.irq.arm_irq_output;
             }
@@ -428,6 +428,7 @@ impl Backend for InterpBackend {
             self.cpu_cycle += 1;
         }
         println!("CPU stopped at pc={:08x}", self.cpu.read_fetch_pc());
+        Ok(())
     }
 }
 

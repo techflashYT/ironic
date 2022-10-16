@@ -40,15 +40,13 @@ impl MmioDevice for MemInterface {
 }
 
 impl Bus {
-    pub fn handle_task_mi(&mut self, kind: IndirAccess, data: u16) {
+    pub fn handle_task_mi(&mut self, kind: IndirAccess, data: u16) -> Result<(), String> {
         match kind {
             IndirAccess::Read => {
                 assert!(data >= 0x0100);
                 self.hlwd.mi.ddr_addr = data;
                 let off = ((data * 2) - 0x0200) as usize;
-                let res = self.hlwd.ddr.read(off).unwrap_or_else(|reason| {
-                    panic!("FIXME: Got error from ddr mmio: {}", reason);
-                });
+                let res = self.hlwd.ddr.read(off)?;
                 self.hlwd.mi.ddr_data = match res {
                     BusPacket::Half(val) => val,
                     _ => unreachable!(),
@@ -58,11 +56,10 @@ impl Bus {
                 let ddr_addr = self.hlwd.mi.ddr_addr;
                 assert!(ddr_addr >= 0x0100);
                 let off = ((self.hlwd.mi.ddr_addr * 2) - 0x200) as usize;
-                self.hlwd.ddr.write(off, data).unwrap_or_else(|reason| {
-                    panic!("FIXME: Got error from ddr mmio: {}", reason);
-                });
+                self.hlwd.ddr.write(off, data)?;
             }
         }
+        Ok(())
     }
 }
 

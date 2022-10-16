@@ -124,12 +124,12 @@ impl MmioDevice for AesInterface {
 }
 
 impl Bus {
-    pub fn handle_task_aes(&mut self, val: u32) {
+    pub fn handle_task_aes(&mut self, val: u32) -> Result<(), String> {
         let cmd = AesCommand::from(val);
 
         // Read data from the source address
         let mut aes_inbuf = vec![0u8; cmd.len];
-        self.dma_read(self.aes.src, &mut aes_inbuf);
+        self.dma_read(self.aes.src, &mut aes_inbuf)?;
 
         if cmd.use_aes {
             // Build the right AES cipher for this request
@@ -154,12 +154,12 @@ impl Bus {
             } else {
                 cipher_enc.encrypt_padded_vec_mut::<NoPadding>(&aes_inbuf)
             };
-            self.dma_write(self.aes.dst, &aes_outbuf);
+            self.dma_write(self.aes.dst, &aes_outbuf)?;
 
             // Update IV buffer with the last 16 bytes of data
             self.aes.iv_buffer.copy_from_slice(&aes_inbuf[(cmd.len - 0x10)..]);
         } else {
-            self.dma_write(self.aes.dst, &aes_inbuf);
+            self.dma_write(self.aes.dst, &aes_inbuf)?;
         }
 
         // Update the source/destination registers exposed over MMIO
@@ -172,7 +172,7 @@ impl Bus {
         if cmd.irq { 
             self.hlwd.irq.assert(HollywoodIrq::Aes);
         }
-
+        Ok(())
     }
 }
 

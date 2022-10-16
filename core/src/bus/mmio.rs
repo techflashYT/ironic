@@ -79,25 +79,26 @@ impl Bus {
 
 impl Bus {
     /// Emulate a slice of work on the system bus.
-    pub fn step(&mut self, cpu_cycle: usize) {
+    pub fn step(&mut self, cpu_cycle: usize) -> Result<(), String> {
         self.handle_step_hlwd(cpu_cycle);
         if !self.tasks.is_empty() {
-            self.drain_tasks();
+            self.drain_tasks()?;
         }
         self.cycle += 1;
+        Ok(())
     }
 
     /// Dispatch all of the pending tasks on the Bus.
-    fn drain_tasks(&mut self) {
+    fn drain_tasks(&mut self) -> Result<(), String> {
         let mut idx = 0;
         while idx != self.tasks.len() {
             if self.tasks[idx].target_cycle <= self.cycle {
                 let task = self.tasks.remove(idx);
                 match task.kind {
-                    BusTask::Nand(x) => self.handle_task_nand(x),
-                    BusTask::Aes(x) => self.handle_task_aes(x),
-                    BusTask::Sha(x) => self.handle_task_sha(x),
-                    BusTask::Mi{kind, data} => self.handle_task_mi(kind, data),
+                    BusTask::Nand(x) => self.handle_task_nand(x)?,
+                    BusTask::Aes(x) => self.handle_task_aes(x)?,
+                    BusTask::Sha(x) => self.handle_task_sha(x)?,
+                    BusTask::Mi{kind, data} => self.handle_task_mi(kind, data)?,
                     BusTask::SetRomDisabled(x) => self.rom_disabled = x,
                     BusTask::SetMirrorEnabled(x) => self.mirror_enabled = x,
                 }
@@ -105,6 +106,7 @@ impl Bus {
                 idx += 1;
             }
         }
+        Ok(())
     }
 }
 
