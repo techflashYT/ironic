@@ -6,13 +6,13 @@ use ironic_core::cpu::alu::*;
 use crate::bits::arm::*;
 use crate::interp::DispatchRes;
 
-pub fn do_amode(rn: u32, imm: u32, u: bool, p: bool, w: bool) -> (u32, u32) {
+pub fn do_amode(rn: u32, imm: u32, u: bool, p: bool, w: bool) -> Result<(u32, u32), String> {
     let res = if u { rn.wrapping_add(imm) } else { rn.wrapping_sub(imm) };
     match (p, w) {
-        (false, false)  => (rn, res),
-        (true, false)   => (res, rn),
-        (true, true)    => (res, res),
-        (false, true)   => panic!("Unsupported addressing mode?"),
+        (false, false)  => Ok((rn, res)),
+        (true, false)   => Ok((res, rn)),
+        (true, true)    => Ok((res, res)),
+        (false, true)   => Err("Unsupported addressing mode?".to_string()),
     }
 }
 
@@ -31,8 +31,11 @@ pub fn ldrb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
         let addr = do_amode_lit(cpu.read_exec_pc(), op.imm12(), op.p(), op.u());
         cpu.read8(addr)
     } else {
-        let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-            op.imm12(), op.u(), op.p(), op.w());
+        let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+            op.imm12(), op.u(), op.p(), op.w()){
+                Ok(val) => val,
+                Err(reason) => { return DispatchRes::FatalErr(reason); }
+            };
         cpu.reg[op.rn()] = wb_addr;
         cpu.read8(addr)
     };
@@ -49,7 +52,10 @@ pub fn ldrb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
 pub fn ldrh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     assert_ne!(op.rt(), 15);
     let offset = (op.imm4h() << 4) | op.imm4l();
-    let (addr,wb_addr) = do_amode(cpu.reg[op.rn()], offset, op.u(), op.p(), op.w());
+    let (addr,wb_addr) = match do_amode(cpu.reg[op.rn()], offset, op.u(), op.p(), op.w()) {
+        Ok(val) => val,
+        Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
     let res = match cpu.read16(addr) {
         Ok(val) => val,
         Err(reason) => {
@@ -69,8 +75,11 @@ pub fn ldr_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
         let addr = do_amode_lit(cpu.read_exec_pc(), op.imm12(), op.p(), op.u());
         cpu.read32(addr)
     } else {
-        let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-            op.imm12(), op.u(), op.p(), op.w());
+        let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+            op.imm12(), op.u(), op.p(), op.w()){
+                Ok(val) => val,
+                Err(reason) => { return DispatchRes::FatalErr(reason); }
+            };
         cpu.reg[op.rn()] = wb_addr;
         let res = cpu.read32(addr);
         res
@@ -92,9 +101,11 @@ pub fn ldr_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
 }
 
 pub fn str_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
-    let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-        op.imm12(), op.u(), op.p(), op.w()
-    );
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+    op.imm12(), op.u(), op.p(), op.w()){
+        Ok(val) => val,
+        Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
     cpu.reg[op.rn()] = wb_addr;
     match cpu.write32(addr, cpu.reg[op.rt()]) {
         Ok(_) => DispatchRes::RetireOk,
@@ -102,9 +113,11 @@ pub fn str_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     }
 }
 pub fn strb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
-    let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-        op.imm12(), op.u(), op.p(), op.w()
-    );
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+    op.imm12(), op.u(), op.p(), op.w()){
+        Ok(val) => val,
+        Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
     cpu.reg[op.rn()] = wb_addr;
     match cpu.write8(addr, cpu.reg[op.rt()]) {
         Ok(_) => DispatchRes::RetireOk,
@@ -120,9 +133,11 @@ pub fn ldr_reg(cpu: &mut Cpu, op: LsRegBits) -> DispatchRes {
         stype: op.stype(), imm5: op.imm5(), c_in: cpu.reg.cpsr.c()
     });
 
-    let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-        offset, op.u(), op.p(), op.w()
-    );
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+        offset, op.u(), op.p(), op.w()) {
+            Ok(val) => val,
+            Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
     let val = match cpu.read32(addr) {
         Ok(val) => val,
         Err(reason) => {
@@ -145,9 +160,11 @@ pub fn str_reg(cpu: &mut Cpu, op: LsRegBits) -> DispatchRes {
         stype: op.stype(), imm5: op.imm5(), c_in: cpu.reg.cpsr.c()
     });
 
-    let (addr, wb_addr) = do_amode(cpu.reg[op.rn()], 
-        offset, op.u(), op.p(), op.w()
-    );
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+        offset, op.u(), op.p(), op.w()){
+            Ok(val) => val,
+            Err(reason) => { return DispatchRes::FatalErr(reason); }
+        };
 
     let val = cpu.reg[op.rt()];
     match cpu.write32(addr, val) {
@@ -404,9 +421,11 @@ pub fn stm(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
 
 pub fn strh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     let offset = (op.imm4h() << 4) | op.imm4l();
-    let (addr, wb_addr) = do_amode(cpu.reg[op.rn()],
-        offset, op.u(), op.p(), op.w()
-    );
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+        offset, op.u(), op.p(), op.w()) {
+            Ok(val) => val,
+            Err(reason) => { return DispatchRes::FatalErr(reason); }
+        };
     cpu.reg[op.rn()] = wb_addr;
     match cpu.write16(addr, cpu.reg[op.rt()]) {
         Ok(_) => DispatchRes::RetireOk,
