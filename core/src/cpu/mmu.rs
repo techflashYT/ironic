@@ -40,13 +40,13 @@ impl Cpu {
 /// These are the functions used to perform virtual-to-physical translation.
 impl Cpu {
     /// Resolve a section descriptor, returning a physical address.
-    fn resolve_section(&self, req: TLBReq, d: SectionDescriptor) -> u32 {
+    fn resolve_section(&self, req: TLBReq, d: SectionDescriptor) -> Result<u32, String> {
         let ctx = self.get_ctx(d.domain());
-        if ctx.validate(&req, d.ap()) {
-            d.base_addr() | req.vaddr.section_idx() 
+        if ctx.validate(&req, d.ap())? {
+            Ok(d.base_addr() | req.vaddr.section_idx())
         } else {
-            panic!("Domain access faults are unimplemented, vaddr={:08x}",
-                req.vaddr.0);
+            Err(format!("Domain access faults are unimplemented, vaddr={:08x}",
+                req.vaddr.0))
         }
     }
 
@@ -60,7 +60,7 @@ impl Cpu {
         match desc {
             L2Descriptor::SmallPage(entry) => {
                 let ctx = self.get_ctx(d.domain());
-                if ctx.validate(&req, entry.get_ap(req.vaddr)) {
+                if ctx.validate(&req, entry.get_ap(req.vaddr))? {
                     Ok(entry.base_addr() | req.vaddr.small_page_idx())
                 } else {
                     Err(format!("Domain access faults are unimplemented, vaddr={:08x}",
@@ -124,7 +124,7 @@ impl Cpu {
                 Err(reason) => return Err(reason),
             };
             match desc {
-                L1Descriptor::Section(entry) => Ok(self.resolve_section(req, entry)),
+                L1Descriptor::Section(entry) => Ok(self.resolve_section(req, entry)?),
                 L1Descriptor::Coarse(entry) => self.resolve_coarse(req, entry),
                 _ => Err(format!("TLB first-level descriptor {:?} unimplemented", desc)),
             }

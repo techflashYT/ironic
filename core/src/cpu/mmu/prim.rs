@@ -23,16 +23,16 @@ pub enum TLBPermission { NA, RO, RW }
 impl TLBPermission {
     /// Given some context and the access protection bits from a particular 
     /// PTE, compute the effective permissions.
-    pub fn resolve(ctx: &PermissionContext, ap: u32) -> Self {
+    pub fn resolve(ctx: &PermissionContext, ap: u32) -> Result<Self, String> {
         use TLBPermission::*;
         match (ap, ctx.sysprot, ctx.romprot) {
-            (0b00, false, false)=> NA,
-            (0b00, true, false) => if ctx.is_priv { RO } else { NA },
-            (0b00, false, true) => RO,
-            (0b01, _, _)        => if ctx.is_priv { RW } else { NA },
-            (0b10, _, _)        => if ctx.is_priv { RW } else { RO },
-            (0b11, _, _)        => RW,
-            _ => unreachable!("Couldn't resolve AP bits with context"),
+            (0b00, false, false)=> Ok(NA),
+            (0b00, true, false) => if ctx.is_priv { Ok(RO) } else { Ok(NA) },
+            (0b00, false, true) => Ok(RO),
+            (0b01, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(NA) },
+            (0b10, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(RO) },
+            (0b11, _, _)        => Ok(RW),
+            _ => Err(format!("Couldn't resolve AP bits with context")),
         }
     }
 }
@@ -53,25 +53,26 @@ impl PermissionContext {
 
     /// Validate a request against this context. 
     /// Returns true if the context satisfies the provided request.
-    pub fn validate(&self, req: &TLBReq, ap: u32) -> bool {
+    pub fn validate(&self, req: &TLBReq, ap: u32) -> Result<bool, String> {
         // Ignore permission checking on out-of-band requests to the MMU.
-        if req.kind == Access::Debug { return true; }
+        if req.kind == Access::Debug { return Ok(true); }
 
         match self.domain_mode {
             // Actually compute the permissions and check them.
             DomainMode::Client => {
                 match TLBPermission::resolve(self, ap) {
-                    TLBPermission::NA => false,
-                    TLBPermission::RO => 
-                        if req.kind == Access::Write { false } else { true },
-                    TLBPermission::RW => true,
+                    Ok(TLBPermission::NA) => Ok(false),
+                    Ok(TLBPermission::RO) =>
+                        if req.kind == Access::Write { Ok(false) } else { Ok(true) },
+                    Ok(TLBPermission::RW) => Ok(true),
+                    Err(reason) => Err(reason)
                 }
             },
             // All requests on this domain are allowed.
-            DomainMode::Manager => true,
+            DomainMode::Manager => Ok(true),
             // All requests on this domain are disallowed.
-            DomainMode::NoAccess => false,
-            _ => panic!("Undefined domain mode"),
+            DomainMode::NoAccess => Ok(false),
+            _ => Err(format!("Undefined domain mode")),
         }
     }
 }
