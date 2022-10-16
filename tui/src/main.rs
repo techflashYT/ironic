@@ -28,7 +28,7 @@ struct Args {
     /// Path to a custom kernel ELF
     #[clap(short, long)]
     custom_kernel: Option<String>,
-    /// Enable the PPC HLE server (default = True)
+    /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
     ppc_hle: Option<bool>,
     /// Enable the Debug server (default = False)
@@ -59,7 +59,7 @@ fn dump_memory(bus: &Bus) {
 fn main() {
     let args = Args::parse();
     let custom_kernel = args.custom_kernel.clone();
-    let enable_ppc_hle = args.ppc_hle.unwrap_or(true);
+    let enable_ppc_hle = args.ppc_hle.unwrap_or(false);
     let enable_debug_server = args.debug_server.unwrap_or(false);
 
     // The bus is shared between any threads we spin up
