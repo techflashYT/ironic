@@ -107,15 +107,15 @@ fn main() {
 
     let _ = emu_thread.join();
 
-    match bus.write() {
-        Ok(bus_ref) => {
-            dump_memory(&bus_ref);
-            println!("Bus cycles elapsed: {}", bus_ref.cycle);
-        },
+    let bus_ref = match bus.read() {
+        Ok(val) => val,
         Err(reason) => {
-            println!("Could not dump Bus memory because it is poisoned: {}", reason);
+            println!("Bus was poisoned during runtime: {}", reason);
+            reason.into_inner()
         }
     };
+    dump_memory(&bus_ref);
+    println!("Bus cycles elapsed: {}", bus_ref.cycle);
     process::exit(0);
 
 }
