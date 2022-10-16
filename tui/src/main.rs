@@ -70,6 +70,7 @@ fn main() {
             process::exit(-1);
         }
     };
+
     let bus = Arc::new(RwLock::new(bus));
 
     let (dbg_send, emu_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
@@ -102,7 +103,6 @@ fn main() {
     let debug_thread: Option<JoinHandle<()>>;
     if enable_debug_server {
         debug_thread = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
-            println!("DEBUG");
             let mut back = DebugBackend::new(dbg_send, dbg_recv);
             back.run();
         }).unwrap());
