@@ -117,7 +117,7 @@ impl Bus {
         use MemDevice::*;
         use BusPacket::*;
         let target_ref = match dev {
-            MaskRom => panic!("Writes on mask ROM are unsupported"),
+            MaskRom => { return Err(format!("Writes on mask ROM are unsupported")); },
             Sram0   => &mut self.sram0,
             Sram1   => &mut self.sram1,
             Mem1    => &mut self.mem1,
@@ -145,7 +145,7 @@ impl Bus {
         let off = (addr & handle.mask) as usize;
         match handle.dev {
             Device::Mem(dev) => { match dev {
-                MaskRom => panic!("Bus error: DMA write on mask ROM"),
+                MaskRom => { return Err(format!("Bus error: DMA write on mask ROM")); },
                 Sram0   => self.sram0.write_buf(off, buf)?,
                 Sram1   => self.sram1.write_buf(off, buf)?,
                 Mem1    => self.mem1.write_buf(off, buf)?,
@@ -167,7 +167,7 @@ impl Bus {
         let off = (addr & handle.mask) as usize;
         match handle.dev {
             Device::Mem(dev) => { match dev {
-                MaskRom => panic!("Bus error: DMA read on mask ROM"),
+                MaskRom => { return Err(format!("Bus error: DMA read on mask ROM")); },
                 Sram0   => self.sram0.read_buf(off, buf)?,
                 Sram1   => self.sram1.read_buf(off, buf)?,
                 Mem1    => self.mem1.read_buf(off, buf)?,
