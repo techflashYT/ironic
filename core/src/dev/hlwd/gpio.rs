@@ -74,7 +74,7 @@ pub struct ArmGpio {
     owner: u32,
 }
 impl ArmGpio {
-    pub fn write_handler(&mut self, off: usize, data: u32) -> Option<HlwdTask> {
+    pub fn write_handler(&mut self, off: usize, data: u32) -> Result<Option<HlwdTask>, String> {
         match off {
             0x00 => self.en = data,
             0x04 => { 
@@ -83,21 +83,21 @@ impl ArmGpio {
                 } else { 
                     None 
                 };
-                return task;
+                return Ok(task);
             },
             0x08 => self.dir = data,
-            0x0c => panic!("CPU wrote to GPIO inputs!?"),
+            0x0c => { return Err(format!("CPU wrote to GPIO inputs!?")); },
             0x10 => self.intlvl = data,
             0x14 => self.intflag = data,
             0x18 => self.intmask = data,
             0x1c => self.straps = data,
             0x20 => self.owner = data,
-            _ => panic!("unimplemented ArmGpio write {:08x}", off),
+            _ => { return Err(format!("unimplemented ArmGpio write {:08x}", off)); },
         }
-        None
+        Ok(None)
     }
-    pub fn read_handler(&self, off: usize) -> u32 {
-        match off {
+    pub fn read_handler(&self, off: usize) -> Result<u32, String> {
+        Ok(match off {
             0x00 => self.en,
             0x04 => self.output,
             0x08 => self.dir,
@@ -107,8 +107,8 @@ impl ArmGpio {
             0x18 => self.intmask,
             0x1c => self.straps,
             0x20 => self.owner,
-            _ => panic!("unimplemented ArmGpio read {:08x}", off),
-        }
+            _ => { return Err(format!("unimplemented ArmGpio read {:08x}", off)); },
+        })
     }
 }
 
@@ -125,19 +125,19 @@ pub struct PpcGpio {
     straps: u32,
 }
 impl PpcGpio {
-    pub fn write_handler(&mut self, off: usize, data: u32) {
-        match off {
+    pub fn write_handler(&mut self, off: usize, data: u32) -> Result<(), String> {
+        Ok(match off {
             0x00 => self.output = data,
             0x04 => self.dir = data,
             _ => println!("FIXME: unimplemented PpcGpio write {:08x}: 0x{:08x}", off, data),
-        }
+        })
     }
-    pub fn read_handler(&self, off: usize) -> u32 {
-        match off {
+    pub fn read_handler(&self, off: usize) -> Result<u32, String> {
+        Ok(match off {
             0x00 => self.output,
             0x04 => self.dir,
-            _ => panic!("unimplemented PpcGpio read {:08x}", off),
-        }
+            _ => {return Err(format!("unimplemented PpcGpio read {:08x}", off)); },
+        })
     }
 }
 

@@ -119,7 +119,7 @@ impl PpcBackend {
                 let res = self.wait_for_request(&mut client);
                 let req = if res.is_none() { break; } else { res.unwrap() };
                 match req.cmd {
-                    Command::Ack => self.handle_ack(req),
+                    Command::Ack => self.handle_ack(req)?,
                     Command::HostRead => self.handle_read(&mut client, req)?,
                     Command::HostWrite => self.handle_write(&mut client, req)?,
                     Command::Message => {
@@ -238,10 +238,11 @@ impl PpcBackend {
         client.write("OK".as_bytes()).unwrap();
     }
 
-    pub fn handle_ack(&mut self, _req: SocketReq) {
+    pub fn handle_ack(&mut self, _req: SocketReq) -> Result<(), String> {
         let mut bus = self.bus.write().unwrap();
-        let ppc_ctrl = bus.hlwd.ipc.read_handler(4) & 0x3c;
-        bus.hlwd.ipc.write_handler(4, ppc_ctrl | 0x8);
+        let ppc_ctrl = bus.hlwd.ipc.read_handler(4)? & 0x3c;
+        bus.hlwd.ipc.write_handler(4, ppc_ctrl | 0x8)?;
+        Ok(())
     }
 
 }

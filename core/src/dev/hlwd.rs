@@ -88,8 +88,8 @@ pub struct ArbCfgInterface {
     pub dma: u32,
 }
 impl ArbCfgInterface {
-    fn read_handler(&self, off: usize) -> u32 {
-        match off {
+    fn read_handler(&self, off: usize) -> Result<u32, String>  {
+        Ok(match off {
             0x00 => self.m0,
             0x04 => self.m1,
             0x08 => self.m2,
@@ -103,13 +103,13 @@ impl ArbCfgInterface {
             0x30 => 0x0000_0400,
             0x34 => self.md,
             0x38 => 0x0000_0400,
-            _ => panic!("ARB_CFG read to undefined offset {:x}", off),
-        }
+            _ => { return Err(format!("ARB_CFG read to undefined offset {:x}", off)); },
+        })
     }
-    fn write_handler(&mut self, off: usize, val: u32) {
-        match off {
+    fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
+        Ok(match off {
             0x00 => self.m0 = val, 
-            0x04 => self.m1 = val, 
+            0x04 => self.m1 = val,
             0x08 => self.m2 = val, 
             0x0c => self.m3 = val, 
             0x10 => self.m4 = val, 
@@ -120,8 +120,8 @@ impl ArbCfgInterface {
             0x24 => self.m9 = val, 
             0x30 => {},
             0x34 => self.md = val, 
-            _ => panic!("ARB_CFG write {:08x} to undefined offset {:x}", val, off),
-        }
+            _ => { return Err(format!("ARB_CFG write {:08x} to undefined offset {:x}", val, off)); },
+        })
     }
 }
 
@@ -231,16 +231,16 @@ impl MmioDevice for Hollywood {
     type Width = u32;
     fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
-            0x000..=0x00c   => self.ipc.read_handler(off),
+            0x000..=0x00c   => self.ipc.read_handler(off)?,
             0x010           => self.timer.timer,
             0x014           => self.timer.alarm,
-            0x030..=0x05c   => self.irq.read_handler(off - 0x30),
+            0x030..=0x05c   => self.irq.read_handler(off - 0x30)?,
             0x060           => self.busctrl.srnprot,
             0x064           => self.busctrl.ahbprot,
             0x070           => self.busctrl.aipprot,
-            0x0c0..=0x0d8   => self.gpio.ppc.read_handler(off - 0xc0),
-            0x0dc..=0x0fc   => self.gpio.arm.read_handler(off - 0xdc),
-            0x100..=0x13c   => self.arb.read_handler(off - 0x100),
+            0x0c0..=0x0d8   => self.gpio.ppc.read_handler(off - 0xc0)?,
+            0x0dc..=0x0fc   => self.gpio.arm.read_handler(off - 0xdc)?,
+            0x100..=0x13c   => self.arb.read_handler(off - 0x100)?,
             0x180           => self.compat,
             0x188           => self.spare0,
             0x18c           => self.spare1,
@@ -266,12 +266,12 @@ impl MmioDevice for Hollywood {
 
     fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
         match off {
-            0x000..=0x00c => self.ipc.write_handler(off, val),
+            0x000..=0x00c => self.ipc.write_handler(off, val)?,
             0x014 => {
                 println!("HLWD alarm={:08x} (timer={:08x})", val, self.timer.timer);
                 self.timer.alarm = val;
             },
-            0x030..=0x05c => self.irq.write_handler(off - 0x30, val),
+            0x030..=0x05c => self.irq.write_handler(off - 0x30, val)?,
             0x060 => {
                 println!("HLWD SRNPROT={:08x}", val);
                 let diff = self.busctrl.srnprot ^ val;
@@ -286,11 +286,11 @@ impl MmioDevice for Hollywood {
             0x064 => self.busctrl.ahbprot = val,
             0x070 => self.busctrl.aipprot = val,
             0x088 => self.usb_frc_rst = val,
-            0x0c0..=0x0d8 => self.gpio.ppc.write_handler(off - 0xc0, val),
+            0x0c0..=0x0d8 => self.gpio.ppc.write_handler(off - 0xc0, val)?,
             0x0dc..=0x0fc => {
-                self.task = self.gpio.arm.write_handler(off - 0xdc, val);
+                self.task = self.gpio.arm.write_handler(off - 0xdc, val)?;
             },
-            0x100..=0x13c => self.arb.write_handler(off - 0x100, val),
+            0x100..=0x13c => self.arb.write_handler(off - 0x100, val)?,
             0x180 => self.compat = val,
             0x188 => {
                 self.spare0 = val;

@@ -77,15 +77,15 @@ pub struct IrqInterface {
 }
 impl IrqInterface {
 
-    pub fn read_handler(&self, off: usize) -> u32 {
-        match off {
+    pub fn read_handler(&self, off: usize) -> Result<u32, String> {
+        Ok(match off {
             0x08 => self.arm_irq_status.0,
             0x0c => self.arm_irq_enable.0,
-            _ => panic!("Unhandled read on HLWD IRQ interface {:02x}", off),
-        }
+            _ => { return Err(format!("Unhandled read on HLWD IRQ interface {:02x}", off)); },
+        })
     }
 
-    pub fn write_handler(&mut self, off: usize, val: u32) {
+    pub fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
         match off {
             0x04 => {
                 self.ppc_irq_enable.0 = val;
@@ -109,10 +109,11 @@ impl IrqInterface {
             0x2c => { // HW_DBGINTEN ???? temporarily ignore because it's a blocker to more interesting things.
                 println!("FIXME FIXME FIXME: suppressed IRQ write at offset: 0x2c (maybe: HW_BDGINTEN) val: {:#10x}", val);
             },
-            _ => panic!("Unhandled write {:08x} on HLWD IRQ interface {:02x}", 
-                val, off),
+            _ => { return Err(format!("Unhandled write {:08x} on HLWD IRQ interface {:02x}", 
+                val, off)); },
         }
         self.update_irq_lines();
+        Ok(())
     }
 }
 
