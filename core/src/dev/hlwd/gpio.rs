@@ -50,8 +50,11 @@ impl GpioInterface {
             println!("GPIO DEBUG pins [{:02x}]", (val & 0x00ff_0000) >> 16);
         } else if (diff & 0x0000_000c) != 0 {
             println!("GPIO Fan/DCDC output {:08x}", diff);
-        } else {
-            return Err(format!("Unhandled GPIO output diff={:08x}", diff));
+        } else if (diff & 0x0000_0020) != 0 {
+            println!("GPIO Disc Slot LED output");
+        }
+        else {
+            return Err(format!("Unhandled GPIO output arm.output={:08x} val={:08x} diff={:08x}", self.arm.output, val, diff));
         }
         Ok(())
     }
