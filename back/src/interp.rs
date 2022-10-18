@@ -163,16 +163,19 @@ impl InterpBackend {
         };
 
         // Pull the buffer out of guest memory
+        // Official code only sends 15 chars + null byte at a time
+        // Probably a limitation of their early semihosting hardware
+        // We buffer that internally until we see a newline, that's our cue to print
         let mut line_buf = [0u8; 16];
-        self.bus.read().unwrap().dma_read(paddr, &mut line_buf)?;
+        self.bus.read().map_err(|e| e.to_string())?.dma_read(paddr, &mut line_buf)?;
 
-        let s = std::str::from_utf8(&line_buf).unwrap()
+        let s = std::str::from_utf8(&line_buf).map_err(|e| e.to_string())?
             .trim_matches(char::from(0));
         self.svc_buf += s;
 
-        if self.svc_buf.find('\n').is_some() {
+        if let Some(idx) = self.svc_buf.find('\n') {
             let string: String = self.svc_buf.chars()
-                .take(self.svc_buf.find('\n').unwrap()).collect();
+                .take(idx).collect();
             println!("SVC {}", string);
             self.svc_buf.clear();
         }
