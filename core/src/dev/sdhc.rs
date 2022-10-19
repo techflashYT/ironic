@@ -54,6 +54,10 @@ impl MmioDevice for SDInterface {
             // or as part of a load-store operation
             // We process resets synchronously, so always read out 0.
             0x2c => Ok(BusPacket::Word(0)),
+
+            // 2.2.16 Timeout Control Register
+            // We aren't going to need this (probably) so lets start at 0 and if anything freaks out we can deal with that as it comes
+            0x34 => Ok(BusPacket::Word(0)),
             _ => Err(format!("SDHC0 read at {:x} unimplemented", off))
         };
     }
@@ -89,6 +93,9 @@ impl MmioDevice for SDInterface {
                 Ok(None)
             },
 
+            // 2.2.16 Timeout Control Register
+            // Just swallow any writes for now.
+            0x34 => Ok(None),
             _ => Err(format!("SDHC0 write {:08x} at {:x} unimpl", val, off))
         };
     }
