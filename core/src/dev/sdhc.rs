@@ -2,6 +2,12 @@ use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
 
+/// The version reported when someone asks what SD Host Controller Version we are.
+/// For some reason it's a 32 bit value, but only the upper 16 are used according to mini.
+/// Of those, the lower 8 is the host controller version, the upper 8 is the vendor version.
+/// 0 seems to work ok for now TODO: find out what real hardware reports.
+const REPORTED_SDHC_VER:u32 = 0;
+
 #[derive(Default)]
 pub struct SDInterface {
     /// Destination address for DMA.
@@ -38,6 +44,9 @@ pub struct SDInterface {
 impl MmioDevice for SDInterface {
     type Width = u32;
     fn read(&self, off: usize) -> Result<BusPacket, String> {
+        if off == 0xfc {
+            return Ok(BusPacket::Word(REPORTED_SDHC_VER));
+        }
         return Err(format!("SDHC0 read at {:x} unimplemented", off));
     }
     fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
