@@ -48,6 +48,12 @@ impl MmioDevice for SDInterface {
         return match off {
             0xfc => Ok(BusPacket::Word(REPORTED_SDHC_VER)),
             0x38 => Ok(BusPacket::Word(self.intsen)), // Interrupt Signal Enable
+
+            // 2.2.17 Software Reset Register
+            // Software will read this to know if the SDHC is in the middle of a reset previously requested from a write to this register
+            // or as part of a load-store operation
+            // We process resets synchronously, so always read out 0.
+            0x2c => Ok(BusPacket::Word(0)),
             _ => Err(format!("SDHC0 read at {:x} unimplemented", off))
         };
     }
@@ -57,6 +63,32 @@ impl MmioDevice for SDInterface {
                 self.intsen = val;
                 Ok(None)
             },
+            0x2c => { // 2.2.17 Software Reset Register
+                let val = val >> 24; // Data comes in shifted
+                if val == 0 {
+                    return Ok(None); // Nothing we need to do
+                }
+                if val != 1 {
+                    return Err("SDHC0 Software Reset only supports full reset at this time".to_string());
+                }
+                // Note: this is wrong!
+                self.dma_addr = 0;
+                self.bcon = 0;
+                self.arg = 0;
+                self.mode = 0;
+                self.resp = [0;4];
+                self.data = 0;
+                self.stat1 = 0;
+                self.ctrl1 = 0;
+                self.ctrl2 = 0;
+                self.intstat = 0;
+                self.intsen = 0;
+                self.stat2 = 0;
+                self.cap = 0; // What are our default capabilities?
+                self.maxcap = 0; // What are our maximum capabilities?
+                Ok(None)
+            },
+
             _ => Err(format!("SDHC0 write {:08x} at {:x} unimpl", val, off))
         };
     }
