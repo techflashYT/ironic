@@ -15,7 +15,7 @@ const NAND_PAGE_LEN: usize = 0x0000_0840;
 const NAND_BLOCK_LEN: usize = NAND_PAGE_LEN * 64;
 
 /// The number of pages in the NAND flash.
-const NUM_NAND_PAGES: usize = 0x0040_000;
+const NUM_NAND_PAGES: usize = 0x0004_0000;
 
 /// The total length of the NAND flash, in bytes.
 const NAND_SIZE: usize = NAND_PAGE_LEN * NUM_NAND_PAGES;
