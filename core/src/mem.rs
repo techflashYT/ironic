@@ -50,7 +50,7 @@ impl BigEndianMemory {
     }
     pub fn write<T: AccessWidth>(&mut self, off: usize, val: T) -> Result<(), String> {
         let data = val.to_be();
-        let src_slice: &[u8] = unsafe { data.as_bytes() };
+        let src_slice: &[u8] = data.as_bytes() ;
         if off + src_slice.len() > self.data.len() {
             return Err(format!("Out-of-bounds write at {:x}", off));
         }

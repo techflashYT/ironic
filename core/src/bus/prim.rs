@@ -6,7 +6,7 @@ use std::mem;
 /// Helper functions implemented on numeric primitives.
 ///
 /// These let us easily convert between numeric primitives and byte slices.
-pub unsafe trait AccessWidth: Sized {
+pub trait AccessWidth: Sized {
     fn from_be_bytes(data: &[u8]) -> Self;
     fn from_le_bytes(data: &[u8]) -> Self;
     fn to_be(self) -> Self;
@@ -15,19 +15,23 @@ pub unsafe trait AccessWidth: Sized {
     fn as_ptr(&self) -> *const Self { self as *const Self }
     fn as_mut(&mut self) -> *mut Self { self as *mut Self }
 
-    unsafe fn as_bytes(&self) -> &[u8] {
-        slice::from_raw_parts(self.as_ptr() as *const u8, mem::size_of_val(self))
+    fn as_bytes(&self) -> &[u8] {
+        // Safety
+        // This should be good for all Sized types
+        unsafe { slice::from_raw_parts(self.as_ptr() as *const u8, mem::size_of::<Self>()) }
     }
 
-    unsafe fn as_bytes_mut(&mut self) -> &mut [u8] {
-        slice::from_raw_parts_mut(self.as_mut() as *mut u8, mem::size_of_val(self))
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        // Safety
+        // This should be good for all Sized types
+        unsafe { slice::from_raw_parts_mut(self.as_mut() as *mut u8, mem::size_of::<Self>()) }
     }
 }
 
 /// Macro to make implementing AccessWidth a bit less verbose.
 macro_rules! impl_accesswidth {
     ($type:ident) => {
-        unsafe impl AccessWidth for $type {
+        impl AccessWidth for $type {
             fn from_be_bytes(data: &[u8]) -> Self {
                 Self::from_be_bytes(data.try_into().unwrap())
             }
