@@ -1,3 +1,4 @@
+#![allow(clippy::identity_op)]
 
 /// Hollywood platform interface.
 pub mod hlwd;
