@@ -351,8 +351,13 @@ pub fn and_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
 
 
 #[allow(unreachable_patterns)]
-fn do_bitwise_reg(cpu: &mut Cpu, rn: u32, rm: u32, rd: u32, imm5: u32, 
-    s: bool, stype: u32, op: BitwiseOp) -> DispatchRes {
+fn do_bitwise_reg(cpu: &mut Cpu, opcd: DpRegBits, op: BitwiseOp) -> DispatchRes {
+    let rn = opcd.rn();
+    let rm = opcd.rm();
+    let rd = opcd.rd();
+    let imm5 = opcd.imm5();
+    let s = opcd.s();
+    let stype = opcd.stype();
     assert_ne!(rd, 15);
     let (val, carry) = barrel_shift(ShiftArgs::Reg {
         rm: cpu.reg[rm], stype, imm5, c_in: cpu.reg.cpsr.c()
@@ -385,20 +390,16 @@ fn do_bitwise_reg(cpu: &mut Cpu, rn: u32, rm: u32, rd: u32, imm5: u32,
     }
 }
 pub fn orr_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
-    do_bitwise_reg(cpu, op.rn(), op.rm(), op.rd(), op.imm5(), 
-        op.s(), op.stype(), BitwiseOp::Orr)
+    do_bitwise_reg(cpu, op, BitwiseOp::Orr)
 }
 pub fn eor_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
-    do_bitwise_reg(cpu, op.rn(), op.rm(), op.rd(), op.imm5(), 
-        op.s(), op.stype(), BitwiseOp::Eor)
+    do_bitwise_reg(cpu, op, BitwiseOp::Eor)
 }
 pub fn and_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
-    do_bitwise_reg(cpu, op.rn(), op.rm(), op.rd(), op.imm5(), 
-        op.s(), op.stype(), BitwiseOp::And)
+    do_bitwise_reg(cpu, op, BitwiseOp::And)
 }
 pub fn bic_reg(cpu: &mut Cpu, op: DpRegBits) -> DispatchRes {
-    do_bitwise_reg(cpu, op.rn(), op.rm(), op.rd(), op.imm5(), 
-        op.s(), op.stype(), BitwiseOp::Bic)
+    do_bitwise_reg(cpu, op, BitwiseOp::Bic)
 }
 
 
