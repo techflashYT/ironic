@@ -203,7 +203,7 @@ impl Hollywood {
             busctrl: BusCtrlInterface::default(),
             timer: TimerInterface::default(),
             irq: irq::IrqInterface::default(),
-            otp: otp::OtpInterface::new(),
+            otp: otp::OtpInterface::new()?,
             gpio: gpio::GpioInterface::new()?,
             pll: ClockInterface::default(),
 

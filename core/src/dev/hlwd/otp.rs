@@ -13,12 +13,11 @@ pub struct OtpInterface {
     pub out: u32,
 }
 impl OtpInterface {
-    pub fn new() -> Self {
-        let mut f = File::open("otp.bin")
-            .expect("Couldn't initialize OTP memory");
+    pub fn new() -> Result<Self, std::io::Error> {
+        let mut f = File::open("otp.bin")?;
         let mut otp = OtpInterface { data: [0; 0x80], cmd: 0, out: 0 };
-        f.read(&mut otp.data).unwrap();
-        otp
+        f.read_exact(&mut otp.data)?;
+        Ok(otp)
     }
 }
 
