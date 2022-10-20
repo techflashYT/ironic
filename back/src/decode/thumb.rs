@@ -101,13 +101,11 @@ impl ThumbInst {
             0x4800 => return LdrLit,
             _ => {},
         }
-        match opcd & 0xf000 {
-            0xd000 => return B,
-            _ => {},
+        if opcd & 0xf000 == 0xd000 {
+            return B;
         }
-        match opcd & 0xe000 {
-            0x0000 => return MovRegAlt,
-            _ => {},
+        else if opcd & 0xe000 == 0x0 {
+            return MovRegAlt;
         }
         Undefined
     }

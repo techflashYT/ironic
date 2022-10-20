@@ -36,14 +36,11 @@ pub enum ArmInst {
 impl ArmInst {
     pub const fn decode(opcd: u32) -> Self {
         use ArmInst::*;
-        match opcd & 0xf000_0000 { // Unconditional instruction extension space
-            0xf000_0000 => {
-                match opcd & 0x0e00_0000 {
-                    0x0a000000 => return BlxImm,
-                    _ => return Undefined,
-                }
-            },
-            _ => {}
+        if opcd & 0xf000_0000 == 0xf000_0000 {
+            if opcd & 0x0e00_0000 == 0x0a000000 {
+                return BlxImm;
+            }
+            return Undefined;
         }
         match opcd & 0x0ff000f0 {
             0x01400050 => return Qdadd,
@@ -188,9 +185,8 @@ impl ArmInst {
             0x09800000 => return Stmib,
             _ => {},
         }
-        match opcd & 0x0fb00000 {
-            0x03200000 => return MsrImm,
-            _ => {},
+        if opcd & 0x0fb00000 == 0x03200000{
+            return MsrImm;
         }
         match opcd & 0x0e500010 {
             0x06100000 => return LdrReg,

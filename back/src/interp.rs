@@ -197,9 +197,8 @@ impl InterpBackend {
                     Err(reason) => return Err(reason)
                 };
                 let inst = ThumbInst::decode(opcd);
-                match inst {
-                    ThumbInst::BlImmSuffix => return Ok(()),
-                    _ => {}
+                if let ThumbInst::BlImmSuffix = inst {
+                    return Ok(());
                 }
                 let name = format!("{:?}", ThumbInst::decode(opcd));
                 println!("({:08x}) {:12} {:x?}", opcd, name, self.cpu.reg);
