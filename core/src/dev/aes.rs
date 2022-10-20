@@ -146,8 +146,8 @@ impl Bus {
             //println!("AES Decrypt src={:08x} dst={:08x} len={:08x}", 
             //  self.aes.src, self.aes.dst, cmd.len);
 
-            let cipher_dec = Aes128CbcDec::new_from_slices(&key, &iv).unwrap();
-            let cipher_enc = Aes128CbcEnc::new_from_slices(&key, &iv).unwrap();
+            let cipher_dec = Aes128CbcDec::new_from_slices(key, &iv).unwrap();
+            let cipher_enc = Aes128CbcEnc::new_from_slices(key, &iv).unwrap();
             // Decrypt/encrypt the data, then DMA write to memory
             let aes_outbuf = if cmd.decrypt {
                 cipher_dec.decrypt_padded_vec_mut::<NoPadding>(&aes_inbuf).unwrap()
