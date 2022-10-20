@@ -123,12 +123,12 @@ impl PpcBackend {
                         Command::HostRead => self.handle_read(&mut client, req)?,
                         Command::HostWrite => self.handle_write(&mut client, req)?,
                         Command::Message => {
-                            self.handle_message(&mut client, req);
+                            self.handle_message(&mut client, req).map_err(|e| e.to_string())?;
                             let armmsg = self.wait_for_resp();
                             client.write(&u32::to_le_bytes(armmsg)).map_err(|e|e.to_string())?;
                         },
                         Command::MessageNoReturn => {
-                            self.handle_message(&mut client, req);
+                            self.handle_message(&mut client, req).map_err(|e| e.to_string())?;
                         },
                         Command::Unimpl => break,
                     }
@@ -228,12 +228,12 @@ impl PpcBackend {
 
     /// Tell ARM-world that an IPC request is ready at the location indicated
     /// by the pointer in PPC_MSG.
-    pub fn handle_message(&mut self, client: &mut UnixStream, req: SocketReq) {
+    pub fn handle_message(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), std::io::Error> {
         let mut bus = self.bus.write().unwrap();
         bus.hlwd.ipc.ppc_msg = req.addr;
         bus.hlwd.ipc.state.arm_req = true;
         bus.hlwd.ipc.state.arm_ack = true;
-        client.write("OK".as_bytes()).unwrap();
+        client.write("OK".as_bytes()).map(|_bytes_written| {}) // maybe FIXME: is it ok to ignore the # of bytes written here?
     }
 
     pub fn handle_ack(&mut self, _req: SocketReq) -> Result<(), String> {
