@@ -41,7 +41,7 @@ pub struct Cpu {
 }
 impl Cpu {
     pub fn new(bus: Arc<RwLock<Bus>>) -> Self { 
-        let cpu = Cpu {
+        Cpu {
             bus,
             reg: reg::RegisterFile::new(),
             p15: coproc::SystemControl::new(),
@@ -49,8 +49,7 @@ impl Cpu {
             irq_input: false,
             current_exception: None,
             dbg_on: false,
-        };
-        cpu
+        }
     }
 }
 

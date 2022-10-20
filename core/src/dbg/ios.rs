@@ -98,7 +98,7 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
         _ => { },
     }
 
-    let res = match idx {
+    match idx {
         0x00 => Some(scdef!("ThreadCreate", Ptr, Ptr, Ptr, Uint, Uint, Uint)),
         0x02 => Some(scdef!("ThreadCancel", )),
         0x03 => Some(scdef!("ThreadGetID", )),
@@ -159,8 +159,7 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
         0x6a => Some(scdef!("IoscDecryptAsync", Uint, Uint, Uint)),
         0x6d => Some(scdef!("IoscGenBlockmac", Uint, Uint, Uint)),
         _ => None,
-    };
-    res
+    }
 }
 
 

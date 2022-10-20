@@ -81,8 +81,7 @@ pub fn ldr_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
                 Err(reason) => { return DispatchRes::FatalErr(reason); }
             };
         cpu.reg[op.rn()] = wb_addr;
-        let res = cpu.read32(addr);
-        res
+        cpu.read32(addr)
     };
     let res = match res {
         Ok(val) => val,
