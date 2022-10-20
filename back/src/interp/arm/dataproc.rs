@@ -522,7 +522,7 @@ pub fn clz(cpu: &mut Cpu, op: ClzBits) -> DispatchRes {
 }
 
 pub fn bic_rsr(cpu: &mut Cpu, op: DpRsrBits) -> DispatchRes {
-    assert_ne!((op.s() && op.rd() == 15), true); //FIXME: this is not always the case, good enough for now
+    assert!(!(op.s() && op.rd() == 15)); //FIXME: this is not always the case, good enough for now
 
     let (val, carry) = barrel_shift(ShiftArgs::RegShiftReg {
         rm: cpu.reg[op.rm()],

@@ -242,8 +242,8 @@ impl Bus {
     }
 
     fn nand_erase_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
-        assert_ne!(cmd.ecc, true);
-        assert_ne!(cmd.rd, true);
+        assert!(!cmd.ecc);
+        assert!(!cmd.rd);
         let off = reg.addr2 as usize * NAND_PAGE_LEN;
         self.nand.clear_data(off, NAND_BLOCK_LEN)
     }

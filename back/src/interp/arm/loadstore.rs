@@ -27,7 +27,7 @@ pub fn do_amode_lit(pc: u32, imm: u32, p: bool, u: bool) -> u32 {
 pub fn ldrb_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     assert_ne!(op.rt(), 15);
     let res = if op.rn() == 15 {
-        assert_eq!(op.w(), false);
+        assert!(!op.w());
         let addr = do_amode_lit(cpu.read_exec_pc(), op.imm12(), op.p(), op.u());
         cpu.read8(addr)
     } else {
@@ -71,7 +71,7 @@ pub fn ldrh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
 
 pub fn ldr_imm(cpu: &mut Cpu, op: LsImmBits) -> DispatchRes {
     let res = if op.rn() == 15 {
-        assert_eq!(op.w(), false);
+        assert!(!op.w());
         let addr = do_amode_lit(cpu.read_exec_pc(), op.imm12(), op.p(), op.u());
         cpu.read32(addr)
     } else {
