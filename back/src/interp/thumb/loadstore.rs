@@ -71,9 +71,9 @@ fn load_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> Result<()
     match failure_reason {
         None => {
             cpu.reg[rt] = res;
-            return Ok(());
+            Ok(())
         },
-        Some(reason) => return Err(reason),
+        Some(reason) => Err(reason),
     }
 }
 pub fn ldr_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
@@ -140,9 +140,9 @@ fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> Result
     match failure_reason {
         None => {
             cpu.reg[rt] = res;
-            return Ok(());
+            Ok(())
         },
-        Some(reason) => return Err(reason),
+        Some(reason) => Err(reason),
     }
 }
 pub fn ldr_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {

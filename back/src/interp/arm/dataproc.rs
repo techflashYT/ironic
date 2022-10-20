@@ -285,7 +285,7 @@ pub fn mov_rsr(cpu: &mut Cpu, op: MovRsrBits) -> DispatchRes {
             if let Err(reason) = cpu.exception_return(val){
                 return DispatchRes::FatalErr(reason);
             };
-            return DispatchRes::RetireBranch;
+            DispatchRes::RetireBranch
         },
         (true, false) => { // S + no PC == set flags
             cpu.reg[op.rd()] = val;
@@ -296,15 +296,15 @@ pub fn mov_rsr(cpu: &mut Cpu, op: MovRsrBits) -> DispatchRes {
                 cpu.reg.cpsr.v() // V
             );
             set_all_flags!(cpu, n, z, c, v);
-            return DispatchRes::RetireOk;
+            DispatchRes::RetireOk
         },
         (false, true) => { // no S + PC == branch
             cpu.write_exec_pc(val);
-            return DispatchRes::RetireBranch;
+            DispatchRes::RetireBranch
         },
         (false, false) => { // no S + no PC == normal move/shift no flags
             cpu.reg[op.rd()] = val;
-            return DispatchRes::RetireOk;
+            DispatchRes::RetireOk
         }
     }
 }

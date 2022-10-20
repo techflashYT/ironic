@@ -451,16 +451,16 @@ impl InterpBackend {
     fn handle_debug_packet(&mut self, packet: DebugPacket) -> Result<u32, String> {
 
         match packet.command {
-            DebugCommand::PeekReg => { return Ok(self.cpu.reg[packet.op1]); },
-            DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; return Ok(0); },
+            DebugCommand::PeekReg => { Ok(self.cpu.reg[packet.op1]) },
+            DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; Ok(0) },
             DebugCommand::PeekPAddr => {
                 return Ok(self.bus.read().map_err(|e| e.to_string())?.read8(packet.op1)? as u32);
             },
             DebugCommand::PokePAddr => {
                 self.bus.write().map_err(|e| e.to_string())?.write8(packet.op1, packet.op2 as u8)?;
-                return Ok(0);
+                Ok(0)
             },
-            DebugCommand::Step => { self.debug_cycles = packet.op1; return Ok(0); },
+            DebugCommand::Step => { self.debug_cycles = packet.op1; Ok(0) },
             DebugCommand::Reply => Err("Debug packet reply not allowed here".to_string()),
             DebugCommand::Unimpl => Err(format!("Unhndled debug packet {:#?}", &packet)),
         }

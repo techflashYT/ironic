@@ -28,18 +28,18 @@ impl ArmLut {
 
     const fn idx_to_opcd(idx: usize) -> u32 {
         if idx > 0x0fff {
-            return ((0xf << 28) | ((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32;
+            ((0xf << 28) | ((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32
         }
         else {
-            return (((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32
+            (((idx & 0x0ff0) << 16) | ((idx & 0x000f) << 4)) as u32
         }
     }
     const fn opcd_to_idx(opcd: u32) -> usize {
         if (opcd >> 28) & 0xf == 0xf {
-            return (0x1000 | ((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize;
+            (0x1000 | ((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize
         }
         else {
-            return (((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize;
+            (((opcd >> 16) & 0x0ff0) | ((opcd >> 4) & 0x000f)) as usize
         }
     }
     const LUT_SIZE: usize = 0x2000;
