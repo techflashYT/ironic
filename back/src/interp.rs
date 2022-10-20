@@ -348,7 +348,7 @@ impl Backend for InterpBackend {
         if self.custom_kernel.is_some() {
             // Read the user supplied kernel file
             let filename = self.custom_kernel.as_ref().unwrap();
-            let maybe_kernel_file = fs::File::open(&filename);
+            let maybe_kernel_file = fs::File::open(filename);
             let mut kernel_file = match maybe_kernel_file {
                 Ok(f) => f,
                 Err(e) => {
