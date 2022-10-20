@@ -122,27 +122,25 @@ impl DebugBackend {
 
     /// Handle clients connected to the socket.
     pub fn server_loop(&mut self, sock: UnixListener) -> Result<(), String> {
+        let (mut client, _) = sock.accept().map_err(|e| e.to_string())?;
+
         loop {
-            let (mut client, _) = sock.accept().map_err(|e| e.to_string())?;
+            println!("[DEBUG] waiting for command ...");
 
-            loop {
-                println!("[DEBUG] waiting for command ...");
-
-                let res = self.wait_for_request(&mut client);
-                if let Some(req) = res {
-                    match req.cmd {
-                        DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req)?,
-                        DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req)?,
-                        DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req)?,
-                        DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req)?,
-                        DebugCommand::Step     => self.handle_cmd_step(&mut client, req)?,
-                        DebugCommand::Reply    => { return Err("Unsupported".to_string()); },
-                        DebugCommand::Unimpl => break,
-                    }
+            let res = self.wait_for_request(&mut client);
+            if let Some(req) = res {
+                match req.cmd {
+                    DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req)?,
+                    DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req)?,
+                    DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req)?,
+                    DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req)?,
+                    DebugCommand::Step     => self.handle_cmd_step(&mut client, req)?,
+                    DebugCommand::Reply    => { return Err("Unsupported".to_string()); },
+                    DebugCommand::Unimpl => break,
                 }
             }
-            return client.shutdown(Shutdown::Both).map_err(|e| e.to_string());
-        };
+        }
+        client.shutdown(Shutdown::Both).map_err(|e| e.to_string())
     }
 
     /// Block until we receive some command message from a client.
