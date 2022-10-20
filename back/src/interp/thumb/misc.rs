@@ -13,15 +13,15 @@ pub fn svc(_cpu: &mut Cpu, _op: MiscBits) -> DispatchRes {
 fn dump_memory(bus: &Bus) {
     let dir = temp_dir();
 
-    let mut sram0_dir = temp_dir().clone();
+    let mut sram0_dir = temp_dir();
     sram0_dir.push("sram0-bkpt");
     bus.sram0.dump(&sram0_dir);
 
-    let mut sram1_dir = temp_dir().clone();
+    let mut sram1_dir = temp_dir();
     sram1_dir.push("sram1-bkpt");
     bus.sram1.dump(&sram1_dir);
 
-    let mut mem1_dir = temp_dir().clone();
+    let mut mem1_dir = temp_dir();
     mem1_dir.push("mem1-bkpt");
     bus.mem1.dump(&mem1_dir);
 

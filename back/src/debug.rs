@@ -131,11 +131,11 @@ impl DebugBackend {
                 let res = self.wait_for_request(&mut client);
                 if let Some(req) = res {
                     match req.cmd {
-                        DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req).map_err(|e| e.to_string())?,
-                        DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req).map_err(|e| e.to_string())?,
-                        DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req).map_err(|e| e.to_string())?,
-                        DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req).map_err(|e| e.to_string())?,
-                        DebugCommand::Step     => self.handle_cmd_step(&mut client, req).map_err(|e| e.to_string())?,
+                        DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req)?,
+                        DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req)?,
+                        DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req)?,
+                        DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req)?,
+                        DebugCommand::Step     => self.handle_cmd_step(&mut client, req)?,
                         DebugCommand::Reply    => { return Err("Unsupported".to_string()); },
                         DebugCommand::Unimpl => break,
                     }
