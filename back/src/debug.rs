@@ -147,10 +147,7 @@ impl DebugBackend {
 
     /// Block until we receive some command message from a client.
     fn wait_for_request(&mut self, client: &mut UnixStream) -> Option<SocketReq> {
-        let res = self.recv(client);
-        if res.is_none() {
-            return None;
-        }
+        let _ = self.recv(client)?; // maybe FIXME: allow discarding recv length here?
         let req = SocketReq::from_buf(
             &self.ibuf[0..0xc].try_into().unwrap()
         );
