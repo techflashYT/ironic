@@ -90,12 +90,9 @@ impl Cpu {
             Err(reason) => return Err(reason),
         };
         let res = L1Descriptor::from_u32(val);
-        match res {
-            L1Descriptor::Fault(_) => {
-                panic!("pc={:08x} L1 Fault descriptor unimpl, vaddr={:08x}", 
-                    self.read_fetch_pc(), vaddr.0);
-            },
-            _ => {},
+        if let L1Descriptor::Fault(_) = res {
+            return Err(format!("pc={:08x} L1 Fault descriptor unimpl, vaddr={:08x}",
+                self.read_fetch_pc(), vaddr.0));
         }
         Ok(res)
     }
