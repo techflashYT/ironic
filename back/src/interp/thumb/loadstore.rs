@@ -348,8 +348,13 @@ pub fn pop(cpu: &mut Cpu, op: PopBits) -> DispatchRes {
         }
     }
 
-    let new_pc = if op.p() { 
-        let saved_lr = cpu.read32(addr);
+    let new_pc = if op.p() {
+        let saved_lr = match cpu.read32(addr) {
+            Ok(val) => val,
+            Err(reason) => {
+                return DispatchRes::FatalErr(reason);
+            }
+        };
         addr += 4;
         Some(saved_lr)
     } else { 
@@ -358,15 +363,9 @@ pub fn pop(cpu: &mut Cpu, op: PopBits) -> DispatchRes {
     assert!(end_addr == addr);
     cpu.reg[Reg::Sp] = end_addr;
 
-    if new_pc.is_some() {
-        let dest_pc = match new_pc.unwrap(){
-            Ok(val) => val,
-            Err(reason) => {
-                return DispatchRes::FatalErr(reason);
-            }
-        };
-        cpu.reg.cpsr.set_thumb(dest_pc & 1 != 0);
-        cpu.write_exec_pc(dest_pc & 0xffff_fffe);
+    if let Some(new_pc) = new_pc {
+        cpu.reg.cpsr.set_thumb(new_pc & 1 != 0);
+        cpu.write_exec_pc(new_pc & 0xffff_fffe);
         DispatchRes::RetireBranch
     } else {
         DispatchRes::RetireOk

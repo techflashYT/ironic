@@ -242,11 +242,9 @@ impl InterpBackend {
                 0x13eb_0024 => Some(pc), // WD
                 _ => None
             };
-            if vaddr.is_none() { 
-                return Ok(());
-            } else {
+            if let Some(vaddr) = vaddr {
                 let paddr = match self.cpu.translate(
-                    TLBReq::new(vaddr.unwrap(), Access::Debug)
+                    TLBReq::new(vaddr, Access::Debug)
                 ) {
                     Ok(val) => val,
                     Err(reason) => return Err(reason),

@@ -189,8 +189,8 @@ impl GpioInterface {
         // compute the next step of the serial/SPI state machine.
         if cs && clk_rise {
             let new_input = self.seeprom.step(mosi, self.arm.input)?;
-            if new_input.is_some() {
-                self.arm.input = new_input.unwrap();
+            if let Some (new_input) = new_input {
+                self.arm.input = new_input;
             }
         }
 

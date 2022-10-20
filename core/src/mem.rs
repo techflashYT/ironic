@@ -15,8 +15,7 @@ pub struct BigEndianMemory {
 }
 impl BigEndianMemory {
     pub fn new(len: usize, init_fn: Option<&str>) -> Result<Self, std::io::Error> {
-        let data = if init_fn.is_some() {
-            let filename = init_fn.unwrap();
+        let data = if let Some(filename) = init_fn {
             let mut f = File::open(filename)?;
             let mut data = vec![0u8; len];
             f.read(&mut data)?;

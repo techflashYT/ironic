@@ -75,8 +75,8 @@ pub fn read_string(cpu: &Cpu, ptr: u32) -> Result<String, String> {
     for (i, b) in line_buf.iter().enumerate() {
         if *b == 0x00 { end = Some(i); break; } 
     }
-    let s = if end.is_some() {
-        std::str::from_utf8(&line_buf[..=end.unwrap()]).unwrap()
+    let s = if let Some(end) = end {
+        std::str::from_utf8(&line_buf[..=end]).unwrap()
     } else {
         std::str::from_utf8(&line_buf).unwrap()
     };

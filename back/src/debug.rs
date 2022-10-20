@@ -129,15 +129,16 @@ impl DebugBackend {
                 println!("[DEBUG] waiting for command ...");
 
                 let res = self.wait_for_request(&mut client);
-                let req = if res.is_none() { break; } else { res.unwrap() };
-                match req.cmd {
-                    DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req).map_err(|e| e.to_string())?,
-                    DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req).map_err(|e| e.to_string())?,
-                    DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req).map_err(|e| e.to_string())?,
-                    DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req).map_err(|e| e.to_string())?,
-                    DebugCommand::Step     => self.handle_cmd_step(&mut client, req).map_err(|e| e.to_string())?,
-                    DebugCommand::Reply    => { return Err("Unsupported".to_string()); },
-                    DebugCommand::Unimpl => break,
+                if let Some(req) = res {
+                    match req.cmd {
+                        DebugCommand::PeekReg  => self.handle_cmd_peekreg(&mut client, req).map_err(|e| e.to_string())?,
+                        DebugCommand::PokeReg  => self.handle_cmd_pokereg(&mut client, req).map_err(|e| e.to_string())?,
+                        DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req).map_err(|e| e.to_string())?,
+                        DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req).map_err(|e| e.to_string())?,
+                        DebugCommand::Step     => self.handle_cmd_step(&mut client, req).map_err(|e| e.to_string())?,
+                        DebugCommand::Reply    => { return Err("Unsupported".to_string()); },
+                        DebugCommand::Unimpl => break,
+                    }
                 }
             }
             return client.shutdown(Shutdown::Both).map_err(|e| e.to_string());

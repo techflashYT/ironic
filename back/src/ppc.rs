@@ -117,20 +117,21 @@ impl PpcBackend {
                 println!("[PPC] waiting for command ...");
 
                 let res = self.wait_for_request(&mut client);
-                let req = if res.is_none() { break; } else { res.unwrap() };
-                match req.cmd {
-                    Command::Ack => self.handle_ack(req)?,
-                    Command::HostRead => self.handle_read(&mut client, req)?,
-                    Command::HostWrite => self.handle_write(&mut client, req)?,
-                    Command::Message => {
-                        self.handle_message(&mut client, req);
-                        let armmsg = self.wait_for_resp();
-                        client.write(&u32::to_le_bytes(armmsg)).map_err(|e|e.to_string())?;
-                    },
-                    Command::MessageNoReturn => {
-                        self.handle_message(&mut client, req);
-                    },
-                    Command::Unimpl => break,
+                if let Some(req) = res {
+                    match req.cmd {
+                        Command::Ack => self.handle_ack(req)?,
+                        Command::HostRead => self.handle_read(&mut client, req)?,
+                        Command::HostWrite => self.handle_write(&mut client, req)?,
+                        Command::Message => {
+                            self.handle_message(&mut client, req);
+                            let armmsg = self.wait_for_resp();
+                            client.write(&u32::to_le_bytes(armmsg)).map_err(|e|e.to_string())?;
+                        },
+                        Command::MessageNoReturn => {
+                            self.handle_message(&mut client, req);
+                        },
+                        Command::Unimpl => break,
+                    }
                 }
             }
             client.shutdown(Shutdown::Both).map_err(|e|e.to_string())?;
