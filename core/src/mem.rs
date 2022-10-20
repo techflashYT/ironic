@@ -18,7 +18,7 @@ impl BigEndianMemory {
         let data = if let Some(filename) = init_fn {
             let mut f = File::open(filename)?;
             let mut data = vec![0u8; len];
-            f.read(&mut data)?;
+            let _ = f.read(&mut data)?; // ignore partial read
             data
         } else {
             vec![0u8; len]
