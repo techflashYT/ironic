@@ -4,7 +4,7 @@
 pub struct BlBits(pub u16);
 impl BlBits {
     #[inline(always)]
-    pub fn imm11(&self) -> u16 { (self.0 & 0x07ff) >> 0 }
+    pub fn imm11(&self) -> u16 { self.0 & 0x07ff }
     #[inline(always)]
     pub fn h(&self) -> u16 { (self.0 >> 11) & 0x3 }
 }
@@ -17,7 +17,7 @@ impl RsbImmBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['SbcReg', 'OrrReg', 'BicReg', 'EorReg', 'AdcReg', 'AndReg']
@@ -27,7 +27,7 @@ impl BitwiseRegBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rdn(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rdn(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['CmpReg', 'TstReg', 'CmnReg']
@@ -37,7 +37,7 @@ impl CmpRegBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rn(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rn(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['MvnReg']
@@ -47,7 +47,7 @@ impl MvnRegBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['Mul']
@@ -57,7 +57,7 @@ impl MulBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rdm(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rdm(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['AddSpImmAlt', 'SubSpImm']
@@ -65,7 +65,7 @@ impl MulBits {
 pub struct AddSubSpImmAltBits(pub u16);
 impl AddSubSpImmAltBits {
     #[inline(always)]
-    pub fn imm7(&self) -> u16 { (self.0 & 0x007f) >> 0 }
+    pub fn imm7(&self) -> u16 { self.0 & 0x007f }
 }
 
 /// ['Bx', 'BlxReg']
@@ -81,7 +81,7 @@ impl BxBits {
 pub struct MiscBits(pub u16);
 impl MiscBits {
     #[inline(always)]
-    pub fn imm8(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['CmpRegAlt']
@@ -93,7 +93,7 @@ impl CmpRegAltBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0078) >> 3 }
     #[inline(always)]
-    pub fn rn(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rn(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['AddRegAlt']
@@ -105,7 +105,7 @@ impl AddRegAltBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0078) >> 3 }
     #[inline(always)]
-    pub fn rdn(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rdn(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['MovReg']
@@ -117,7 +117,7 @@ impl MovRegBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0078) >> 3 }
     #[inline(always)]
-    pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['AddImm', 'SubImm']
@@ -129,7 +129,7 @@ impl AddSubImmBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['LdrReg', 'LdrsbReg', 'LdrshReg', 'StrbReg', 'LdrhReg', 'LdrbReg', 'StrReg', 'StrhReg']
@@ -141,7 +141,7 @@ impl LoadStoreRegBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rt(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rt(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['MovRegShiftReg']
@@ -153,7 +153,7 @@ impl MovRsrBits {
     #[inline(always)]
     pub fn rs(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rdm(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rdm(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['Pop']
@@ -163,7 +163,7 @@ impl PopBits {
     #[inline(always)]
     pub fn p(&self) -> bool { (self.0 & 0x0100) != 0 }
     #[inline(always)]
-    pub fn register_list(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn register_list(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['AddReg', 'SubReg']
@@ -175,7 +175,7 @@ impl AddSubRegBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['Push']
@@ -185,7 +185,7 @@ impl PushBits {
     #[inline(always)]
     pub fn m(&self) -> bool { (self.0 & 0x0100) != 0 }
     #[inline(always)]
-    pub fn register_list(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn register_list(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['MovImm', 'AddSpImm']
@@ -195,7 +195,7 @@ impl MovImmBits {
     #[inline(always)]
     pub fn rd(&self) -> u16 { (self.0 & 0x0700) >> 8 }
     #[inline(always)]
-    pub fn imm8(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['AddImmAlt', 'SubImmAlt']
@@ -205,7 +205,7 @@ impl AddSubImmAltBits {
     #[inline(always)]
     pub fn rdn(&self) -> u16 { (self.0 & 0x0700) >> 8 }
     #[inline(always)]
-    pub fn imm8(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['StrhImm', 'StrImm', 'StrbImm', 'LdrhImm', 'LdrbImm', 'LdrImm']
@@ -217,7 +217,7 @@ impl LoadStoreImmBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rt(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rt(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['Stm', 'Ldm']
@@ -227,7 +227,7 @@ impl LoadStoreMultiBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0700) >> 8 }
     #[inline(always)]
-    pub fn register_list(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn register_list(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['CmpImm']
@@ -237,7 +237,7 @@ impl CmpImmBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0700) >> 8 }
     #[inline(always)]
-    pub fn imm8(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['StrImmAlt', 'LdrImmAlt', 'LdrLit']
@@ -247,7 +247,7 @@ impl LoadStoreAltBits {
     #[inline(always)]
     pub fn rt(&self) -> u16 { (self.0 & 0x0700) >> 8 }
     #[inline(always)]
-    pub fn imm8(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['BAlt']
@@ -255,7 +255,7 @@ impl LoadStoreAltBits {
 pub struct BranchAltBits(pub u16);
 impl BranchAltBits {
     #[inline(always)]
-    pub fn imm11(&self) -> u16 { (self.0 & 0x07ff) >> 0 }
+    pub fn imm11(&self) -> u16 { self.0 & 0x07ff }
 }
 
 /// ['B']
@@ -265,7 +265,7 @@ impl BranchBits {
     #[inline(always)]
     pub fn cond(&self) -> u16 { (self.0 & 0x0f00) >> 8 }
     #[inline(always)]
-    pub fn imm8(&self) -> u16 { (self.0 & 0x00ff) >> 0 }
+    pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 
 /// ['MovRegAlt']
@@ -279,7 +279,7 @@ impl MovRegAltBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]
-    pub fn rd(&self) -> u16 { (self.0 & 0x0007) >> 0 }
+    pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 
 /// ['Bkpt']

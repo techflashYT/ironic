@@ -41,7 +41,7 @@ impl MailboxState {
     /// Read handler for PPC_CTRL.
     pub fn ppc_ctrl_read(&self) -> u32 {
         let mut res = 0;
-        res |= (self.arm_req as u32) << 0;
+        res |= self.arm_req as u32;
         res |= (self.ppc_ack as u32) << 1;
         res |= (self.ppc_req as u32) << 2;
         res |= (self.arm_ack as u32) << 3;
@@ -53,7 +53,7 @@ impl MailboxState {
     /// Read handler for ARM_CTRL.
     pub fn arm_ctrl_read(&self) -> u32 {
         let mut res = 0;
-        res |= (self.ppc_req as u32) << 0;
+        res |= self.ppc_req as u32;
         res |= (self.arm_ack as u32) << 1;
         res |= (self.arm_req as u32) << 2;
         res |= (self.ppc_ack as u32) << 3;

@@ -15,7 +15,7 @@ impl LsCoprocBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn imm8(&self) -> u32 { (self.0 & 0x000000ff) >> 0 }
+    pub fn imm8(&self) -> u32 { self.0 & 0x000000ff }
 }
 
 /// ['MvnReg', 'MovReg']
@@ -33,7 +33,7 @@ impl MovRegBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Qdadd', 'Qsub', 'Qadd', 'Qdsub']
@@ -47,7 +47,7 @@ impl QBits {
     #[inline(always)]
     pub fn rd(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Bx', 'Bxj', 'BlxReg']
@@ -57,7 +57,7 @@ impl BxBits {
     #[inline(always)]
     pub fn cond(&self) -> u32 { (self.0 & 0xf0000000) >> 28 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Clz']
@@ -69,7 +69,7 @@ impl ClzBits {
     #[inline(always)]
     pub fn rd(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Bkpt']
@@ -83,7 +83,7 @@ impl BkptBits {
     #[inline(always)]
     pub fn imm12(&self) -> u32 { (self.0 & 0x000fff00) >> 8 }
     #[inline(always)]
-    pub fn imm4(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn imm4(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['MsrReg']
@@ -97,7 +97,7 @@ impl MsrRegBits {
     #[inline(always)]
     pub fn mask(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['MrsRegBanked']
@@ -129,7 +129,7 @@ impl MsrRegBankedBits {
     #[inline(always)]
     pub fn m(&self) -> bool { (self.0 & 0x00000100) != 0 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Mrs']
@@ -159,7 +159,7 @@ impl SignedMlBits {
     #[inline(always)]
     pub fn rm(&self) -> u32 { (self.0 & 0x00000f00) >> 8 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Mul']
@@ -175,7 +175,7 @@ impl MulBits {
     #[inline(always)]
     pub fn rm(&self) -> u32 { (self.0 & 0x00000f00) >> 8 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Mla']
@@ -193,7 +193,7 @@ impl MlaBits {
     #[inline(always)]
     pub fn rm(&self) -> u32 { (self.0 & 0x00000f00) >> 8 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['MovImm', 'MvnImm']
@@ -207,7 +207,7 @@ impl MovImmBits {
     #[inline(always)]
     pub fn rd(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['PldReg']
@@ -225,7 +225,7 @@ impl PldRegBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Mcrr', 'Mrrc']
@@ -243,7 +243,7 @@ impl MoveCoprocDoubleBits {
     #[inline(always)]
     pub fn opc1(&self) -> u32 { (self.0 & 0x000000f0) >> 4 }
     #[inline(always)]
-    pub fn crm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn crm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Smulwb']
@@ -259,7 +259,7 @@ impl SmulwbBits {
     #[inline(always)]
     pub fn m(&self) -> bool { (self.0 & 0x00000040) != 0 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Smlawb']
@@ -277,7 +277,7 @@ impl SmlawbBits {
     #[inline(always)]
     pub fn m(&self) -> bool { (self.0 & 0x00000040) != 0 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Smlalbb']
@@ -297,7 +297,7 @@ impl SmalbbBits {
     #[inline(always)]
     pub fn n(&self) -> bool { (self.0 & 0x00000020) != 0 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['TeqRegShiftReg', 'CmnRegShiftReg', 'TstRegShiftReg', 'CmpRegShiftReg']
@@ -313,7 +313,7 @@ impl DpTestRsrBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Smlabb']
@@ -333,7 +333,7 @@ impl SmlabbBits {
     #[inline(always)]
     pub fn n(&self) -> bool { (self.0 & 0x00000020) != 0 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Smulbb']
@@ -351,7 +351,7 @@ impl SmulbbBits {
     #[inline(always)]
     pub fn n(&self) -> bool { (self.0 & 0x00000020) != 0 }
     #[inline(always)]
-    pub fn rn(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['PldImm']
@@ -365,7 +365,7 @@ impl PldImmBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['LdrsbImm', 'StrhImm', 'LdrshImm', 'StrdImm', 'LdrhImm', 'LdrdImm']
@@ -387,7 +387,7 @@ impl LsSignedImmBits {
     #[inline(always)]
     pub fn imm4h(&self) -> u32 { (self.0 & 0x00000f00) >> 8 }
     #[inline(always)]
-    pub fn imm4l(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn imm4l(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['StrdReg', 'LdrsbReg', 'LdrshReg', 'LdrdReg', 'LdrhReg', 'StrhReg']
@@ -407,7 +407,7 @@ impl LsSignedRegBits {
     #[inline(always)]
     pub fn rt(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['AndRegShiftReg', 'AdcRegShiftReg', 'OrrRegShiftReg', 'EorRegShiftReg', 'RscRegShiftReg', 'SbcRegShiftReg', 'AddRegShiftReg', 'BicRegShiftReg', 'RsbRegShiftReg', 'SubRegShiftReg']
@@ -427,7 +427,7 @@ impl DpRsrBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['MovRegShiftReg', 'MvnRegShiftReg']
@@ -447,7 +447,7 @@ impl MovRsrBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['CmpReg', 'TstReg', 'CmnReg', 'TeqReg']
@@ -463,7 +463,7 @@ impl DpTestRegBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['Mrc', 'Mcr']
@@ -483,7 +483,7 @@ impl MoveCoprocBits {
     #[inline(always)]
     pub fn opc2(&self) -> u32 { (self.0 & 0x000000e0) >> 5 }
     #[inline(always)]
-    pub fn crm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn crm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['MovImmAlt']
@@ -497,7 +497,7 @@ impl MovImmAltBits {
     #[inline(always)]
     pub fn rd(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['CmnImm', 'CmpImm', 'TstImm', 'TeqImm']
@@ -509,7 +509,7 @@ impl DpTestImmBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['LdrbtAlt', 'StrbtAlt', 'LdrtAlt', 'StrtAlt']
@@ -529,7 +529,7 @@ impl LsTransAltBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['SbcReg', 'OrrReg', 'BicReg', 'AddReg', 'RscReg', 'EorReg', 'AdcReg', 'SubReg', 'AndReg', 'RsbReg']
@@ -549,7 +549,7 @@ impl DpRegBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['AddImm', 'AdcImm', 'RsbImm', 'OrrImm', 'BicImm', 'SubImm', 'AndImm', 'RscImm', 'EorImm', 'SbcImm']
@@ -565,7 +565,7 @@ impl DpImmBits {
     #[inline(always)]
     pub fn rd(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['Ldrbt', 'Strbt', 'Ldrt', 'Strt']
@@ -581,7 +581,7 @@ impl LsTransBits {
     #[inline(always)]
     pub fn rt(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['Stm', 'Stmda', 'Ldmda', 'Ldmib', 'Ldmdb', 'Ldm', 'Stmdb', 'Stmib']
@@ -595,7 +595,7 @@ impl LsMultiBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn register_list(&self) -> u32 { (self.0 & 0x0000ffff) >> 0 }
+    pub fn register_list(&self) -> u32 { self.0 & 0x0000ffff }
 }
 
 /// ['MsrImm']
@@ -609,7 +609,7 @@ impl MsrImmBits {
     #[inline(always)]
     pub fn mask(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['LdrReg', 'StrbReg', 'LdrbReg', 'StrReg']
@@ -633,7 +633,7 @@ impl LsRegBits {
     #[inline(always)]
     pub fn stype(&self) -> u32 { (self.0 & 0x00000060) >> 5 }
     #[inline(always)]
-    pub fn rm(&self) -> u32 { (self.0 & 0x0000000f) >> 0 }
+    pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
 }
 
 /// ['LdmRegUser']
@@ -651,7 +651,7 @@ impl LdmRegUserBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn register_list(&self) -> u32 { (self.0 & 0x0000ffff) >> 0 }
+    pub fn register_list(&self) -> u32 { self.0 & 0x0000ffff }
 }
 
 /// ['StrImm', 'StrbImm', 'LdrbImm', 'LdrImm']
@@ -671,7 +671,7 @@ impl LsImmBits {
     #[inline(always)]
     pub fn rt(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
-    pub fn imm12(&self) -> u32 { (self.0 & 0x00000fff) >> 0 }
+    pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 }
 
 /// ['StmRegUser']
@@ -687,7 +687,7 @@ impl StmRegUserBits {
     #[inline(always)]
     pub fn rn(&self) -> u32 { (self.0 & 0x000f0000) >> 16 }
     #[inline(always)]
-    pub fn register_list(&self) -> u32 { (self.0 & 0x0000ffff) >> 0 }
+    pub fn register_list(&self) -> u32 { self.0 & 0x0000ffff }
 }
 
 /// ['Svc', 'B', 'BlImm', 'BlxImm']
@@ -699,6 +699,6 @@ impl BranchBits {
     #[inline(always)]
     pub fn h(&self) -> bool { (self.0 & 0x01000000) != 0 }
     #[inline(always)]
-    pub fn imm24(&self) -> u32 { (self.0 & 0x00ffffff) >> 0 }
+    pub fn imm24(&self) -> u32 { self.0 & 0x00ffffff }
 }
 
