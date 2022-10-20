@@ -9,8 +9,8 @@ use std::mem;
 pub unsafe trait AccessWidth: Sized {
     fn from_be_bytes(data: &[u8]) -> Self;
     fn from_le_bytes(data: &[u8]) -> Self;
-    fn as_be(self) -> Self;
-    fn as_le(self) -> Self;
+    fn to_be(self) -> Self;
+    fn to_le(self) -> Self;
 
     fn as_ptr(&self) -> *const Self { self as *const Self }
     fn as_mut(&mut self) -> *mut Self { self as *mut Self }
@@ -34,8 +34,8 @@ macro_rules! impl_accesswidth {
             fn from_le_bytes(data: &[u8]) -> Self {
                 Self::from_le_bytes(data.try_into().unwrap())
             }
-            fn as_be(self) -> Self { Self::to_be(self) }
-            fn as_le(self) -> Self { Self::to_le(self) }
+            fn to_be(self) -> Self { Self::to_be(self) }
+            fn to_le(self) -> Self { Self::to_le(self) }
         }
     };
 }
