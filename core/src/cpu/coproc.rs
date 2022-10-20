@@ -64,14 +64,14 @@ impl From<u32> for SystemControlReg {
     fn from(x: u32) -> Self {
         use SystemControlReg::*;
         match x {
-            01 => Control,
-            02 => PageControl,
-            03 => AccessControl,
-            05 => FaultStatus,
-            06 => FaultAddress,
-            07 => CacheControl,
-            08 => TlbControl,
-            09 => CacheLockdown,
+            1 => Control,
+            2 => PageControl,
+            3 => AccessControl,
+            5 => FaultStatus,
+            6 => FaultAddress,
+            7 => CacheControl,
+            8 => TlbControl,
+            9 => CacheLockdown,
             10 => TlbLockdown,
             _ => panic!("Invalid p15 register number {}", x),
         }
