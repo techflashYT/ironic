@@ -34,7 +34,7 @@ impl Bus {
             (BusWidth::W, Exi)   => self.hlwd.exi.read(off),
             (BusWidth::H, Mi)    => self.hlwd.mi.read(off),
             (BusWidth::H, Ddr)   => self.hlwd.ddr.read(off),
-            _ => { return Err(format!("Unsupported read {:?} for {:?} at {:x}", width, dev, off)); },
+            _ => { return Err(format!("Unsupported read {width:?} for {dev:?} at {off:x}")); },
         }
     }
 
@@ -60,7 +60,7 @@ impl Bus {
             (Half(val), Mi)    => self.hlwd.mi.write(off, val),
             (Half(val), Ddr)   => self.hlwd.ddr.write(off, val),
 
-            _ => { return Err(format!("Unsupported write {:?} for {:?} at {:x}", msg, dev, off)); },
+            _ => { return Err(format!("Unsupported write {msg:?} for {dev:?} at {off:x}")); },
         };
         match task {
             // If the device returned some task, schedule it

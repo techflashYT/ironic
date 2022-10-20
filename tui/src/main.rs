@@ -66,7 +66,7 @@ fn main() {
     let bus = match Bus::new() {
         Ok(val) => val,
         Err(reason) => {
-            println!("Failed to construct emulator Bus: {}", reason);
+            println!("Failed to construct emulator Bus: {reason}");
             process::exit(-1);
         }
     };
@@ -83,7 +83,7 @@ fn main() {
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
                 let mut back = InterpBackend::new(emu_bus, custom_kernel, emu_send, emu_recv);
                 if let Err(reason) = back.run() {
-                    println!("InterpBackend returned an Err: {}", reason);
+                    println!("InterpBackend returned an Err: {reason}");
                 };
             }).unwrap()
         },
@@ -96,7 +96,7 @@ fn main() {
         let _ = Some(Builder::new().name("IpcThread".to_owned()).spawn(move || {
             let mut back = PpcBackend::new(ppc_bus);
             if let Err(reason) = back.run(){
-                println!("PPC Backend returned an Err: {}", reason);
+                println!("PPC Backend returned an Err: {reason}");
             };
         }).unwrap());
     }
@@ -106,7 +106,7 @@ fn main() {
         let _ = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
             let mut back = DebugBackend::new(dbg_send, dbg_recv);
             if let Err(reason) = back.run() {
-                println!("Debug Thead returned en Err: {}", reason);
+                println!("Debug Thead returned en Err: {reason}");
             };
         }).unwrap());
     }
@@ -116,7 +116,7 @@ fn main() {
     let bus_ref = match bus.read() {
         Ok(val) => val,
         Err(reason) => {
-            println!("Bus was poisoned during runtime: {}", reason);
+            println!("Bus was poisoned during runtime: {reason}");
             reason.into_inner()
         }
     };

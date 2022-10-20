@@ -63,7 +63,7 @@ impl MmioDevice for SDInterface {
             0x40 => Ok(BusPacket::Word(self.cap)),
             // Max Capabilities register
             0x48 => Ok(BusPacket::Word(self.maxcap)),
-            _ => Err(format!("SDHC0 read at {:x} unimplemented", off))
+            _ => Err(format!("SDHC0 read at {off:x} unimplemented"))
         };
     }
     fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
@@ -111,7 +111,7 @@ impl MmioDevice for SDInterface {
                 self.maxcap = val;
                 Ok(None)
             }
-            _ => Err(format!("SDHC0 write {:08x} at {:x} unimpl", val, off))
+            _ => Err(format!("SDHC0 write {val:08x} at {off:x} unimpl"))
         };
     }
 }
@@ -131,11 +131,11 @@ impl MmioDevice for WLANInterface {
             //0x24 => 0x0001_0000, //self.unk_24,
             //0x40 => 0x0040_0000, //self.unk_24,
             //0xfc => self.unk_fc,
-            _ => { return Err(format!("SDHC1 read at {:x} unimpl", off)); },
+            _ => { return Err(format!("SDHC1 read at {off:x} unimpl")); },
         };
         Ok(BusPacket::Word(val))
     }
     fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
-        Err(format!("SDHC1 write {:08x} at {:x} unimpl", val, off))
+        Err(format!("SDHC1 write {val:08x} at {off:x} unimpl"))
     }
 }

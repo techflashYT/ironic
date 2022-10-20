@@ -81,7 +81,7 @@ impl IrqInterface {
         Ok(match off {
             0x08 => self.arm_irq_status.0,
             0x0c => self.arm_irq_enable.0,
-            _ => { return Err(format!("Unhandled read on HLWD IRQ interface {:02x}", off)); },
+            _ => { return Err(format!("Unhandled read on HLWD IRQ interface {off:02x}")); },
         })
     }
 
@@ -89,7 +89,7 @@ impl IrqInterface {
         match off {
             0x04 => {
                 self.ppc_irq_enable.0 = val;
-                println!("IRQ PPC enable={:08x}", val);
+                println!("IRQ PPC enable={val:08x}");
             },
 
             0x08 => {
@@ -100,14 +100,14 @@ impl IrqInterface {
             // NOTE: When a pin is disabled, does it clear the status bit?
             0x0c => {
                 self.arm_irq_enable.0 = val;
-                println!("IRQ ARM enable={:08x}", val);
+                println!("IRQ ARM enable={val:08x}");
             },
 
             0x10 => {
                 self.arm_fiq_enable.0 = val;
             },
             0x2c => { // HW_DBGINTEN ???? temporarily ignore because it's a blocker to more interesting things.
-                println!("FIXME FIXME FIXME: suppressed IRQ write at offset: 0x2c (maybe: HW_BDGINTEN) val: {:#10x}", val);
+                println!("FIXME FIXME FIXME: suppressed IRQ write at offset: 0x2c (maybe: HW_BDGINTEN) val: {val:#10x}");
             },
             _ => { return Err(format!("Unhandled write {:08x} on HLWD IRQ interface {:02x}", 
                 val, off)); },

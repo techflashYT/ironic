@@ -78,7 +78,7 @@ impl SavedStatusBank {
             Und => self.und = val,
             Irq => self.irq = val,
             Fiq => self.fiq = val,
-            _ => { return Err(format!("Invalid mode {:?} has no SPSR to write", mode)); },
+            _ => { return Err(format!("Invalid mode {mode:?} has no SPSR to write")); },
         };
         Ok(())
     }
@@ -92,7 +92,7 @@ impl SavedStatusBank {
             Und => self.und,
             Irq => self.irq,
             Fiq => self.fiq,
-            _ => { return Err(format!("Invalid mode {:?} has no SPSR to read", mode)); },
+            _ => { return Err(format!("Invalid mode {mode:?} has no SPSR to read")); },
         })
     }
 }

@@ -123,7 +123,7 @@ impl Cpu {
             match desc {
                 L1Descriptor::Section(entry) => Ok(self.resolve_section(req, entry)?),
                 L1Descriptor::Coarse(entry) => self.resolve_coarse(req, entry),
-                _ => Err(format!("TLB first-level descriptor {:?} unimplemented", desc)),
+                _ => Err(format!("TLB first-level descriptor {desc:?} unimplemented")),
             }
         } else {
             Ok(req.vaddr.0)

@@ -177,29 +177,29 @@ pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> Result<(), String> {
         let val = cpu.reg[idx as u32];
         match arg {
             ArgType::Ptr => { 
-                arg_buf.push_str(&format!("0x{:08x}", val));
+                arg_buf.push_str(&format!("0x{val:08x}"));
             },
             ArgType::StrPtr => {
                 let s = match read_string(cpu, val){
                     Ok(val) => val,
                     Err(reason) => {return Err(reason);},
                 };
-                arg_buf.push_str(&format!("\"{}\"", s));
+                arg_buf.push_str(&format!("\"{s}\""));
             },
             ArgType::Int => {
-                arg_buf.push_str(&format!("{}", val));
+                arg_buf.push_str(&format!("{val}"));
             },
             ArgType::Uint => {
-                arg_buf.push_str(&format!("0x{:x}", val));
+                arg_buf.push_str(&format!("0x{val:x}"));
             },
         }
         if idx < syscall.arg.len()-1 {
             arg_buf.push_str(", ");
         }
     }
-    println!("IOS [{:?}] {}({}) (lr={:08x})", 
+    println!("IOS [{:?}] {}({arg_buf}) (lr={:08x})", 
         ExecutionCtx::from(cpu.read_fetch_pc()),
-        syscall.name, arg_buf, cpu.reg[Reg::Lr]
+        syscall.name, cpu.reg[Reg::Lr]
     );
     Ok(())
 }

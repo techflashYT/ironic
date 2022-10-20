@@ -176,7 +176,7 @@ impl InterpBackend {
         if let Some(idx) = self.svc_buf.find('\n') {
             let string: String = self.svc_buf.chars()
                 .take(idx).collect();
-            println!("SVC {}", string);
+            println!("SVC {string}");
             self.svc_buf.clear();
         }
         Ok(())
@@ -184,7 +184,7 @@ impl InterpBackend {
 
     /// Log IOS syscalls to stdout.
     pub fn syscall_log(&mut self, opcd: u32) {
-        println!("IOS syscall {:08x}, lr={:08x}", opcd, self.cpu.reg[Reg::Lr]);
+        println!("IOS syscall {opcd:08x}, lr={:08x}", self.cpu.reg[Reg::Lr]);
     }
 
     /// Write the current instruction to stdout.
@@ -201,7 +201,7 @@ impl InterpBackend {
                     return Ok(());
                 }
                 let name = format!("{:?}", ThumbInst::decode(opcd));
-                println!("({:08x}) {:12} {:x?}", opcd, name, self.cpu.reg);
+                println!("({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
                 //println!("{:?}", self.cpu.reg);
             } else {
                 let opcd = match self.cpu.read32(pc) {
@@ -209,7 +209,7 @@ impl InterpBackend {
                     Err(reason) => return Err(reason)
                 };
                 let name = format!("{:?}", ArmInst::decode(opcd));
-                println!("({:08x}) {:12} {:x?}", opcd, name, self.cpu.reg);
+                println!("({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
                 //println!("{:?}", self.cpu.reg);
             };
         }
@@ -248,7 +248,7 @@ impl InterpBackend {
                     Ok(val) => val,
                     Err(reason) => return Err(reason),
                 };
-                println!("DBG hotpatching module entrypoint {:08x}", paddr);
+                println!("DBG hotpatching module entrypoint {paddr:08x}");
                 println!("{:?}", self.cpu.reg);
                 self.bus.write().unwrap().dma_write(paddr, 
                     &Self::THREAD_CANCEL_PATCH)?;
@@ -351,7 +351,7 @@ impl Backend for InterpBackend {
             let mut kernel_file = match maybe_kernel_file {
                 Ok(f) => f,
                 Err(e) => {
-                    return Err(format!("Error opening kernel file: {}, got error: {}", filename, e));
+                    return Err(format!("Error opening kernel file: {filename}, got error: {e}"));
                 },
             };
             let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata().map_err(|e| e.to_string())?.len() as usize);
@@ -360,7 +360,7 @@ impl Backend for InterpBackend {
             kernel_file.rewind().map_err(|e| e.to_string())?;
             let kernel_elf = match elf::File::open_stream(&mut kernel_file) {
                 Ok(res) => res,
-                Err(e)  => { return Err(format!("Custom Kernel ELF error: {:?}", e)); },
+                Err(e)  => { return Err(format!("Custom Kernel ELF error: {e:?}")); },
             };
             let headers = kernel_elf.phdrs;
             // We have a valid ELF (probably)
@@ -420,7 +420,7 @@ impl Backend for InterpBackend {
             match res {
                 CpuRes::StepOk => {},
                 CpuRes::HaltEmulation(reason) => {
-                    println!("CPU returned fatal error: {}", reason);
+                    println!("CPU returned fatal error: {reason}");
                     break;
                 },
                 CpuRes::StepException(e) => {
@@ -428,14 +428,14 @@ impl Backend for InterpBackend {
                         ExceptionType::Undef(_) => {},
                         ExceptionType::Irq => {},
                         _ => {
-                            println!("Unimplemented exception type {:?}", e);
+                            println!("Unimplemented exception type {e:?}");
                             break;
                         }
                     }
                 },
                 CpuRes::Semihosting => {
                     self.svc_read().unwrap_or_else(|reason|{
-                        println!("FIXME: svc_read got error {}", reason);
+                        println!("FIXME: svc_read got error {reason}");
                     });
                 }
             }

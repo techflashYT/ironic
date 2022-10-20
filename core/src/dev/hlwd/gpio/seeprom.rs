@@ -102,9 +102,9 @@ impl SeepromState {
                 match extop {
                     Ewen => self.wren = true,
                     Ewds => self.wren = false,
-                    _ => { return Err(format!("SEEPROM ext. op {:?} unimplemented", extop)); },
+                    _ => { return Err(format!("SEEPROM ext. op {extop:?} unimplemented")); },
                 }
-                println!("SEEPROM {:?}", extop);
+                println!("SEEPROM {extop:?}");
             },
 
             // At this point, the last 8 bits represent an address
@@ -156,9 +156,9 @@ impl SeepromState {
                     let addr = self.addr.unwrap();
                     if self.wren {
                         self.data.write::<u16>(addr * 2, val)?;
-                        println!("SEEPROM write {:04x} @ {:02x}", val, addr);
+                        println!("SEEPROM write {val:04x} @ {addr:02x}");
                     } else {
-                        return Err(format!("SEEPROM write {:04x} @ {:02x} without WREN", val, addr));
+                        return Err(format!("SEEPROM write {val:04x} @ {addr:02x} without WREN"));
                     }
                     Ok(None)
                 } else {

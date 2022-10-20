@@ -206,7 +206,7 @@ impl MmioDevice for NandInterface {
                 println!("NND unimpl read from 0x18");
                 self.reg.unk
             },
-            _ => { return Err(format!("Unhandled NND read at {:x} ", off)); },
+            _ => { return Err(format!("Unhandled NND read at {off:x} ")); },
         };
         Ok(BusPacket::Word(val))
     }
@@ -230,7 +230,7 @@ impl MmioDevice for NandInterface {
                 println!("NND unimpl write to 0x18");
                 self.reg.unk = val;
             }
-            _ => { return Err(format!("Unhandled write32 on {:08x}", off)); },
+            _ => { return Err(format!("Unhandled write32 on {off:08x}")); },
         }
         Ok(None)
     }
@@ -257,7 +257,7 @@ impl Bus {
         // addressed at some point.
         if len != 0x800 && len != 0x840 {
             if len != 0x40 {
-                return Err(format!("Refusing to process a really weird read size {:#06x} from the NAND interface", len));
+                return Err(format!("Refusing to process a really weird read size {len:#06x} from the NAND interface"));
             }
             len = 0x840;
         }

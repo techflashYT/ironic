@@ -31,16 +31,16 @@ pub enum DispatchRes {
 /// Handler for unimplemented ARM instructions.
 pub fn arm_unimpl_instr(cpu: &mut Cpu, op: u32) -> DispatchRes {
     if (op & 0xe600_0000) != 0xe600_0000 {
-        return DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch instruction {:08x} ({:?})",
-        cpu.read_fetch_pc(), op, ArmInst::decode(op)));
+        return DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch instruction {op:08x} ({:?})",
+        cpu.read_fetch_pc(), ArmInst::decode(op)));
     }
     DispatchRes::Exception(ExceptionType::Undef(op))
 }
 
 /// Handler for unimplemented Thumb instructions.
 pub fn thumb_unimpl_instr(cpu: &mut Cpu, op: u16) -> DispatchRes {
-    DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch Thumb instruction {:04x} ({:?})",
-        cpu.read_fetch_pc(), op, ThumbInst::decode(op)))
+    DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch Thumb instruction {op:04x} ({:?})",
+        cpu.read_fetch_pc(), ThumbInst::decode(op)))
 }
 
 // We use these macros to coerce the borrow checker into taking pointers to

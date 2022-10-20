@@ -368,7 +368,7 @@ fn do_bitwise_reg(cpu: &mut Cpu, opcd: DpRegBits, op: BitwiseOp) -> DispatchRes 
         BitwiseOp::Bic => base & !val,
         BitwiseOp::Orr => base | val,
         BitwiseOp::Eor => base ^ val,
-        _ => { return DispatchRes::FatalErr(format!("ARM reg bitwise {:?} unimpl", op)); },
+        _ => { return DispatchRes::FatalErr(format!("ARM reg bitwise {op:?} unimpl")); },
     };
     if rd == 15 {
         if s {
@@ -416,7 +416,7 @@ fn do_bitwise_imm(cpu: &mut Cpu, rn: u32, rd: u32, imm: u32,
         BitwiseOp::Bic => base & !val,
         BitwiseOp::Orr => base | val,
         BitwiseOp::Eor => base ^ val,
-        _ => { return DispatchRes::FatalErr(format!("ARM imm bitwise {:?} unimplemented", op)); },
+        _ => { return DispatchRes::FatalErr(format!("ARM imm bitwise {op:?} unimplemented")); },
     };
     if rd == 15 {
         if s {

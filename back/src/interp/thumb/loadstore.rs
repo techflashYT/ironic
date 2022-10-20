@@ -117,7 +117,7 @@ fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> Result
         Width::Half => imm_n << 1,
         Width::Word => imm_n << 2,
         _ => {
-            return Err(format!("load_imm width argument: {:?} not acceptable!", width));
+            return Err(format!("load_imm width argument: {width:?} not acceptable!"));
         },
     };
 

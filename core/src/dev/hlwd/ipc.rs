@@ -23,7 +23,7 @@ impl MailboxState {
         if x & 0x0000_0004 != 0 { self.ppc_req = false; }
         self.ppc_req_int = x & 0x0000_0010 != 0;
         self.ppc_ack_int = x & 0x0000_0020 != 0;
-        println!("{:?}", self);
+        println!("{self:?}");
     }
 
     /// Write handler for ARM_CTRL
@@ -34,7 +34,7 @@ impl MailboxState {
         if x & 0x0000_0004 != 0 { self.arm_req = false; }
         self.arm_req_int = x & 0x0000_0010 != 0;
         self.arm_ack_int = x & 0x0000_0020 != 0;
-        println!("{:?}", self);
+        println!("{self:?}");
 
     }
 
@@ -100,28 +100,28 @@ impl IpcInterface {
             0x04 => self.state.ppc_ctrl_read(),
             0x08 => self.arm_msg,
             0x0c => self.state.arm_ctrl_read(),
-            _ => { return Err(format!("IpcInterface invalid read at offset: {}", off)); },
+            _ => { return Err(format!("IpcInterface invalid read at offset: {off}")); },
         })
     }
     pub fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
         match off {
             0x00 => {
-                println!("IPC PPC MSG write {:08x}", val);
+                println!("IPC PPC MSG write {val:08x}");
                 self.ppc_msg = val;
             }
             0x04 => {
-                println!("IPC PPC CTRL write {:08x}", val);
+                println!("IPC PPC CTRL write {val:08x}");
                 self.state.ppc_ctrl_write(val);
             },
             0x08 => {
-                println!("IPC ARM MSG write {:08x}", val);
+                println!("IPC ARM MSG write {val:08x}");
                 self.arm_msg = val;
             },
             0x0c => {
-                println!("IPC ARM CTRL write {:08x}", val);
+                println!("IPC ARM CTRL write {val:08x}");
                 self.state.arm_ctrl_write(val);
             },
-            _ => { return Err(format!("IpcInterface invalid write to offset: {} value: {}", off, val)); },
+            _ => { return Err(format!("IpcInterface invalid write to offset: {off} value: {val}")); },
         };
         Ok(())
     }

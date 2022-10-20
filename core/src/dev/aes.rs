@@ -80,7 +80,7 @@ impl MmioDevice for AesInterface {
         match off {
             //0x00 => BusPacket::Word(self.ctrl),
             0x00 => Ok(BusPacket::Word(0)),
-            _ => Err(format!("Unhandled AES interface read {:x}", off)),
+            _ => Err(format!("Unhandled AES interface read {off:x}")),
         }
     }
 
@@ -118,7 +118,7 @@ impl MmioDevice for AesInterface {
                 }
                 self.iv_fifo.make_contiguous();
             }
-            _ => { return Err(format!("Unimplemented AES write to offset {:x}", off)); },
+            _ => { return Err(format!("Unimplemented AES write to offset {off:x}")); },
         }
         Ok(None)
     }

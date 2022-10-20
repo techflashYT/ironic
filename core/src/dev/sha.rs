@@ -60,7 +60,7 @@ impl MmioDevice for ShaInterface {
             0x10 => self.state.digest[2],
             0x14 => self.state.digest[3],
             0x18 => self.state.digest[4],
-            _ => { return Err(format!("Unimplemented SHA read at offset {:04x}", off)); },
+            _ => { return Err(format!("Unimplemented SHA read at offset {off:04x}")); },
         };
         Ok(BusPacket::Word(val))
     }
@@ -80,7 +80,7 @@ impl MmioDevice for ShaInterface {
             0x10 => self.state.digest[2] = val,
             0x14 => self.state.digest[3] = val,
             0x18 => self.state.digest[4] = val,
-            _ => { return Err(format!("Unhandled write32 to {:08x}", off)); },
+            _ => { return Err(format!("Unhandled write32 to {off:08x}")); },
         }
         Ok(None)
     }

@@ -144,9 +144,9 @@ impl EXIChannel {
             0x08 => self.len,
             0x0c => self.ctrl,
             0x10 => self.data,
-            _ => { return Err(format!("EXI chn{} OOB read at {:08x}", self.idx, off)); },
+            _ => { return Err(format!("EXI chn{} OOB read at {off:08x}", self.idx)); },
         };
-        println!("EXI chn{} read {:08x} from offset {:x}", self.idx, res, off);
+        println!("EXI chn{} read {res:08x} from offset {off:x}", self.idx);
         Ok(res)
     }
     pub fn write(&mut self, off: usize, val: u32) -> Result<(), String> {
@@ -162,8 +162,8 @@ impl EXIChannel {
                 self.update_state();
             },
             0x10 => self.data = val,
-            _ => { return Err(format!("EXI chn{} OOB write {:08x} at {:08x}", 
-                self.idx, val, off)); },
+            _ => { return Err(format!("EXI chn{} OOB write {val:08x} at {off:08x}",
+                self.idx)); },
         }
         Ok(())
     }
@@ -219,7 +219,7 @@ impl MmioDevice for EXInterface {
             0x28..=0x38 => self.chan2.read(off - 0x28)?,
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4],
-            _ => { return Err(format!("EXI read to undef offset {:x}", off)); },
+            _ => { return Err(format!("EXI read to undef offset {off:x}")); },
         };
         Ok(BusPacket::Word(val))
     }
@@ -231,7 +231,7 @@ impl MmioDevice for EXInterface {
 
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4] = val,
-            _ => { return Err(format!("EXI write {:08x} to {:x}", val, off)); },
+            _ => { return Err(format!("EXI write {val:08x} to {off:x}")); },
         }
         Ok(None)
     }

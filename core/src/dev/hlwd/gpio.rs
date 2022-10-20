@@ -49,12 +49,12 @@ impl GpioInterface {
         } else if (diff & 0x00ff_0000) != 0 {
             println!("GPIO DEBUG pins [{:02x}]", (val & 0x00ff_0000) >> 16);
         } else if (diff & 0x0000_000c) != 0 {
-            println!("GPIO Fan/DCDC output {:08x}", diff);
+            println!("GPIO Fan/DCDC output {diff:08x}");
         } else if (diff & 0x0000_0020) != 0 {
             println!("GPIO Disc Slot LED output");
         }
         else {
-            return Err(format!("Unhandled GPIO output arm.output={:08x} val={:08x} diff={:08x}", self.arm.output, val, diff));
+            return Err(format!("Unhandled GPIO output arm.output={:08x} val={val:08x} diff={diff:08x}", self.arm.output));
         }
         Ok(())
     }
@@ -95,7 +95,7 @@ impl ArmGpio {
             0x18 => self.intmask = data,
             0x1c => self.straps = data,
             0x20 => self.owner = data,
-            _ => { return Err(format!("unimplemented ArmGpio write {:08x}", off)); },
+            _ => { return Err(format!("unimplemented ArmGpio write {off:08x}")); },
         }
         Ok(None)
     }
@@ -110,7 +110,7 @@ impl ArmGpio {
             0x18 => self.intmask,
             0x1c => self.straps,
             0x20 => self.owner,
-            _ => { return Err(format!("unimplemented ArmGpio read {:08x}", off)); },
+            _ => { return Err(format!("unimplemented ArmGpio read {off:08x}")); },
         })
     }
 }
@@ -132,7 +132,7 @@ impl PpcGpio {
         match off {
             0x00 => self.output = data,
             0x04 => self.dir = data,
-            _ => println!("FIXME: unimplemented PpcGpio write {:08x}: 0x{:08x}", off, data),
+            _ => println!("FIXME: unimplemented PpcGpio write {off:08x}: 0x{data:08x}"),
         };
         Ok(())
     }
@@ -140,7 +140,7 @@ impl PpcGpio {
         Ok(match off {
             0x00 => self.output,
             0x04 => self.dir,
-            _ => {return Err(format!("unimplemented PpcGpio read {:08x}", off)); },
+            _ => {return Err(format!("unimplemented PpcGpio read {off:08x}")); },
         })
     }
 }

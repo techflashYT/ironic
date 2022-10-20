@@ -28,7 +28,7 @@ impl MmioDevice for EhcInterface {
     fn read(&self, off: usize) -> Result<BusPacket, String> {
         match off {
             0xcc => Ok(BusPacket::Word(self.unk_cc)),
-            _ => Err(format!("Unimplemented EHCI read at offset {:04x}", off)),
+            _ => Err(format!("Unimplemented EHCI read at offset {off:04x}")),
         }
     }
 
@@ -38,7 +38,7 @@ impl MmioDevice for EhcInterface {
             0xb0 => self.unk_b0 = val,
             0xb4 => self.unk_b4 = val,
             0xcc => self.unk_cc = val,
-            _ => { return Err(format!("Unimplemented EHCI write to {:04x}", off)); },
+            _ => { return Err(format!("Unimplemented EHCI write to {off:04x}")); },
         }
         Ok(None)
     }

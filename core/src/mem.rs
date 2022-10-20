@@ -29,7 +29,7 @@ impl BigEndianMemory {
     pub fn dump(&self, filename: &impl AsRef<Path>) {
         let mut f = File::create(filename).expect("Couldn't create file");
         let res = f.write(self.data.as_slice());
-        println!("Dumped memory to {} ({:?})", filename.as_ref().display(), res);
+        println!("Dumped memory to {} ({res:?})", filename.as_ref().display());
     }
 }
 
@@ -44,7 +44,7 @@ impl BigEndianMemory {
     pub fn read<T: AccessWidth>(&self, off: usize) -> Result<T, String> {
         let src_len = mem::size_of::<T>();
         if off + src_len > self.data.len() {
-            return Err(format!("Out-of-bounds read at {:x}", off));
+            return Err(format!("Out-of-bounds read at {off:x}"));
         }
         Ok(T::from_be_bytes(&self.data[off..off + src_len]))
     }
@@ -52,7 +52,7 @@ impl BigEndianMemory {
         let data = val.to_be();
         let src_slice: &[u8] = data.as_bytes() ;
         if off + src_slice.len() > self.data.len() {
-            return Err(format!("Out-of-bounds write at {:x}", off));
+            return Err(format!("Out-of-bounds write at {off:x}"));
         }
         self.data[off..off + src_slice.len()].copy_from_slice(src_slice);
         Ok(())
@@ -63,21 +63,21 @@ impl BigEndianMemory {
 impl BigEndianMemory {
     pub fn read_buf(&self, off: usize, dst: &mut [u8]) -> Result<(), String> {
         if off + dst.len() > self.data.len() {
-            return Err(format!("OOB bulk read on BigEndianMemory, offset {:x}", off));
+            return Err(format!("OOB bulk read on BigEndianMemory, offset {off:x}"));
         }
         dst.copy_from_slice(&self.data[off..off + dst.len()]);
         Ok(())
     }
     pub fn write_buf(&mut self, off: usize, src: &[u8]) -> Result<(), String> {
         if off + src.len() > self.data.len() {
-            return Err(format!("OOB bulk write on BigEndianMemory, offset {:x}", off));
+            return Err(format!("OOB bulk write on BigEndianMemory, offset {off:x}"));
         }
         self.data[off..off + src.len()].copy_from_slice(src);
         Ok(())
     }
     pub fn memset(&mut self, off: usize, len: usize, val: u8) -> Result<(), String> {
         if off + len > self.data.len() {
-            return Err(format!("OOB memset on BigEndianMemory, offset {:x}", off));
+            return Err(format!("OOB memset on BigEndianMemory, offset {off:x}"));
         }
         for d in &mut self.data[off..off+len] {
             *d = val;

@@ -28,7 +28,7 @@ impl TryFrom<u32> for CpuMode {
             0b10010 => Irq, 0b10011 => Svc,
             0b10111 => Abt, 0b11011 => Und,
             0b11111 => Sys,
-            _ => { return Err(format!("Invalid mode bits {:08x}", x)); },
+            _ => { return Err(format!("Invalid mode bits {x:08x}")); },
         })
     }
 }
@@ -58,7 +58,7 @@ impl TryFrom<u32> for Cond {
             0b1010 => GE, 0b1011 => LT,
             0b1100 => GT, 0b1101 => LE,
             0b1110 => AL, 0b1111 => UNC,
-            _ => { return Err(format!("Invalid condition bits {:08x}", x)); },
+            _ => { return Err(format!("Invalid condition bits {x:08x}")); },
         })
     }
 }
@@ -237,7 +237,7 @@ impl std::ops::Index<u32> for RegisterFile {
         match index {
             0..=14 => &self.r[index as usize],
             15     => &self.pc,
-            _ => panic!("Invalid index {} into register file", index),
+            _ => panic!("Invalid index {index} into register file"),
         }
     }
 }
@@ -246,7 +246,7 @@ impl std::ops::IndexMut<u32> for RegisterFile {
         match index {
             0..=14 => &mut self.r[index as usize],
             15     => &mut self.pc,
-            _ => panic!("Invalid index {} into register file", index),
+            _ => panic!("Invalid index {index} into register file"),
         }
     }
 }
@@ -256,7 +256,7 @@ impl std::ops::Index<u16> for RegisterFile {
         match index {
             0..=14 => &self.r[index as usize],
             15     => &self.pc,
-            _ => panic!("Invalid index {} into register file", index),
+            _ => panic!("Invalid index {index} into register file"),
         }
     }
 }
@@ -265,7 +265,7 @@ impl std::ops::IndexMut<u16> for RegisterFile {
         match index {
             0..=14 => &mut self.r[index as usize],
             15     => &mut self.pc,
-            _ => panic!("Invalid index {} into register file", index),
+            _ => panic!("Invalid index {index} into register file"),
         }
     }
 }
@@ -302,7 +302,7 @@ impl std::fmt::Debug for RegisterFile {
             if self.cpsr.v() { "V" } else { "-" },
             if self.cpsr.q() { "Q" } else { "-" },
         );
-        write!(f, "{} {:08x}: {:08x?}", cpsr, pc, self.r)?;
+        write!(f, "{cpsr} {pc:08x}: {:08x?}", self.r)?;
         Ok(())
     }
 }

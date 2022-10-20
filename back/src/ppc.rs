@@ -108,7 +108,7 @@ impl PpcBackend {
             let mut client = match res {
                 Ok((stream, _)) => stream,
                 Err(e) => { 
-                    println!("[PPC] accept() error {:?}", e);
+                    println!("[PPC] accept() error {e:?}");
                     break;
                 }
             };
@@ -156,7 +156,7 @@ impl PpcBackend {
 
                 if bus.hlwd.ipc.state.ppc_req {
                     let armmsg = bus.hlwd.ipc.arm_msg;
-                    println!("[PPC] Got message from ARM {:08x}", armmsg);
+                    println!("[PPC] Got message from ARM {armmsg:08x}");
                     bus.hlwd.ipc.state.ppc_req = false;
                     bus.hlwd.ipc.state.arm_ack = true;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
@@ -184,7 +184,7 @@ impl PpcBackend {
                 }
                 if bus.hlwd.ipc.state.ppc_req {
                     let armmsg = bus.hlwd.ipc.arm_msg;
-                    println!("[PPC] Got extra message from ARM {:08x}", armmsg);
+                    println!("[PPC] Got extra message from ARM {armmsg:08x}");
                     bus.hlwd.ipc.state.ppc_req = false;
                     bus.hlwd.ipc.state.arm_ack = true;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
@@ -277,7 +277,7 @@ impl Backend for PpcBackend {
         let sock = match res {
             Ok(sock) => Some(sock),
             Err(e) => {
-                println!("[PPC] Couldn't bind to {},\n{:?}", PpcBackend::resolve_socket_path().to_string_lossy(), e);
+                println!("[PPC] Couldn't bind to {},\n{e:?}", PpcBackend::resolve_socket_path().to_string_lossy());
                 None
             }
         };

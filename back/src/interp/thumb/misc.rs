@@ -39,7 +39,7 @@ fn dump_memory(bus: &Bus) {
 /// All other values, store in scratch reg and wait for debugger
 pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
     let cmd = op.imm8() as u8;
-    println!("Breakpoint instruction: {:#x}", cmd);
+    println!("Breakpoint instruction: {cmd:#x}");
 
     match cmd {
         0xff => { return DispatchRes::FatalErr("Breakpoint 0xff - stopping emulation".to_string()) }

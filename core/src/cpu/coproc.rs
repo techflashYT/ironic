@@ -73,7 +73,7 @@ impl From<u32> for SystemControlReg {
             8 => TlbControl,
             9 => CacheLockdown,
             10 => TlbLockdown,
-            _ => panic!("Invalid p15 register number {}", x),
+            _ => panic!("Invalid p15 register number {x}"),
         }
     }
 }
@@ -129,8 +129,8 @@ impl SystemControl {
                 (14, 3) => FlagRes { n: None, z: Some(true), c: None, v: None }, //clean and invalidate entire DCache
                 _ => panic!(""),
             },
-            _ => panic!("Unimpl p15 read_alt {:?} crm={} opcd2={}", 
-                SystemControlReg::from(reg), crm, opcd2),
+            _ => panic!("Unimpl p15 read_alt {:?} crm={crm} opcd2={opcd2}", 
+                SystemControlReg::from(reg)),
         }
     }
 
@@ -139,11 +139,11 @@ impl SystemControl {
         match SystemControlReg::from(reg) {
             Control => match (crm, opcd2) {
                 (0, 0) => self.c1_ctrl.0,
-                _ => panic!("Unimpl p15 read {:?} crm={} opcd2={}", 
-                    SystemControlReg::from(reg), crm, opcd2),
+                _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
+                    SystemControlReg::from(reg)),
             },
-            _ => panic!("Unimpl p15 read {:?} crm={} opcd2={}", 
-                SystemControlReg::from(reg), crm, opcd2),
+            _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
+                SystemControlReg::from(reg)),
         }
     }
 

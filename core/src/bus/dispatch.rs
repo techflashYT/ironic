@@ -66,7 +66,7 @@ impl Bus {
     fn do_read(&self, addr: u32, width: BusWidth) -> Result<BusPacket, String> {
         let handle = match self.decode_phys_addr(addr) {
             Some (h)=> {h},
-            None => { return Err(format!("Unresolved physical address {:08x}. current cycle count: {}", addr, self.cycle)); }
+            None => { return Err(format!("Unresolved physical address {addr:08x}. current cycle count: {}", self.cycle)); }
         };
 
         let off = (addr & handle.mask) as usize;
@@ -81,7 +81,7 @@ impl Bus {
     fn do_write(&mut self, addr: u32, msg: BusPacket) -> Result<(), String> {
         let handle = match self.decode_phys_addr(addr) {
             Some(val) => val,
-            None => { return Err(format!("Unresolved physical address {:08x}", addr)); },
+            None => { return Err(format!("Unresolved physical address {addr:08x}")); },
         };
 
         let off = (addr & handle.mask) as usize;
@@ -139,7 +139,7 @@ impl Bus {
         let handle = match self.decode_phys_addr(addr){
             Some(val) => val,
             None => {
-                return Err(format!("Unresolved physical address {:08x}", addr));
+                return Err(format!("Unresolved physical address {addr:08x}"));
             }
         };
 
@@ -162,7 +162,7 @@ impl Bus {
         use MemDevice::*;
         let handle = match self.decode_phys_addr(addr) {
                 Some(val) => val,
-                None => { return Err(format!("Unresolved physical address {:08x}", addr)); }
+                None => { return Err(format!("Unresolved physical address {addr:08x}")); }
         };
 
         let off = (addr & handle.mask) as usize;

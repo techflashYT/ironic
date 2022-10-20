@@ -199,7 +199,7 @@ impl Backend for DebugBackend {
         let sock = match res {
             Ok(sock) => Some(sock),
             Err(e) => {
-                println!("[DEBUG] Couldn't bind to {},\n{:?}", &path.to_string_lossy(), e);
+                println!("[DEBUG] Couldn't bind to {},\n{e:?}", &path.to_string_lossy());
                 None
             }
         };

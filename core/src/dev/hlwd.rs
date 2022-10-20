@@ -103,7 +103,7 @@ impl ArbCfgInterface {
             0x30 => 0x0000_0400,
             0x34 => self.md,
             0x38 => 0x0000_0400,
-            _ => { return Err(format!("ARB_CFG read to undefined offset {:x}", off)); },
+            _ => { return Err(format!("ARB_CFG read to undefined offset {off:x}")); },
         })
     }
     fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
@@ -120,7 +120,7 @@ impl ArbCfgInterface {
             0x24 => self.m9 = val, 
             0x30 => {},
             0x34 => self.md = val, 
-            _ => { return Err(format!("ARB_CFG write {:08x} to undefined offset {:x}", val, off)); },
+            _ => { return Err(format!("ARB_CFG write {val:08x} to undefined offset {off:x}")); },
         };
         Ok(())
     }
@@ -143,7 +143,7 @@ impl MmioDevice for AhbInterface {
                 println!("FIXME: AHB Read from weird (0x3fe4) - returning 0");
                 0
             }
-            _ => { return Err(format!("AHB read to undefined offset {:x}", off));},
+            _ => { return Err(format!("AHB read to undefined offset {off:x}"));},
         };
         Ok(BusPacket::Word(val))
     }
@@ -154,9 +154,9 @@ impl MmioDevice for AhbInterface {
             },
             0x10 => self.unk_10 = val,
             0x3fe4..=0x3fe8 => {
-                println!("FIXME: AHB write to weird ({:x}) offset: {:x}", off, val)
+                println!("FIXME: AHB write to weird ({off:x}) offset: {val:x}")
             }
-            _ => { return Err(format!("AHB write {:08x} to undefined offset {:x}", val, off)); },
+            _ => { return Err(format!("AHB write {val:08x} to undefined offset {off:x}")); },
         }
         Ok(None)
     }
@@ -260,7 +260,7 @@ impl MmioDevice for Hollywood {
             0x1ec           => self.otp.cmd,
             0x1f0           => self.otp.out,
             0x214           => 0x0000_0000,
-            _ => { return Err(format!("Unimplemented Hollywood read at {:x}", off)); },
+            _ => { return Err(format!("Unimplemented Hollywood read at {off:x}")); },
         };
         Ok(BusPacket::Word(val))
     }
@@ -269,12 +269,12 @@ impl MmioDevice for Hollywood {
         match off {
             0x000..=0x00c => self.ipc.write_handler(off, val)?,
             0x014 => {
-                println!("HLWD alarm={:08x} (timer={:08x})", val, self.timer.timer);
+                println!("HLWD alarm={val:08x} (timer={:08x})", self.timer.timer);
                 self.timer.alarm = val;
             },
             0x030..=0x05c => self.irq.write_handler(off - 0x30, val)?,
             0x060 => {
-                println!("HLWD SRNPROT={:08x}", val);
+                println!("HLWD SRNPROT={val:08x}");
                 let diff = self.busctrl.srnprot ^ val;
                 self.busctrl.srnprot = val;
                 let task = if (diff & 0x0000_0020) != 0 {
@@ -303,7 +303,7 @@ impl MmioDevice for Hollywood {
                 }
             },
             0x18c => {
-                println!("HLWD SPARE1={:08x}", val);
+                println!("HLWD SPARE1={val:08x}");
                 // Potentially toggle the boot ROM mapping
                 let diff = self.spare1 ^ val;
                 self.spare1 = val;
@@ -327,7 +327,7 @@ impl MmioDevice for Hollywood {
                     }
                 }
 
-                println!("HLWD resets={:08x}", val);
+                println!("HLWD resets={val:08x}");
                 self.resets = val;
             },
             0x1b0 => self.pll.sys = val,
@@ -341,7 +341,7 @@ impl MmioDevice for Hollywood {
             0x1e0 => self.io_str_ctrl0 = val,
             0x1e4 => self.io_str_ctrl1 = val,
             0x1ec => self.otp.write_handler(val),
-            _ => { return Err(format!("Unimplemented Hollywood write at {:x}", off)); },
+            _ => { return Err(format!("Unimplemented Hollywood write at {off:x}")); },
         }
         Ok(None)
     }

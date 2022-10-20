@@ -22,7 +22,7 @@ impl MmioDevice for DriveInterface {
             0x00 => self.disr,
             0x04 => self.dicvr,
             0x24 => self.dicfg,
-            _ => {return Err(format!("DI read to undefined offset {:x}", off)); },
+            _ => {return Err(format!("DI read to undefined offset {off:x}")); },
         };
         Ok(BusPacket::Word(val))
     }
@@ -30,7 +30,7 @@ impl MmioDevice for DriveInterface {
         match off {
             0x00 => self.disr = val,
             0x04 => self.dicvr = val,
-            _ => {return Err(format!("DI write {:08x?} to undefined offset {:x}", val, off)); },
+            _ => {return Err(format!("DI write {val:08x?} to undefined offset {off:x}")); },
         }
         Ok(None)
     }
