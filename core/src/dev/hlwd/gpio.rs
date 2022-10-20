@@ -89,7 +89,7 @@ impl ArmGpio {
                 return Ok(task);
             },
             0x08 => self.dir = data,
-            0x0c => { return Err(format!("CPU wrote to GPIO inputs!?")); },
+            0x0c => { return Err("CPU wrote to GPIO inputs!?".to_string()); },
             0x10 => self.intlvl = data,
             0x14 => self.intflag = data,
             0x18 => self.intmask = data,

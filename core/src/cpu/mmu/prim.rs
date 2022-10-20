@@ -32,7 +32,7 @@ impl TLBPermission {
             (0b01, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(NA) },
             (0b10, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(RO) },
             (0b11, _, _)        => Ok(RW),
-            _ => Err(format!("Couldn't resolve AP bits with context")),
+            _ => Err("Couldn't resolve AP bits with context".to_string()),
         }
     }
 }
@@ -72,7 +72,7 @@ impl PermissionContext {
             DomainMode::Manager => Ok(true),
             // All requests on this domain are disallowed.
             DomainMode::NoAccess => Ok(false),
-            _ => Err(format!("Undefined domain mode")),
+            _ => Err("Undefined domain mode".to_string()),
         }
     }
 }

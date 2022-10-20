@@ -463,7 +463,7 @@ impl InterpBackend {
                 return Ok(0);
             },
             DebugCommand::Step => { self.debug_cycles = packet.op1; return Ok(0); },
-            DebugCommand::Reply => Err(format!("Debug packet reply not allowed here")),
+            DebugCommand::Reply => Err("Debug packet reply not allowed here".to_string()),
             DebugCommand::Unimpl => Err(format!("Unhndled debug packet {:#?}", &packet)),
         }
     }

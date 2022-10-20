@@ -136,7 +136,7 @@ impl DebugBackend {
                     DebugCommand::PeekPAddr => self.handle_cmd_peekaddr(&mut client, req).map_err(|e| e.to_string())?,
                     DebugCommand::PokePAddr => self.handle_cmd_pokeaddr(&mut client, req).map_err(|e| e.to_string())?,
                     DebugCommand::Step     => self.handle_cmd_step(&mut client, req).map_err(|e| e.to_string())?,
-                    DebugCommand::Reply    => { return Err(format!("Unsupported")); },
+                    DebugCommand::Reply    => { return Err("Unsupported".to_string()); },
                     DebugCommand::Unimpl => break,
                 }
             }

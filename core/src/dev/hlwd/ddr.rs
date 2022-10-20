@@ -44,7 +44,7 @@ impl MmioDevice for DdrInterface {
     type Width = u16;
     fn read(&self, off: usize) -> Result<BusPacket, String> {
         let val = match off {
-            0x28 => { return Err(format!("DDR ahmflush read unimplemented")); },
+            0x28 => { return Err("DDR ahmflush read unimplemented".to_string()); },
             0x2a => self.ahmflush_ack,
             0xc4 => self.seq_data,
             0xc6 => self.seq_addr,
@@ -59,7 +59,7 @@ impl MmioDevice for DdrInterface {
                 self.ahmflush = val;
                 self.ahmflush_ack = val;
             },
-            0x2a => { return Err(format!("DDR ahmflush_ack write unimplemented")); },
+            0x2a => { return Err("DDR ahmflush_ack write unimplemented".to_string()); },
             0xc4 => self.seq_write(val),
             0xc6 => self.seq_read(val),
             _ => self.ddr_reg[off / 2] = val,
