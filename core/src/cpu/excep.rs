@@ -85,12 +85,8 @@ impl Cpu {
         let return_pc = self.read_fetch_pc().wrapping_add(
             ExceptionType::get_pc_off(e, self.reg.cpsr.thumb()));
 
-
-        match e {
-            ExceptionType::Undef(opcd) => {
-                ios::resolve_syscall(self, opcd).unwrap_or_default(); // Just a println. Ok to fail
-            },
-            _ => {},
+        if let ExceptionType::Undef(opcd) = e {
+            ios::resolve_syscall(self, opcd).unwrap_or_default(); // Just a println. Ok to fail
         }
 
 
