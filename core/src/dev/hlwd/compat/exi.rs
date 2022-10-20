@@ -191,6 +191,13 @@ pub struct EXInterface {
     /// Buffer for Broadway bootstrap instructions
     pub ppc_bootstrap: [u32; 0x10],
 }
+
+impl Default for EXInterface {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EXInterface {
     pub fn new() -> Self {
         EXInterface {

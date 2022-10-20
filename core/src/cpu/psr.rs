@@ -51,6 +51,13 @@ pub struct SavedStatusBank {
     /// FIQ mode saved program status register.
     pub fiq: Psr,
 }
+
+impl Default for SavedStatusBank {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SavedStatusBank {
     pub fn new() -> Self {
         SavedStatusBank {

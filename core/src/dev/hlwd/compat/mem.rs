@@ -10,6 +10,13 @@ pub struct MemInterface {
     pub ddr_data: u16,
     pub ddr_addr: u16,
 }
+
+impl Default for MemInterface {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MemInterface {
     pub fn new() -> Self {
         MemInterface {

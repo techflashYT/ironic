@@ -65,13 +65,14 @@ impl MailboxState {
 }
 
 /// The inter-processor communication interface.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct IpcInterface {
     pub ppc_msg: u32,
     pub arm_msg: u32,
     pub state: MailboxState,
 
 }
+
 impl IpcInterface {
     pub fn new() -> Self {
         IpcInterface {

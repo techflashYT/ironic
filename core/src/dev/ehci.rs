@@ -4,6 +4,7 @@ use crate::bus::mmio::*;
 use crate::bus::task::*;
 
 /// Representing the SHA interface.
+#[derive(Default)]
 pub struct EhcInterface {
     pub unk_a4: u32,
     pub unk_b0: u32,

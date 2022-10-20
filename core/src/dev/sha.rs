@@ -21,6 +21,7 @@ impl From<u32> for ShaCommand {
 }
 
 /// Representing the SHA interface.
+#[derive(Default)]
 pub struct ShaInterface {
     ctrl: u32,
     src: u32,

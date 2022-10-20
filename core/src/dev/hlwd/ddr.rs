@@ -16,6 +16,13 @@ pub struct DdrInterface {
     pub ahmflush: u16,
     pub ahmflush_ack: u16,
 }
+
+impl Default for DdrInterface {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DdrInterface {
     pub fn new() -> Self {
         DdrInterface {

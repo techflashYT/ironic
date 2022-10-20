@@ -29,6 +29,7 @@ pub struct AesCommand {
     /// Fire an IRQ when a command completes
     irq: bool,
 }
+
 impl From<u32> for AesCommand {
     fn from(x: u32) -> Self {
         AesCommand {
@@ -41,7 +42,7 @@ impl From<u32> for AesCommand {
     }
 }
 
-
+#[derive(Default)]
 pub struct AesInterface {
     ctrl: u32,
     src: u32,

@@ -89,6 +89,13 @@ pub struct RegisterFile {
     /// The saved program status registers.
     pub spsr: SavedStatusBank,
 }
+
+impl Default for RegisterFile {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RegisterFile {
     pub fn new() -> Self {
         let mut init_cpsr = Psr(0x0000_0000);

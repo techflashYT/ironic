@@ -18,6 +18,13 @@ pub struct Sha1State {
     pub digest: [u32; 5],
     pub buf: [u8; 64],
 }
+
+impl Default for Sha1State {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Sha1State {
     pub fn new() -> Self {
         Sha1State { digest: [0; 5], buf: [0; 64] }

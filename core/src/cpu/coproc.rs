@@ -101,6 +101,13 @@ pub struct SystemControl {
     /// Fault address register (data)
     pub c6_dfar: u32,
 }
+
+impl Default for SystemControl {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SystemControl {
     pub fn new() -> Self {
         SystemControl {
