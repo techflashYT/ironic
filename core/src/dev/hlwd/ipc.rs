@@ -103,7 +103,7 @@ impl IpcInterface {
         })
     }
     pub fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
-        Ok(match off {
+        match off {
             0x00 => {
                 println!("IPC PPC MSG write {:08x}", val);
                 self.ppc_msg = val;
@@ -121,7 +121,8 @@ impl IpcInterface {
                 self.state.arm_ctrl_write(val);
             },
             _ => { return Err(format!("IpcInterface invalid write to offset: {} value: {}", off, val)); },
-        })
+        };
+        Ok(())
     }
 }
 

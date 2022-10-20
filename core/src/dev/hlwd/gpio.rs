@@ -129,11 +129,12 @@ pub struct PpcGpio {
 }
 impl PpcGpio {
     pub fn write_handler(&mut self, off: usize, data: u32) -> Result<(), String> {
-        Ok(match off {
+        match off {
             0x00 => self.output = data,
             0x04 => self.dir = data,
             _ => println!("FIXME: unimplemented PpcGpio write {:08x}: 0x{:08x}", off, data),
-        })
+        };
+        Ok(())
     }
     pub fn read_handler(&self, off: usize) -> Result<u32, String> {
         Ok(match off {

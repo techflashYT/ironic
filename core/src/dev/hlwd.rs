@@ -107,7 +107,7 @@ impl ArbCfgInterface {
         })
     }
     fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
-        Ok(match off {
+        match off {
             0x00 => self.m0 = val, 
             0x04 => self.m1 = val,
             0x08 => self.m2 = val, 
@@ -121,7 +121,8 @@ impl ArbCfgInterface {
             0x30 => {},
             0x34 => self.md = val, 
             _ => { return Err(format!("ARB_CFG write {:08x} to undefined offset {:x}", val, off)); },
-        })
+        };
+        Ok(())
     }
 }
 

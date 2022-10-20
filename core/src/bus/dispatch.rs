@@ -123,11 +123,12 @@ impl Bus {
             Mem1    => &mut self.mem1,
             Mem2    => &mut self.mem2,
         };
-        Ok(match msg {
+        match msg {
             Word(val) => target_ref.write::<u32>(off, val)?,
             Half(val) => target_ref.write::<u16>(off, val)?,
             Byte(val) => target_ref.write::<u8>(off, val)?,
-        })
+        };
+        Ok(())
     }
 }
 
