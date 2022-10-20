@@ -107,12 +107,10 @@ pub fn asr_reg(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
         let res = ((rm as i32) >> simm) as u32;
         let c_out = (1 << (simm - 1) & res) != 0;
         (res, c_out)
+    } else if (rm & 0x8000_0000) == 0 {
+        (0, false)
     } else {
-        if (rm & 0x8000_0000) == 0 {
-            (0, false)
-        } else {
-            (0xffff_ffff, true)
-        }
+        (0xffff_ffff, true)
     }
 }
 
