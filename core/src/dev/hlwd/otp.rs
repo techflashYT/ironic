@@ -33,9 +33,7 @@ impl OtpInterface {
 
     /// Handle a command request.
     pub fn write_handler(&mut self, cmd: u32) {
-        if cmd & 0x8000_0000 == 0 {
-            return;
-        } else {
+        if cmd & 0x8000_0000 != 0 {
             let addr = (cmd & 0x0000_001f) as usize;
             let out = self.read(addr);
             self.cmd = cmd;
