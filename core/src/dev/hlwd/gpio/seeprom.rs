@@ -1,3 +1,4 @@
+#![allow(clippy::unusual_byte_groupings)]
 use crate::dev::hlwd::gpio::*;
 use crate::mem::*;
 
