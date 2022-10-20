@@ -21,7 +21,7 @@ macro_rules! extract_packet_and_reply {
         let reply: DebugPacket = $debug_recv.recv().map_err(|e| e.to_string())?;
         assert!(reply.command == DebugCommand::Reply);
         let value = reply.op1.to_le();
-        let bytes: [u8;4] = unsafe {std::mem::transmute(value)};
+        let bytes: [u8;4] = value.to_ne_bytes();
 
         $client.write(&bytes).map_err(|e| e.to_string())?;
         return Ok(());
