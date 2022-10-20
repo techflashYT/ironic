@@ -1,3 +1,4 @@
+#![allow(clippy::needless_range_loop)]
 //! Minimal implementation of the SHA-1 algorithm.
 //!
 //! Apart from the fact that you shoud **not** use SHA-1, this is **not** an 
