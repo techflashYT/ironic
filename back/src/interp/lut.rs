@@ -50,7 +50,7 @@ impl ArmLut {
         let mut i = 0;
         while i < Self::LUT_SIZE {
             let opcd = ArmLut::idx_to_opcd(i);
-            lut.data[i as usize] = ArmFn::from_inst(ArmInst::decode(opcd));
+            lut.data[i] = ArmFn::from_inst(ArmInst::decode(opcd));
             i += 1;
         }
         lut
@@ -80,7 +80,7 @@ impl ThumbLut {
         let mut i = 0;
         while i < Self::LUT_SIZE {
             let opcd = ThumbLut::idx_to_opcd(i);
-            lut.data[i as usize] = ThumbFn::from_inst(ThumbInst::decode(opcd));
+            lut.data[i] = ThumbFn::from_inst(ThumbInst::decode(opcd));
             i += 1;
         }
         lut
