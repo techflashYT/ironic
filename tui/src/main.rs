@@ -4,12 +4,10 @@ use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
 use ironic_backend::ppc::*;
-use ironic_backend::debug::*;
 
 use std::panic;
 use std::process;
-use std::sync::mpsc::Receiver;
-use std::sync::{Arc, RwLock, mpsc, mpsc::Sender};
+use std::sync::{Arc, RwLock};
 use std::thread::Builder;
 use std::env::temp_dir;
 
@@ -31,9 +29,6 @@ struct Args {
     /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
     ppc_hle: Option<bool>,
-    /// Enable the Debug server (default = False)
-    #[clap(short, long)]
-    debug_server: Option<bool>,
 }
 
 fn dump_memory(bus: &Bus) {
@@ -60,7 +55,6 @@ fn main() {
     let args = Args::parse();
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle.unwrap_or(false);
-    let enable_debug_server = args.debug_server.unwrap_or(false);
 
     // The bus is shared between any threads we spin up
     let bus = match Bus::new() {
@@ -73,15 +67,12 @@ fn main() {
 
     let bus = Arc::new(RwLock::new(bus));
 
-    let (dbg_send, emu_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
-    let (emu_send, dbg_recv): (Sender<DebugPacket>, Receiver<DebugPacket>) = mpsc::channel();
-
     // Fork off the backend thread
     let emu_bus = bus.clone();
     let emu_thread = match args.backend {
         BackendType::Interp => {
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
-                let mut back = InterpBackend::new(emu_bus, custom_kernel, emu_send, emu_recv);
+                let mut back = InterpBackend::new(emu_bus, custom_kernel);
                 if let Err(reason) = back.run() {
                     println!("InterpBackend returned an Err: {reason}");
                 };
@@ -97,16 +88,6 @@ fn main() {
             let mut back = PpcBackend::new(ppc_bus);
             if let Err(reason) = back.run(){
                 println!("PPC Backend returned an Err: {reason}");
-            };
-        }).unwrap());
-    }
-
-    // Finally fork the DEBUG thread
-    if enable_debug_server {
-        let _ = Some(Builder::new().name("DebugThread".to_owned()).spawn( move || {
-            let mut back = DebugBackend::new(dbg_send, dbg_recv);
-            if let Err(reason) = back.run() {
-                println!("Debug Thead returned en Err: {reason}");
             };
         }).unwrap());
     }

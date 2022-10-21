@@ -10,4 +10,3 @@ pub mod interp;
 
 pub mod ipc;
 pub mod ppc;
-pub mod debug;

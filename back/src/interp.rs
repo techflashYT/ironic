@@ -5,8 +5,7 @@ pub mod thumb;
 pub mod dispatch;
 pub mod lut;
 
-use std::sync::mpsc::Receiver;
-use std::sync::{Arc, RwLock, mpsc::Sender};
+use std::sync::{Arc, RwLock};
 use std::fs;
 use std::io::Seek;
 use std::io::Read;
@@ -14,7 +13,6 @@ use std::io::Read;
 extern crate elf;
 
 use crate::back::*;
-use crate::debug::{DebugCommand, DebugPacket};
 use crate::interp::lut::*;
 use crate::interp::dispatch::DispatchRes;
 
@@ -26,11 +24,6 @@ use ironic_core::cpu::{Cpu, CpuRes};
 use ironic_core::cpu::reg::Reg;
 use ironic_core::cpu::excep::ExceptionType;
 
-macro_rules! DebugPacketValueReply {
-    ($val: expr) => {
-        DebugPacket { command: DebugCommand::Reply, op1:$val, op2: 0 }
-    };
-}
 
 /// Current stage in the platform's boot process.
 #[derive(PartialEq)]
@@ -81,13 +74,10 @@ pub struct InterpBackend {
     /// Current stage in the platform boot process.
     pub boot_status: BootStatus,
     pub custom_kernel: Option<String>,
-    emu_send: Sender<DebugPacket>,
-    emu_recv: Receiver<DebugPacket>,
     debugger_attached: bool,
-    debug_cycles: u32,
 }
 impl InterpBackend {
-    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>, emu_send: Sender<DebugPacket>, emu_recv: Receiver<DebugPacket>) -> Self {
+    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>) -> Self {
         InterpBackend {
             svc_buf: String::new(),
             cpu: Cpu::new(bus.clone()),
@@ -96,10 +86,7 @@ impl InterpBackend {
             bus_cycle: 0,
             bus,
             custom_kernel,
-            emu_send,
-            emu_recv,
             debugger_attached: false,
-            debug_cycles: 0,
         }
     }
 }
@@ -380,28 +367,7 @@ impl Backend for InterpBackend {
             }
             self.boot_status = BootStatus::UserKernel;
         }
-        'outer: loop {
-            'check_for_debug: {
-                let maybe_packet = self.emu_recv.try_recv();
-                if maybe_packet.is_ok(){
-                    self.debugger_attached = true;
-                }
-                if self.debug_cycles > 0 {
-                    if self.debugger_attached {
-                        self.debug_cycles -= 1;
-                    }
-                    break 'check_for_debug;
-                }
-                if self.debugger_attached { //debug_cycles <= 0
-                    if maybe_packet.is_err(){
-                        continue 'outer;
-                    }
-                }
-                else { break 'check_for_debug; }
-                let reply_val = self.handle_debug_packet(maybe_packet.unwrap())?;
-                self.emu_send.send(DebugPacketValueReply!(reply_val)).unwrap();
-                continue 'outer;
-            }
+        loop {
             // Take ownership of the bus to deal with any pending tasks
             {
                 let mut bus = self.bus.write().unwrap();
@@ -443,25 +409,5 @@ impl Backend for InterpBackend {
         }
         println!("CPU stopped at pc={:08x}", self.cpu.read_fetch_pc());
         Ok(())
-    }
-}
-
-impl InterpBackend {
-    fn handle_debug_packet(&mut self, packet: DebugPacket) -> Result<u32, String> {
-
-        match packet.command {
-            DebugCommand::PeekReg => { Ok(self.cpu.reg[packet.op1]) },
-            DebugCommand::PokeReg => { self.cpu.reg[packet.op1] = packet.op2; Ok(0) },
-            DebugCommand::PeekPAddr => {
-                return Ok(self.bus.read().map_err(|e| e.to_string())?.read8(packet.op1)? as u32);
-            },
-            DebugCommand::PokePAddr => {
-                self.bus.write().map_err(|e| e.to_string())?.write8(packet.op1, packet.op2 as u8)?;
-                Ok(0)
-            },
-            DebugCommand::Step => { self.debug_cycles = packet.op1; Ok(0) },
-            DebugCommand::Reply => Err("Debug packet reply not allowed here".to_string()),
-            DebugCommand::Unimpl => Err(format!("Unhndled debug packet {:#?}", &packet)),
-        }
     }
 }
