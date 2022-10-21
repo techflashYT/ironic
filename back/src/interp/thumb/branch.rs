@@ -3,6 +3,7 @@ use crate::bits::thumb::*;
 use crate::interp::DispatchRes;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::reg::{Reg, Cond};
+use anyhow::anyhow;
 
 pub fn sign_extend(x: u32, bits: i32) -> i32 {
     if ((x as i32 >> (bits - 1)) & 1) != 0 { 
@@ -60,7 +61,7 @@ pub fn blx_reg(cpu: &mut Cpu, op: BxBits) -> DispatchRes {
 pub fn b_unconditional(cpu: &mut Cpu, op: BranchAltBits) -> DispatchRes {
     let offset = sign_extend(op.imm11() as u32, 11) << 1;
     if offset == -4 {
-        return DispatchRes::FatalErr(format!("Unconditional branch would loop forever pc={:08x}", cpu.read_fetch_pc()));
+        return DispatchRes::FatalErr(anyhow!("Unconditional branch would loop forever pc={:08x}", cpu.read_fetch_pc()));
     }
     let dest_pc = (cpu.read_exec_pc() as i32).wrapping_add(offset) as u32;
 

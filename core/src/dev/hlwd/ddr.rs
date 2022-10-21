@@ -1,3 +1,5 @@
+use anyhow::bail;
+
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
@@ -49,9 +51,9 @@ impl DdrInterface {
 
 impl MmioDevice for DdrInterface {
     type Width = u16;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
-            0x28 => { return Err("DDR ahmflush read unimplemented".to_string()); },
+            0x28 => { bail!("DDR ahmflush read unimplemented"); },
             0x2a => self.ahmflush_ack,
             0xc4 => self.seq_data,
             0xc6 => self.seq_addr,
@@ -59,14 +61,14 @@ impl MmioDevice for DdrInterface {
         };
         Ok(BusPacket::Half(val))
     }
-    fn write(&mut self, off: usize, val: u16) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u16) -> anyhow::Result<Option<BusTask>> {
         match off {
             // Always immediately ACK some request
             0x28 => {
                 self.ahmflush = val;
                 self.ahmflush_ack = val;
             },
-            0x2a => { return Err("DDR ahmflush_ack write unimplemented".to_string()); },
+            0x2a => { bail!("DDR ahmflush_ack write unimplemented"); },
             0xc4 => self.seq_write(val),
             0xc6 => self.seq_read(val),
             _ => self.ddr_reg[off / 2] = val,

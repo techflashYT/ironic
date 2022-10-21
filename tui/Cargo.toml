@@ -11,3 +11,4 @@ ironic-core = { path = "../core" }
 ironic-backend = { path = "../back" }
 
 clap = { version = "3.1.18", features = ["std", "derive", "suggestions", "color", "wrap_help"]}
+anyhow = { version = "1.0.66", features = ["std", "backtrace"] }

@@ -14,7 +14,7 @@ use crate::cpu::excep::*;
 /// Result after exiting the emulated CPU.
 pub enum CpuRes {
     /// Some unrecoverable error occured and we need to stop emulation.
-    HaltEmulation(String),
+    HaltEmulation(anyhow::Error),
     /// We single-stepped and returned successfully.
     StepOk,
     /// We single stepped and took some exception.

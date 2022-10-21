@@ -1,4 +1,7 @@
 
+use anyhow::bail;
+use anyhow::ensure;
+
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
@@ -25,20 +28,18 @@ impl EhcInterface {
 impl MmioDevice for EhcInterface {
     type Width = u32;
 
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
-        match off {
-            0xcc => Ok(BusPacket::Word(self.unk_cc)),
-            _ => Err(format!("Unimplemented EHCI read at offset {off:04x}")),
-        }
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
+        ensure!(off == 0xcc, "Unimplemented EHCI read at offset {off:04x}");
+        Ok(BusPacket::Word(self.unk_cc))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0xa4 => self.unk_a4 = val,
             0xb0 => self.unk_b0 = val,
             0xb4 => self.unk_b4 = val,
             0xcc => self.unk_cc = val,
-            _ => { return Err(format!("Unimplemented EHCI write to {off:04x}")); },
+            _ => { bail!("Unimplemented EHCI write to {off:04x}"); },
         }
         Ok(None)
     }

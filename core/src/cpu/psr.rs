@@ -1,5 +1,7 @@
 //! Helpers for dealing with program status registers.
 
+use anyhow::bail;
+
 use crate::cpu::reg::CpuMode;
 
 /// Program status register.
@@ -70,7 +72,7 @@ impl SavedStatusBank {
     }
 
     /// Write the SPSR for the provided mode.
-    pub fn write(&mut self, mode: CpuMode, val: Psr) -> Result<(), String> {
+    pub fn write(&mut self, mode: CpuMode, val: Psr) -> anyhow::Result<()> {
         use CpuMode::*;
         match mode {
             Svc => self.svc = val,
@@ -78,13 +80,13 @@ impl SavedStatusBank {
             Und => self.und = val,
             Irq => self.irq = val,
             Fiq => self.fiq = val,
-            _ => { return Err(format!("Invalid mode {mode:?} has no SPSR to write")); },
+            _ => { bail!("Invalid mode {mode:?} has no SPSR to write"); },
         };
         Ok(())
     }
 
     /// Read the SPSR for the provided mode.
-    pub fn read(&self, mode: CpuMode) -> Result<Psr, String> {
+    pub fn read(&self, mode: CpuMode) -> anyhow::Result<Psr> {
         use CpuMode::*;
         Ok(match mode {
             Svc => self.svc,
@@ -92,7 +94,7 @@ impl SavedStatusBank {
             Und => self.und,
             Irq => self.irq,
             Fiq => self.fiq,
-            _ => { return Err(format!("Invalid mode {mode:?} has no SPSR to read")); },
+            _ => { bail!("Invalid mode {mode:?} has no SPSR to read"); },
         })
     }
 }

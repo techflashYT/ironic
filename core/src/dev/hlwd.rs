@@ -1,4 +1,6 @@
 
+use anyhow::bail;
+
 use crate::bus::*;
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
@@ -88,7 +90,7 @@ pub struct ArbCfgInterface {
     pub dma: u32,
 }
 impl ArbCfgInterface {
-    fn read_handler(&self, off: usize) -> Result<u32, String>  {
+    fn read_handler(&self, off: usize) -> anyhow::Result<u32>  {
         Ok(match off {
             0x00 => self.m0,
             0x04 => self.m1,
@@ -103,10 +105,10 @@ impl ArbCfgInterface {
             0x30 => 0x0000_0400,
             0x34 => self.md,
             0x38 => 0x0000_0400,
-            _ => { return Err(format!("ARB_CFG read to undefined offset {off:x}")); },
+            _ => { bail!("ARB_CFG read to undefined offset {off:x}"); },
         })
     }
-    fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
+    fn write_handler(&mut self, off: usize, val: u32) -> anyhow::Result<()> {
         match off {
             0x00 => self.m0 = val, 
             0x04 => self.m1 = val,
@@ -120,7 +122,7 @@ impl ArbCfgInterface {
             0x24 => self.m9 = val, 
             0x30 => {},
             0x34 => self.md = val, 
-            _ => { return Err(format!("ARB_CFG write {val:08x} to undefined offset {off:x}")); },
+            _ => { bail!("ARB_CFG write {val:08x} to undefined offset {off:x}"); },
         };
         Ok(())
     }
@@ -135,7 +137,7 @@ pub struct AhbInterface {
 }
 impl MmioDevice for AhbInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x08 => 0,
             0x10 => self.unk_10,
@@ -143,11 +145,11 @@ impl MmioDevice for AhbInterface {
                 println!("FIXME: AHB Read from weird (0x3fe4) - returning 0");
                 0
             }
-            _ => { return Err(format!("AHB read to undefined offset {off:x}"));},
+            _ => { bail!("AHB read to undefined offset {off:x}"); },
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x08 => {
                 self.unk_08 = val;
@@ -156,7 +158,7 @@ impl MmioDevice for AhbInterface {
             0x3fe4..=0x3fe8 => {
                 println!("FIXME: AHB write to weird ({off:x}) offset: {val:x}")
             }
-            _ => { return Err(format!("AHB write {val:08x} to undefined offset {off:x}")); },
+            _ => { bail!("AHB write {val:08x} to undefined offset {off:x}"); },
         }
         Ok(None)
     }
@@ -195,7 +197,7 @@ pub struct Hollywood {
     pub ppc_on: bool,
 }
 impl Hollywood {
-    pub fn new() -> Result<Self,std::io::Error> {
+    pub fn new() -> anyhow::Result<Self> {
         // TODO: Where do the initial values for these registers matter?
         Ok(Hollywood {
             task: None,
@@ -230,7 +232,7 @@ impl Hollywood {
 
 impl MmioDevice for Hollywood {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x000..=0x00c   => self.ipc.read_handler(off)?,
             0x010           => self.timer.timer,
@@ -260,12 +262,12 @@ impl MmioDevice for Hollywood {
             0x1ec           => self.otp.cmd,
             0x1f0           => self.otp.out,
             0x214           => 0x0000_0000,
-            _ => { return Err(format!("Unimplemented Hollywood read at {off:x}")); },
+            _ => { bail!("Unimplemented Hollywood read at {off:x}"); },
         };
         Ok(BusPacket::Word(val))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x000..=0x00c => self.ipc.write_handler(off, val)?,
             0x014 => {
@@ -341,7 +343,7 @@ impl MmioDevice for Hollywood {
             0x1e0 => self.io_str_ctrl0 = val,
             0x1e4 => self.io_str_ctrl1 = val,
             0x1ec => self.otp.write_handler(val),
-            _ => { return Err(format!("Unimplemented Hollywood write at {off:x}")); },
+            _ => { bail!("Unimplemented Hollywood write at {off:x}"); },
         }
         Ok(None)
     }
@@ -354,7 +356,7 @@ pub enum HlwdTask {
 }
 
 impl Bus {
-    pub fn handle_step_hlwd(&mut self, cpu_cycle: usize) -> Result<(), String>{
+    pub fn handle_step_hlwd(&mut self, cpu_cycle: usize) -> anyhow::Result<()> {
 
         // Potentially assert an IRQ
         let timer_irq = self.hlwd.timer.step(cpu_cycle);

@@ -5,10 +5,11 @@ pub mod thumb;
 pub mod dispatch;
 pub mod lut;
 
+use anyhow::{anyhow, bail};
+
+use std::io::{Read, Seek};
 use std::sync::{Arc, RwLock};
 use std::fs;
-use std::io::Seek;
-use std::io::Read;
 
 extern crate elf;
 
@@ -136,7 +137,7 @@ impl InterpBackend {
     }
 
     /// Write semihosting debug strings to stdout.
-    pub fn svc_read(&mut self) -> Result<(), String> {
+    pub fn svc_read(&mut self) -> anyhow::Result<()> {
         use ironic_core::cpu::mmu::prim::{TLBReq, Access};
 
         // On the SVC calls, r1 should contain a pointer to some buffer.
@@ -154,9 +155,9 @@ impl InterpBackend {
         // Probably a limitation of their early semihosting hardware
         // We buffer that internally until we see a newline, that's our cue to print
         let mut line_buf = [0u8; 16];
-        self.bus.read().map_err(|e| e.to_string())?.dma_read(paddr, &mut line_buf)?;
+        self.bus.read().map_err(|e| anyhow!(e.to_string()))?.dma_read(paddr, &mut line_buf)?;
 
-        let s = std::str::from_utf8(&line_buf).map_err(|e| e.to_string())?
+        let s = std::str::from_utf8(&line_buf)?
             .trim_matches(char::from(0));
         self.svc_buf += s;
 
@@ -175,14 +176,11 @@ impl InterpBackend {
     }
 
     /// Write the current instruction to stdout.
-    pub fn dbg_print(&mut self) -> Result<(), String> {
+    pub fn dbg_print(&mut self) -> anyhow::Result<()> {
         let pc = self.cpu.read_fetch_pc();
         if self.cpu.dbg_on {
             if self.cpu.reg.cpsr.thumb() {
-                let opcd = match self.cpu.read16(pc) {
-                    Ok(val) => val,
-                    Err(reason) => return Err(reason)
-                };
+                let opcd = self.cpu.read16(pc)?;
                 let inst = ThumbInst::decode(opcd);
                 if let ThumbInst::BlImmSuffix = inst {
                     return Ok(());
@@ -191,10 +189,7 @@ impl InterpBackend {
                 println!("({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
                 //println!("{:?}", self.cpu.reg);
             } else {
-                let opcd = match self.cpu.read32(pc) {
-                    Ok(val) => val,
-                    Err(reason) => return Err(reason)
-                };
+                let opcd = self.cpu.read32(pc)?;
                 let name = format!("{:?}", ArmInst::decode(opcd));
                 println!("({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
                 //println!("{:?}", self.cpu.reg);
@@ -217,7 +212,7 @@ impl InterpBackend {
 
     /// Skyeye intentionally kills a bunch of threads, specifically NCD, KD,
     /// WL, and WD; presumably to avoid having to deal with emulating WLAN.
-    pub fn hotpatch_check(&mut self) -> Result<(), String> {
+    pub fn hotpatch_check(&mut self) -> anyhow::Result<()> {
         use ironic_core::cpu::mmu::prim::{TLBReq, Access};
         if self.boot_status == BootStatus::IOSKernel {
             let pc = self.cpu.read_fetch_pc();
@@ -229,15 +224,12 @@ impl InterpBackend {
                 _ => None
             };
             if let Some(vaddr) = vaddr {
-                let paddr = match self.cpu.translate(
+                let paddr = self.cpu.translate(
                     TLBReq::new(vaddr, Access::Debug)
-                ) {
-                    Ok(val) => val,
-                    Err(reason) => return Err(reason),
-                };
+                )?;
                 println!("DBG hotpatching module entrypoint {paddr:08x}");
                 println!("{:?}", self.cpu.reg);
-                self.bus.write().unwrap().dma_write(paddr, 
+                self.bus.write().map_err(|e| anyhow!(e.to_string()))?.dma_write(paddr,
                     &Self::THREAD_CANCEL_PATCH)?;
             }
         }
@@ -330,7 +322,7 @@ impl InterpBackend {
 }
 
 impl Backend for InterpBackend {
-    fn run(&mut self) -> Result<(), String> {
+    fn run(&mut self) -> anyhow::Result<()> {
         if self.custom_kernel.is_some() {
             // Read the user supplied kernel file
             let filename = self.custom_kernel.as_ref().unwrap();
@@ -338,20 +330,20 @@ impl Backend for InterpBackend {
             let mut kernel_file = match maybe_kernel_file {
                 Ok(f) => f,
                 Err(e) => {
-                    return Err(format!("Error opening kernel file: {filename}, got error: {e}"));
+                    bail!("Error opening kernel file: {filename}, got error: {e}");
                 },
             };
-            let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata().map_err(|e| e.to_string())?.len() as usize);
-            kernel_file.read_to_end(&mut kernel_bytes).map_err(|e|e.to_string())?;
+            let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata()?.len() as usize);
+            kernel_file.read_to_end(&mut kernel_bytes)?;
             // Reuse the file for the ELF parser
-            kernel_file.rewind().map_err(|e| e.to_string())?;
+            kernel_file.rewind()?;
             let kernel_elf = match elf::File::open_stream(&mut kernel_file) {
                 Ok(res) => res,
-                Err(e)  => { return Err(format!("Custom Kernel ELF error: {e:?}")); },
+                Err(e)  => { bail!("Custom Kernel ELF error: {e:?}"); },
             };
             let headers = kernel_elf.phdrs;
             // We have a valid ELF (probably)
-            let mut bus = self.bus.write().map_err(|e| e.to_string())?;
+            let mut bus = self.bus.write().map_err(|e| anyhow!(e.to_string()))?;
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
             bus.rom_disabled = true;

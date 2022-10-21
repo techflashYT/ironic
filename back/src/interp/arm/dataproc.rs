@@ -1,5 +1,6 @@
 //! Data-processing instructions.
 
+use anyhow::anyhow;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::alu::*;
 use crate::bits::arm::*;
@@ -275,7 +276,7 @@ pub fn mov_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
 
 pub fn mov_rsr(cpu: &mut Cpu, op: MovRsrBits) -> DispatchRes {
     if !op.i() && (op.0 >> 4 == 1) && (op.0 >> 7 == 1) {
-        return DispatchRes::FatalErr("mov_rsr: Special bits set I==0, bit4==1, bit7==1 means not a mov instruction. See ARM reference: A4.1.35 and A5.1.1".to_string());
+        return DispatchRes::FatalErr(anyhow!("mov_rsr: Special bits set I==0, bit4==1, bit7==1 means not a mov instruction. See ARM reference: A4.1.35 and A5.1.1"));
     }
     let (val, carry) = barrel_shift(
         ShiftArgs::RegShiftReg { rm: op.rm(), stype: op.stype(), rs: op.rs(), c_in: cpu.reg.cpsr.c() }
@@ -368,7 +369,7 @@ fn do_bitwise_reg(cpu: &mut Cpu, opcd: DpRegBits, op: BitwiseOp) -> DispatchRes 
         BitwiseOp::Bic => base & !val,
         BitwiseOp::Orr => base | val,
         BitwiseOp::Eor => base ^ val,
-        _ => { return DispatchRes::FatalErr(format!("ARM reg bitwise {op:?} unimpl")); },
+        _ => { return DispatchRes::FatalErr(anyhow!("ARM reg bitwise {op:?} unimpl")); },
     };
     if rd == 15 {
         if s {
@@ -416,7 +417,7 @@ fn do_bitwise_imm(cpu: &mut Cpu, rn: u32, rd: u32, imm: u32,
         BitwiseOp::Bic => base & !val,
         BitwiseOp::Orr => base | val,
         BitwiseOp::Eor => base ^ val,
-        _ => { return DispatchRes::FatalErr(format!("ARM imm bitwise {op:?} unimplemented")); },
+        _ => { return DispatchRes::FatalErr(anyhow!("ARM imm bitwise {op:?} unimplemented")); },
     };
     if rd == 15 {
         if s {

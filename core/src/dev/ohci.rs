@@ -1,4 +1,6 @@
 
+use anyhow::bail;
+
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
@@ -38,7 +40,7 @@ pub struct OhcInterface {
 
 impl MmioDevice for OhcInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x00 => 0x0000_0110,
             // NOTE: Everything is wired to 0 in skyeye; good enough for now
@@ -48,12 +50,12 @@ impl MmioDevice for OhcInterface {
             0x4c |
             0x50 => 0,
 
-            _ => { return Err(format!("OHCI#{} read at {off:x} unimpl", self.idx)); },
+            _ => { bail!("OHCI#{} read at {off:x} unimpl", self.idx); },
         };
         println!("OH{} read {val:08x} at {off:x}", self.idx);
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         println!("OH{} write {val:08x} at {off:x}", self.idx);
         match off {
             0x04 => self.ctrl = val,
@@ -69,7 +71,7 @@ impl MmioDevice for OhcInterface {
             0x48 => self.rh_desc_a = val,
             0x4c => self.rh_desc_b = val,
             0x50 => self.rh_status = val,
-            _ => { return Err(format!("OHCI#{} write {val:08x} at {off:x} unimpl", self.idx)); },
+            _ => { bail!("OHCI#{} write {val:08x} at {off:x} unimpl", self.idx); },
         }
         Ok(None)
     }

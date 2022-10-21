@@ -1,4 +1,6 @@
 
+use anyhow::bail;
+
 use crate::bus::*;
 use crate::bus::prim::*;
 use crate::bus::task::*;
@@ -9,14 +11,14 @@ pub trait MmioDevice {
     type Width;
 
     /// Handle a read, returning some result.
-    fn read(&self, off: usize) -> Result<BusPacket, String>;
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket>;
     /// Handle a write, optionally returning a task for the bus.
-    fn write(&mut self, off: usize, val: Self::Width) -> Result<Option<BusTask>, String>;
+    fn write(&mut self, off: usize, val: Self::Width) -> anyhow::Result<Option<BusTask>>;
 }
 
 impl Bus {
     /// Dispatch a physical read access to some memory-mapped I/O device.
-    pub fn do_mmio_read(&self, dev: IoDevice, off: usize, width: BusWidth) -> Result<BusPacket, String> {
+    pub fn do_mmio_read(&self, dev: IoDevice, off: usize, width: BusWidth) -> anyhow::Result<BusPacket> {
         use IoDevice::*;
         match (width, dev) {
             (BusWidth::W, Nand)  => self.nand.read(off),
@@ -34,12 +36,12 @@ impl Bus {
             (BusWidth::W, Exi)   => self.hlwd.exi.read(off),
             (BusWidth::H, Mi)    => self.hlwd.mi.read(off),
             (BusWidth::H, Ddr)   => self.hlwd.ddr.read(off),
-            _ => { return Err(format!("Unsupported read {width:?} for {dev:?} at {off:x}")); },
+            _ => { bail!("Unsupported read {width:?} for {dev:?} at {off:x}"); },
         }
     }
 
     /// Dispatch a physical write access to some memory-mapped I/O device.
-    pub fn do_mmio_write(&mut self, dev: IoDevice, off: usize, msg: BusPacket) -> Result<(), String>{
+    pub fn do_mmio_write(&mut self, dev: IoDevice, off: usize, msg: BusPacket) -> anyhow::Result<()> {
         use IoDevice::*;
         use BusPacket::*;
         let task = match (msg, dev) {
@@ -60,7 +62,7 @@ impl Bus {
             (Half(val), Mi)    => self.hlwd.mi.write(off, val),
             (Half(val), Ddr)   => self.hlwd.ddr.write(off, val),
 
-            _ => { return Err(format!("Unsupported write {msg:?} for {dev:?} at {off:x}")); },
+            _ => { bail!("Unsupported write {msg:?} for {dev:?} at {off:x}"); },
         };
         match task {
             // If the device returned some task, schedule it
@@ -79,7 +81,7 @@ impl Bus {
 
 impl Bus {
     /// Emulate a slice of work on the system bus.
-    pub fn step(&mut self, cpu_cycle: usize) -> Result<(), String> {
+    pub fn step(&mut self, cpu_cycle: usize) -> anyhow::Result<()> {
         self.handle_step_hlwd(cpu_cycle)?;
         if !self.tasks.is_empty() {
             self.drain_tasks()?;
@@ -89,7 +91,7 @@ impl Bus {
     }
 
     /// Dispatch all of the pending tasks on the Bus.
-    fn drain_tasks(&mut self) -> Result<(), String> {
+    fn drain_tasks(&mut self) -> anyhow::Result<()> {
         let mut idx = 0;
         while idx != self.tasks.len() {
             if self.tasks[idx].target_cycle <= self.cycle {

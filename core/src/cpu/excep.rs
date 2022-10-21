@@ -1,5 +1,7 @@
 //! Implementation of exception behavior.
 
+use anyhow::bail;
+
 use crate::cpu::*;
 use crate::dbg::ios;
 use crate::cpu::reg::*;
@@ -72,10 +74,8 @@ impl From<ExceptionType> for CpuMode {
 impl Cpu {
 
     /// Change CPU state to reflect the fact that we've entered an exception.
-    pub fn generate_exception(&mut self, e: ExceptionType) -> Result<(), String> {
-        if e == ExceptionType::Swi {
-            return Err("Swi exceptions are not allowed.".to_string());
-        }
+    pub fn generate_exception(&mut self, e: ExceptionType) -> anyhow::Result<()> {
+        anyhow::ensure!(e != ExceptionType::Swi, "Swi exceptions are not allowed");
 
         let old_cpsr = self.reg.cpsr;
         let target_mode = CpuMode::from(e);
@@ -118,9 +118,9 @@ impl Cpu {
     }
 
     /// Return from an exception.
-    pub fn exception_return(&mut self, dest_pc: u32) -> Result<(), String> {
+    pub fn exception_return(&mut self, dest_pc: u32) -> anyhow::Result<()> {
         match self.reg.cpsr.mode() {
-            CpuMode::Usr | CpuMode::Sys => { return Err("Tried returning from an exception, but the CPU is not in an exception mode.".to_string()); }
+            CpuMode::Usr | CpuMode::Sys => { bail!("Tried returning from an exception, but the CPU is not in an exception mode."); }
             _ => {}
         }
 

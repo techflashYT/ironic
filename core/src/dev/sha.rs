@@ -1,6 +1,8 @@
 
 pub mod util;
 
+use anyhow::bail;
+
 use crate::bus::*;
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
@@ -52,7 +54,7 @@ impl ShaInterface {
 impl MmioDevice for ShaInterface {
     type Width = u32;
 
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x00 => 0, //self.ctrl,
             0x08 => self.state.digest[0],
@@ -60,12 +62,12 @@ impl MmioDevice for ShaInterface {
             0x10 => self.state.digest[2],
             0x14 => self.state.digest[3],
             0x18 => self.state.digest[4],
-            _ => { return Err(format!("Unimplemented SHA read at offset {off:04x}")); },
+            _ => { bail!("Unimplemented SHA read at offset {off:04x}"); },
         };
         Ok(BusPacket::Word(val))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x00 => {
                 self.ctrl = val;
@@ -80,14 +82,14 @@ impl MmioDevice for ShaInterface {
             0x10 => self.state.digest[2] = val,
             0x14 => self.state.digest[3] = val,
             0x18 => self.state.digest[4] = val,
-            _ => { return Err(format!("Unhandled write32 to {off:08x}")); },
+            _ => { bail!("Unhandled write32 to {off:08x}"); },
         }
         Ok(None)
     }
 }
 
 impl Bus {
-    pub fn handle_task_sha(&mut self, val: u32) -> Result<(), String> {
+    pub fn handle_task_sha(&mut self, val: u32) -> anyhow::Result<()> {
         let cmd = ShaCommand::from(val);
 
         let mut sha_buf = vec![0u8; cmd.len as usize];

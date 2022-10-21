@@ -1,5 +1,7 @@
 //! CPU register definitions.
 
+use anyhow::bail;
+
 use crate::cpu::psr::*;
 
 /// Token for a particular register.
@@ -46,8 +48,8 @@ pub enum Cond {
     AL = 0b1110, UNC = 0b1111,
 }
 impl TryFrom<u32> for Cond {
-    type Error = String;
-    fn try_from(x: u32) -> Result<Self, String> {
+    type Error = anyhow::Error;
+    fn try_from(x: u32) -> anyhow::Result<Self> {
         use Cond::*;
         Ok(match x {
             0b0000 => EQ, 0b0001 => NE,
@@ -58,7 +60,7 @@ impl TryFrom<u32> for Cond {
             0b1010 => GE, 0b1011 => LT,
             0b1100 => GT, 0b1101 => LE,
             0b1110 => AL, 0b1111 => UNC,
-            _ => { return Err(format!("Invalid condition bits {x:08x}")); },
+            _ => { bail!("Invalid condition bits {x:08x}"); },
         })
     }
 }
@@ -206,7 +208,7 @@ impl RegisterFile {
 /// These functions are used for determining whether or not some condition is
 /// satisfied when dispatching/executing some instruction.
 impl RegisterFile {
-    pub fn cond_pass(&self, opcd: u32) -> Result<bool, String> {
+    pub fn cond_pass(&self, opcd: u32) -> anyhow::Result<bool> {
         Ok(self.is_cond_satisfied(Cond::try_from((opcd & 0xf000_0000) >> 28)?))
     }
     pub fn is_cond_satisfied(&self, cond: Cond) -> bool {

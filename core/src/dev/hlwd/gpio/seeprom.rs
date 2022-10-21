@@ -53,7 +53,7 @@ pub struct SeepromState {
     pub write_buffer: Option<u16>,
 }
 impl SeepromState {
-    pub fn new() -> Result<Self, std::io::Error> {
+    pub fn new() -> anyhow::Result<Self> {
         Ok(SeepromState {
             in_buf: 0,
             num_bits: 0,
@@ -77,7 +77,7 @@ impl SeepromState {
         self.write_buffer = None;
     }
 
-    pub fn step(&mut self, mosi: u32, input: u32) -> Result<Option<u32>, String> {
+    pub fn step(&mut self, mosi: u32, input: u32) -> anyhow::Result<Option<u32>> {
         use SeepromOp::*;
 
         // Shift in a bit
@@ -102,7 +102,7 @@ impl SeepromState {
                 match extop {
                     Ewen => self.wren = true,
                     Ewds => self.wren = false,
-                    _ => { return Err(format!("SEEPROM ext. op {extop:?} unimplemented")); },
+                    _ => { bail!("SEEPROM ext. op {extop:?} unimplemented"); },
                 }
                 println!("SEEPROM {extop:?}");
             },
@@ -158,7 +158,7 @@ impl SeepromState {
                         self.data.write::<u16>(addr * 2, val)?;
                         println!("SEEPROM write {val:04x} @ {addr:02x}");
                     } else {
-                        return Err(format!("SEEPROM write {val:04x} @ {addr:02x} without WREN"));
+                        bail!("SEEPROM write {val:04x} @ {addr:02x} without WREN");
                     }
                     Ok(None)
                 } else {
@@ -171,7 +171,7 @@ impl SeepromState {
 }
 
 impl GpioInterface {
-    pub fn handle_seeprom(&mut self, val: u32) -> Result<(), String> {
+    pub fn handle_seeprom(&mut self, val: u32) -> anyhow::Result<()> {
         let mosi = ((val & GpioPin::SeepromMosi as u32) != 0) as u32;
         let cs = (val & GpioPin::SeepromCs as u32) != 0;
         let clk_rise = (self.arm.output & GpioPin::SeepromClk as u32) == 0 

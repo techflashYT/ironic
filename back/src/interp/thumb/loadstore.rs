@@ -1,6 +1,7 @@
 
 use crate::bits::thumb::*;
 use crate::interp::DispatchRes;
+use anyhow::bail;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::reg::Reg;
 
@@ -37,44 +38,23 @@ pub fn ldr_lit(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
 
 
 /// Generic load (register).
-fn load_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> Result<(), String> {
-    let mut failure_reason: Option<String> = None;
+fn load_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> anyhow::Result<()> {
     let addr = cpu.reg[rn].wrapping_add(cpu.reg[rm]);
     let res: u32 = match width {
-        Width::Byte => cpu.read8(addr).unwrap_or_else(|reason|{
-            failure_reason = Some(reason);
-            0
-        }) as u32,
-        Width::Half => cpu.read16(addr).unwrap_or_else(|reason|{
-            failure_reason = Some(reason);
-            0
-        }) as u32,
-        Width::Word => cpu.read32(addr).unwrap_or_else(|reason|{
-            failure_reason = Some(reason);
-            0
-        }),
+        Width::Byte => cpu.read8(addr)? as u32,
+        Width::Half => cpu.read16(addr)? as u32,
+        Width::Word => cpu.read32(addr)?,
         Width::SignedHalf => {
-            let val = cpu.read16(addr).unwrap_or_else(|reason|{
-                failure_reason = Some(reason);
-                0
-            }) as u32;
+            let val = cpu.read16(addr)? as u32;
             sign_extend(val, 16) as u32
         },
         Width::SignedByte => {
-            let val = cpu.read8(addr).unwrap_or_else(|reason|{
-                failure_reason = Some(reason);
-                0
-            }) as u32;
+            let val = cpu.read8(addr)? as u32;
             sign_extend(val, 8) as u32
         }
     };
-    match failure_reason {
-        None => {
-            cpu.reg[rt] = res;
-            Ok(())
-        },
-        Some(reason) => Err(reason),
-    }
+    cpu.reg[rt] = res;
+    Ok(())
 }
 pub fn ldr_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
     match load_reg(cpu, op.rn(), op.rm(), op.rt(), Width::Word) {
@@ -110,40 +90,25 @@ pub fn ldrsh_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
 
 
 /// Generic load (immediate).
-fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> Result<(), String> {
-    let mut failure_reason: Option<String> = None;
+fn load_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> anyhow::Result<()> {
     let imm = match width {
         Width::Byte => imm_n, 
         Width::Half => imm_n << 1,
         Width::Word => imm_n << 2,
         _ => {
-            return Err(format!("load_imm width argument: {width:?} not acceptable!"));
+            bail!("load_imm width argument: {width:?} not acceptable!");
         },
     };
 
     let addr = cpu.reg[rn].wrapping_add(imm);
     let res: u32 = match width {
-        Width::Byte => cpu.read8(addr).unwrap_or_else(|reason|{
-            failure_reason = Some(reason);
-            0
-        }) as u32,
-        Width::Half => cpu.read16(addr).unwrap_or_else(|reason|{
-            failure_reason = Some(reason);
-            0
-        }) as u32,
-        Width::Word => cpu.read32(addr).unwrap_or_else(|reason|{
-            failure_reason = Some(reason);
-            0
-        }),
+        Width::Byte => cpu.read8(addr)? as u32,
+        Width::Half => cpu.read16(addr)? as u32,
+        Width::Word => cpu.read32(addr)?,
         _ => unreachable!()
     };
-    match failure_reason {
-        None => {
-            cpu.reg[rt] = res;
-            Ok(())
-        },
-        Some(reason) => Err(reason),
-    }
+    cpu.reg[rt] = res;
+    Ok(())
 }
 pub fn ldr_imm(cpu: &mut Cpu, op: LoadStoreImmBits) -> DispatchRes {
     match load_imm(cpu, op.rn(), op.rt(), op.imm5() as u32, Width::Word) {
@@ -172,7 +137,7 @@ pub fn ldr_imm_sp(cpu: &mut Cpu, op: LoadStoreAltBits) -> DispatchRes {
 
 
 /// Generic store (register).
-fn store_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> Result<(), String> { //FIXME Proper gaurd against Width variants
+fn store_reg(cpu: &mut Cpu, rn: u16, rm: u16, rt: u16, width: Width) -> anyhow::Result<()> { //FIXME Proper gaurd against Width variants
     let addr = cpu.reg[rn].wrapping_add(cpu.reg[rm]);
     let val: u32 = cpu.reg[rt];
     match width {
@@ -204,7 +169,7 @@ pub fn strh_reg(cpu: &mut Cpu, op: LoadStoreRegBits) -> DispatchRes {
 
 
 /// Generic store (immediate).
-fn store_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> Result<(), String> {
+fn store_imm(cpu: &mut Cpu, rn: u16, rt: u16, imm_n: u32, width: Width) -> anyhow::Result<()> {
     let imm = match width {
         Width::Byte => imm_n, 
         Width::Half => imm_n << 1,

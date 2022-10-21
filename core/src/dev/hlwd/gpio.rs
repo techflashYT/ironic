@@ -1,5 +1,7 @@
 
 pub mod seeprom;
+use anyhow::bail;
+
 use crate::dev::hlwd::gpio::seeprom::*;
 use crate::dev::hlwd::*;
 
@@ -32,7 +34,7 @@ pub struct GpioInterface {
     pub seeprom: SeepromState,
 }
 impl GpioInterface {
-    pub fn new() -> Result<Self, std::io::Error> {
+    pub fn new() -> anyhow::Result<Self> {
         Ok(GpioInterface {
             arm: ArmGpio::default(),
             ppc: PpcGpio::default(),
@@ -42,7 +44,7 @@ impl GpioInterface {
 }
 
 impl GpioInterface {
-    pub fn handle_output(&mut self, val: u32) -> Result<(), String> {
+    pub fn handle_output(&mut self, val: u32) -> anyhow::Result<()> {
         let diff = self.arm.output ^ val;
         if (diff & 0x0000_1c00) != 0 {
             self.handle_seeprom(val)?;
@@ -54,7 +56,7 @@ impl GpioInterface {
             println!("GPIO Disc Slot LED output");
         }
         else {
-            return Err(format!("Unhandled GPIO output arm.output={:08x} val={val:08x} diff={diff:08x}", self.arm.output));
+            bail!("Unhandled GPIO output arm.output={:08x} val={val:08x} diff={diff:08x}", self.arm.output);
         }
         Ok(())
     }
@@ -77,7 +79,7 @@ pub struct ArmGpio {
     owner: u32,
 }
 impl ArmGpio {
-    pub fn write_handler(&mut self, off: usize, data: u32) -> Result<Option<HlwdTask>, String> {
+    pub fn write_handler(&mut self, off: usize, data: u32) -> anyhow::Result<Option<HlwdTask>> {
         match off {
             0x00 => self.en = data,
             0x04 => { 
@@ -89,17 +91,17 @@ impl ArmGpio {
                 return Ok(task);
             },
             0x08 => self.dir = data,
-            0x0c => { return Err("CPU wrote to GPIO inputs!?".to_string()); },
+            0x0c => { bail!("CPU wrote to GPIO inputs!?".to_string()); },
             0x10 => self.intlvl = data,
             0x14 => self.intflag = data,
             0x18 => self.intmask = data,
             0x1c => self.straps = data,
             0x20 => self.owner = data,
-            _ => { return Err(format!("unimplemented ArmGpio write {off:08x}")); },
+            _ => { bail!("unimplemented ArmGpio write {off:08x}"); },
         }
         Ok(None)
     }
-    pub fn read_handler(&self, off: usize) -> Result<u32, String> {
+    pub fn read_handler(&self, off: usize) -> anyhow::Result<u32> {
         Ok(match off {
             0x00 => self.en,
             0x04 => self.output,
@@ -110,7 +112,7 @@ impl ArmGpio {
             0x18 => self.intmask,
             0x1c => self.straps,
             0x20 => self.owner,
-            _ => { return Err(format!("unimplemented ArmGpio read {off:08x}")); },
+            _ => { bail!("unimplemented ArmGpio read {off:08x}"); },
         })
     }
 }
@@ -128,7 +130,7 @@ pub struct PpcGpio {
     straps: u32,
 }
 impl PpcGpio {
-    pub fn write_handler(&mut self, off: usize, data: u32) -> Result<(), String> {
+    pub fn write_handler(&mut self, off: usize, data: u32) -> anyhow::Result<()> {
         match off {
             0x00 => self.output = data,
             0x04 => self.dir = data,
@@ -136,11 +138,11 @@ impl PpcGpio {
         };
         Ok(())
     }
-    pub fn read_handler(&self, off: usize) -> Result<u32, String> {
+    pub fn read_handler(&self, off: usize) -> anyhow::Result<u32> {
         Ok(match off {
             0x00 => self.output,
             0x04 => self.dir,
-            _ => {return Err(format!("unimplemented PpcGpio read {off:08x}")); },
+            _ => { bail!("unimplemented PpcGpio read {off:08x}"); },
         })
     }
 }

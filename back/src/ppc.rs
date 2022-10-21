@@ -102,7 +102,7 @@ impl PpcBackend {
     }
 
     /// Handle clients connected to the socket.
-    pub fn server_loop(&mut self, sock: UnixListener) -> Result<(), String> {
+    pub fn server_loop(&mut self, sock: UnixListener) -> anyhow::Result<()> {
         loop {
             let res = sock.accept();
             let mut client = match res {
@@ -123,18 +123,18 @@ impl PpcBackend {
                         Command::HostRead => self.handle_read(&mut client, req)?,
                         Command::HostWrite => self.handle_write(&mut client, req)?,
                         Command::Message => {
-                            self.handle_message(&mut client, req).map_err(|e| e.to_string())?;
+                            self.handle_message(&mut client, req)?;
                             let armmsg = self.wait_for_resp();
-                            client.write(&u32::to_le_bytes(armmsg)).map_err(|e|e.to_string())?;
+                            let _ = client.write(&u32::to_le_bytes(armmsg))?; // maybe FIXME: is it ok to ignore the # of bytes written here?
                         },
                         Command::MessageNoReturn => {
-                            self.handle_message(&mut client, req).map_err(|e| e.to_string())?;
+                            self.handle_message(&mut client, req)?;
                         },
                         Command::Unimpl => break,
                     }
                 }
             }
-            client.shutdown(Shutdown::Both).map_err(|e|e.to_string())?;
+            client.shutdown(Shutdown::Both)?;
         }
         Ok(())
     }
@@ -209,34 +209,35 @@ impl PpcBackend {
     }
 
     /// Read from physical memory.
-    pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
+    pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
         println!("[PPC] read {:x} bytes at {:08x}", req.len, req.addr);
         self.bus.read().unwrap().dma_read(req.addr,
             &mut self.obuf[0..req.len as usize])?;
-        client.write(&self.obuf[0..req.len as usize]).map_err(|e| e.to_string())?;
+        let _ = client.write(&self.obuf[0..req.len as usize])?; // maybe FIXME: is it ok to ignore the # of bytes written here?
         Ok(())
     }
 
     /// Write to physical memory.
-    pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), String> {
+    pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
         println!("[PPC] write {:x} bytes at {:08x}", req.len, req.addr);
         let data = &self.ibuf[0xc..(0xc + req.len as usize)];
         self.bus.write().unwrap().dma_write(req.addr, data)?;
-        client.write("OK".as_bytes()).map_err(|e| e.to_string())?;
+        let _ = client.write("OK".as_bytes())?; // maybe FIXME: is it ok to ignore the # of bytes written here?
         Ok(())
     }
 
     /// Tell ARM-world that an IPC request is ready at the location indicated
     /// by the pointer in PPC_MSG.
-    pub fn handle_message(&mut self, client: &mut UnixStream, req: SocketReq) -> Result<(), std::io::Error> {
+    pub fn handle_message(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
         let mut bus = self.bus.write().unwrap();
         bus.hlwd.ipc.ppc_msg = req.addr;
         bus.hlwd.ipc.state.arm_req = true;
         bus.hlwd.ipc.state.arm_ack = true;
-        client.write("OK".as_bytes()).map(|_bytes_written| {}) // maybe FIXME: is it ok to ignore the # of bytes written here?
+        let _ = client.write("OK".as_bytes())?; // maybe FIXME: is it ok to ignore the # of bytes written here?
+        Ok(())
     }
 
-    pub fn handle_ack(&mut self, _req: SocketReq) -> Result<(), String> {
+    pub fn handle_ack(&mut self, _req: SocketReq) -> anyhow::Result<()> {
         let mut bus = self.bus.write().unwrap();
         let ppc_ctrl = bus.hlwd.ipc.read_handler(4)? & 0x3c;
         bus.hlwd.ipc.write_handler(4, ppc_ctrl | 0x8)?;
@@ -247,7 +248,7 @@ impl PpcBackend {
 
 
 impl Backend for PpcBackend {
-    fn run(&mut self) -> Result<(), String> {
+    fn run(&mut self) -> anyhow::Result<()> {
         println!("[PPC] PPC backend thread started");
         self.bus.write().unwrap().hlwd.ipc.state.ppc_ctrl_write(0x36);
 

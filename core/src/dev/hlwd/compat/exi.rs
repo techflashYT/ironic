@@ -1,4 +1,5 @@
 pub mod device;
+use anyhow::bail;
 use device::*;
 
 use crate::bus::mmio::*;
@@ -137,19 +138,19 @@ impl EXIChannel {
 
 /// Per-channel read/write handlers.
 impl EXIChannel {
-    pub fn read(&self, off: usize) -> Result<u32, String> {
+    pub fn read(&self, off: usize) -> anyhow::Result<u32> {
         let res = match off {
             0x00 => self.csr,
             0x04 => self.mar,
             0x08 => self.len,
             0x0c => self.ctrl,
             0x10 => self.data,
-            _ => { return Err(format!("EXI chn{} OOB read at {off:08x}", self.idx)); },
+            _ => { bail!("EXI chn{} OOB read at {off:08x}", self.idx); },
         };
         println!("EXI chn{} read {res:08x} from offset {off:x}", self.idx);
         Ok(res)
     }
-    pub fn write(&mut self, off: usize, val: u32) -> Result<(), String> {
+    pub fn write(&mut self, off: usize, val: u32) -> anyhow::Result<()> {
         match off {
             0x00 => {
                 self.csr = val;
@@ -162,8 +163,8 @@ impl EXIChannel {
                 self.update_state();
             },
             0x10 => self.data = val,
-            _ => { return Err(format!("EXI chn{} OOB write {val:08x} at {off:08x}",
-                self.idx)); },
+            _ => { bail!("EXI chn{} OOB write {val:08x} at {off:08x}",
+                self.idx); },
         }
         Ok(())
     }
@@ -212,18 +213,18 @@ impl EXInterface {
 
 impl MmioDevice for EXInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x00..=0x10 => self.chan0.read(off)?,
             0x14..=0x24 => self.chan1.read(off - 0x14)?,
             0x28..=0x38 => self.chan2.read(off - 0x28)?,
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4],
-            _ => { return Err(format!("EXI read to undef offset {off:x}")); },
+            _ => { bail!("EXI read to undef offset {off:x}"); },
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off { 
             0x00..=0x10 => self.chan0.write(off, val)?,
             0x14..=0x24 => self.chan1.write(off - 0x14, val)?,
@@ -231,7 +232,7 @@ impl MmioDevice for EXInterface {
 
 
             0x40..=0x7c => self.ppc_bootstrap[(off - 0x40)/4] = val,
-            _ => { return Err(format!("EXI write {val:08x} to {off:x}")); },
+            _ => { bail!("EXI write {val:08x} to {off:x}"); },
         }
         Ok(None)
     }

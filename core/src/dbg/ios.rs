@@ -64,7 +64,7 @@ macro_rules! scdef {
 /// Read a NUL-terminated string from memory.  
 /// 
 /// NOTE: This is not particularly rigorous or safe.
-pub fn read_string(cpu: &Cpu, ptr: u32) -> Result<String, String> {
+pub fn read_string(cpu: &Cpu, ptr: u32) -> anyhow::Result<String> {
     let paddr = cpu.translate(TLBReq::new(ptr, Access::Debug))?;
 
     let mut line_buf = [0u8; 64];
@@ -164,7 +164,7 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
 
 
 /// Resolve information about an IOS syscall and its arguments.
-pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> Result<(), String> {
+pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> anyhow::Result<()> {
     // Get the syscall index (and ignore some)
     let idx = (opcd & 0x00ff_ffe0) >> 5;
     let res = get_syscall_desc(idx);
@@ -180,10 +180,7 @@ pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> Result<(), String> {
                 arg_buf.push_str(&format!("0x{val:08x}"));
             },
             ArgType::StrPtr => {
-                let s = match read_string(cpu, val){
-                    Ok(val) => val,
-                    Err(reason) => {return Err(reason);},
-                };
+                let s = read_string(cpu, val)?;
                 arg_buf.push_str(&format!("\"{s}\""));
             },
             ArgType::Int => {

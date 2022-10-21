@@ -1,3 +1,5 @@
+use anyhow::bail;
+
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
@@ -44,7 +46,7 @@ pub struct SDInterface {
 
 impl MmioDevice for SDInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         return match off {
             0xfc => Ok(BusPacket::Word(REPORTED_SDHC_VER)),
             0x38 => Ok(BusPacket::Word(self.intsen)), // Interrupt Signal Enable
@@ -63,10 +65,10 @@ impl MmioDevice for SDInterface {
             0x40 => Ok(BusPacket::Word(self.cap)),
             // Max Capabilities register
             0x48 => Ok(BusPacket::Word(self.maxcap)),
-            _ => Err(format!("SDHC0 read at {off:x} unimplemented"))
+            _ => bail!("SDHC0 read at {off:x} unimplemented")
         };
     }
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         return match off {
             0x38 => { // Interrupt Signal Enable
                 self.intsen = val;
@@ -78,7 +80,7 @@ impl MmioDevice for SDInterface {
                     return Ok(None); // Nothing we need to do
                 }
                 if val != 1 {
-                    return Err("SDHC0 Software Reset only supports full reset at this time".to_string());
+                    bail!("SDHC0 Software Reset only supports full reset at this time");
                 }
                 // Note: this is wrong!
                 self.dma_addr = 0;
@@ -111,7 +113,7 @@ impl MmioDevice for SDInterface {
                 self.maxcap = val;
                 Ok(None)
             }
-            _ => Err(format!("SDHC0 write {val:08x} at {off:x} unimpl"))
+            _ => bail!("SDHC0 write {val:08x} at {off:x} unimpl")
         };
     }
 }
@@ -125,17 +127,17 @@ pub struct WLANInterface {
 
 impl MmioDevice for WLANInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x24 => self.unk_24,
             //0x24 => 0x0001_0000, //self.unk_24,
             //0x40 => 0x0040_0000, //self.unk_24,
             //0xfc => self.unk_fc,
-            _ => { return Err(format!("SDHC1 read at {off:x} unimpl")); },
+            _ => { bail!("SDHC1 read at {off:x} unimpl"); },
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
-        Err(format!("SDHC1 write {val:08x} at {off:x} unimpl"))
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
+        bail!("SDHC1 write {val:08x} at {off:x} unimpl")
     }
 }

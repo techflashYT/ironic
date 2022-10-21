@@ -1,4 +1,6 @@
 pub mod util;
+use anyhow::bail;
+
 use crate::dev::nand::util::*;
 
 use crate::mem::*;
@@ -69,7 +71,7 @@ pub struct NandCmd {
     pub len: u32,
 }
 impl NandCmd {
-    pub fn new(x: u32) -> Result<Self, String> {
+    pub fn new(x: u32) -> anyhow::Result<Self> {
         use NandOpcd::*;
         let irq  = (x & 0x4000_0000) != 0;
         let err  = (x & 0x2000_0000) != 0;
@@ -85,7 +87,7 @@ impl NandCmd {
             0x90 => ReadId, 
             0xd0 => Erase, 
             0xff => Reset,
-            _ => { return Err(format!("unhandled NAND opcd {:02x}", (x & 0x00ff_0000) >> 16)); },
+            _ => { bail!("unhandled NAND opcd {:02x}", (x & 0x00ff_0000) >> 16); },
         };
         let wait = (x & 0x0000_8000) != 0;
         let wr   = (x & 0x0000_4000) != 0;
@@ -128,7 +130,7 @@ pub struct NandInterface {
 }
 impl NandInterface {
     /// Create a new instance of the NAND interface.
-    pub fn new(filename: &str) -> Result<Self, std::io::Error> {
+    pub fn new(filename: &str) -> anyhow::Result<Self> {
         let reg = NandRegisters {
             ctrl: 0,
             cfg: 0,
@@ -147,19 +149,19 @@ impl NandInterface {
         })
     }
     /// Read data from the specified offset in the NAND flash into some buffer
-    pub fn read_data(&self, off: usize, dst: &mut [u8]) -> Result<(), String> {
+    pub fn read_data(&self, off: usize, dst: &mut [u8]) -> anyhow::Result<()> {
         self.data.read_buf(off, dst)
     }
     /// Write the provided data to the specified offset in the NAND flash
-    pub fn write_data(&mut self, off: usize, src: &[u8]) -> Result<(), String> {
+    pub fn write_data(&mut self, off: usize, src: &[u8]) -> anyhow::Result<()> {
         self.data.write_buf(off, src)
     }
     /// Zero out the provided region in the NAND flash
-    pub fn clear_data(&mut self, off: usize, len: usize) -> Result<(), String> {
+    pub fn clear_data(&mut self, off: usize, len: usize) -> anyhow::Result<()> {
         self.data.memset(off, len, 0xff)
     }
 
-    pub fn send_addr(&mut self, x: u32) -> Result<(), String> {
+    pub fn send_addr(&mut self, x: u32) -> anyhow::Result<()> {
         let cmd = NandCmd::new(x)?;
         let addr2 = self.reg.addr2;
         let addr1 = self.reg.addr1;
@@ -193,7 +195,7 @@ impl NandInterface {
 
 impl MmioDevice for NandInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off { 
             //0x00 => self.reg.ctrl,
             0x00 => 0x0000_0001,
@@ -206,12 +208,12 @@ impl MmioDevice for NandInterface {
                 println!("NND unimpl read from 0x18");
                 self.reg.unk
             },
-            _ => { return Err(format!("Unhandled NND read at {off:x} ")); },
+            _ => { bail!("Unhandled NND read at {off:x} "); },
         };
         Ok(BusPacket::Word(val))
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x00 => {
                 // When this bit is set, emit command to NAND flash
@@ -230,7 +232,7 @@ impl MmioDevice for NandInterface {
                 println!("NND unimpl write to 0x18");
                 self.reg.unk = val;
             }
-            _ => { return Err(format!("Unhandled write32 on {off:08x}")); },
+            _ => { bail!("Unhandled write32 on {off:08x}"); },
         }
         Ok(None)
     }
@@ -241,7 +243,7 @@ impl Bus {
         self.nand.reg
     }
 
-    fn nand_erase_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
+    fn nand_erase_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> anyhow::Result<()> {
         assert!(!cmd.ecc);
         assert!(!cmd.rd);
         let off = reg.addr2 as usize * NAND_PAGE_LEN;
@@ -249,7 +251,7 @@ impl Bus {
     }
 
     /// Perform a NAND read into memory
-    fn nand_read_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
+    fn nand_read_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> anyhow::Result<()> {
         let mut len = cmd.len as usize;
         // Ok, I have no idea why official software is trying to read with size != 0x800 or 0x840
         // but it happens. I feel reasonably confident about reads sized 0x40, since they probably
@@ -257,7 +259,7 @@ impl Bus {
         // addressed at some point.
         if len != 0x800 && len != 0x840 {
             if len != 0x40 {
-                return Err(format!("Refusing to process a really weird read size {len:#06x} from the NAND interface"));
+                bail!("Refusing to process a really weird read size {len:#06x} from the NAND interface");
             }
             len = 0x840;
         }
@@ -284,7 +286,7 @@ impl Bus {
     }
 
     /// Write a NAND page (its okay that this is a mess, for now..)
-    fn nand_write_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> Result<(), String> {
+    fn nand_write_page(&mut self, cmd: &NandCmd, reg: &NandRegisters) -> anyhow::Result<()> {
         // Read from memory
         let mut local_buf = vec![0; cmd.len as usize];
         self.dma_read(reg.databuf, &mut local_buf)?;
@@ -305,7 +307,7 @@ impl Bus {
     }
 
     /// Handle a NAND command
-    pub fn handle_task_nand(&mut self, val: u32) -> Result<(), String> {
+    pub fn handle_task_nand(&mut self, val: u32) -> anyhow::Result<()> {
         use NandOpcd::*;
         let cmd = NandCmd::new(val)?;
         let reg = self.read_nand_regs();
@@ -333,7 +335,7 @@ impl Bus {
                         self.dma_write(reg.databuf, &status_register)?;
                     },
                     Reset       => {},
-                    _ => { return Err(format!("NAND unknown cycle 0 opcd {:?}", cmd.opcd)); },
+                    _ => { bail!("NAND unknown cycle 0 opcd {:?}", cmd.opcd); },
                 }
             },
             1 => match cmd.opcd {
@@ -343,7 +345,7 @@ impl Bus {
                 },
                 Read    => self.nand_read_page(&cmd, &reg)?,
                 Erase   => self.nand_erase_page(&cmd, &reg)?,
-                _ => { return Err(format!("NAND unknown cycle 1 opcd {:?}", cmd.opcd)); },
+                _ => { bail!("NAND unknown cycle 1 opcd {:?}", cmd.opcd); },
             },
             2 => match cmd.opcd {
                 // NOTE: For now, we can probably just do the page programming
@@ -351,9 +353,9 @@ impl Bus {
                 // do anything when we see the actual program command
                 Program => {
                 },
-                _ => { return Err(format!("NAND unknown cycle 2 opcd {:?}", cmd.opcd)); },
+                _ => { bail!("NAND unknown cycle 2 opcd {:?}", cmd.opcd); },
             },
-            _ => { return Err(format!("NAND desync cycle {}", reg._cycle)); },
+            _ => { bail!("NAND desync cycle {}", reg._cycle); },
         }
 
         // Get a mutable reference to the system devices and commit any state 

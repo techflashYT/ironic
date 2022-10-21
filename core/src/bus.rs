@@ -49,7 +49,7 @@ pub struct Bus {
     pub debug_allowed_cycles: u64,
 }
 impl Bus {
-    pub fn new()-> Result<Self, std::io::Error> {
+    pub fn new()-> anyhow::Result<Self> {
         Ok(Bus {
             mrom: BigEndianMemory::new(0x0000_2000, Some("./boot0.bin"))?,
             sram0: BigEndianMemory::new(0x0001_0000, None)?,

@@ -28,7 +28,7 @@ impl MemInterface {
 }
 impl MmioDevice for MemInterface {
     type Width = u16;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x74 => self.ddr_addr,
             0x76 => self.ddr_data,
@@ -36,7 +36,7 @@ impl MmioDevice for MemInterface {
         };
         Ok(BusPacket::Half(val))
     }
-    fn write(&mut self, off: usize, val: u16) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u16) -> anyhow::Result<Option<BusTask>> {
         let task = match off {
             0x74 => Some(BusTask::Mi { kind: IndirAccess::Read, data: val }),
             0x76 => Some(BusTask::Mi { kind: IndirAccess::Write, data: val }),
@@ -47,7 +47,7 @@ impl MmioDevice for MemInterface {
 }
 
 impl Bus {
-    pub fn handle_task_mi(&mut self, kind: IndirAccess, data: u16) -> Result<(), String> {
+    pub fn handle_task_mi(&mut self, kind: IndirAccess, data: u16) -> anyhow::Result<()> {
         match kind {
             IndirAccess::Read => {
                 assert!(data >= 0x0100);

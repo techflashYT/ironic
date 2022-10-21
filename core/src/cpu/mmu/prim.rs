@@ -1,4 +1,6 @@
 #![allow(clippy::unusual_byte_groupings)]
+use anyhow::bail;
+
 /// Definitions for types related to the MMU/TLB and address translation.
 
 use crate::cpu::coproc::DomainMode;
@@ -24,7 +26,7 @@ pub enum TLBPermission { NA, RO, RW }
 impl TLBPermission {
     /// Given some context and the access protection bits from a particular 
     /// PTE, compute the effective permissions.
-    pub fn resolve(ctx: &PermissionContext, ap: u32) -> Result<Self, String> {
+    pub fn resolve(ctx: &PermissionContext, ap: u32) -> anyhow::Result<Self> {
         use TLBPermission::*;
         match (ap, ctx.sysprot, ctx.romprot) {
             (0b00, false, false)=> Ok(NA),
@@ -33,7 +35,7 @@ impl TLBPermission {
             (0b01, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(NA) },
             (0b10, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(RO) },
             (0b11, _, _)        => Ok(RW),
-            _ => Err("Couldn't resolve AP bits with context".to_string()),
+            _ => bail!("Couldn't resolve AP bits with context"),
         }
     }
 }
@@ -54,26 +56,25 @@ impl PermissionContext {
 
     /// Validate a request against this context. 
     /// Returns true if the context satisfies the provided request.
-    pub fn validate(&self, req: &TLBReq, ap: u32) -> Result<bool, String> {
+    pub fn validate(&self, req: &TLBReq, ap: u32) -> anyhow::Result<bool> {
         // Ignore permission checking on out-of-band requests to the MMU.
         if req.kind == Access::Debug { return Ok(true); }
 
         match self.domain_mode {
             // Actually compute the permissions and check them.
             DomainMode::Client => {
-                match TLBPermission::resolve(self, ap) {
-                    Ok(TLBPermission::NA) => Ok(false),
-                    Ok(TLBPermission::RO) =>
+                match TLBPermission::resolve(self, ap)? {
+                    TLBPermission::NA => Ok(false),
+                    TLBPermission::RO =>
                         if req.kind == Access::Write { Ok(false) } else { Ok(true) },
-                    Ok(TLBPermission::RW) => Ok(true),
-                    Err(reason) => Err(reason)
+                    TLBPermission::RW => Ok(true),
                 }
             },
             // All requests on this domain are allowed.
             DomainMode::Manager => Ok(true),
             // All requests on this domain are disallowed.
             DomainMode::NoAccess => Ok(false),
-            _ => Err("Undefined domain mode".to_string()),
+            _ => bail!("Undefined domain mode"),
         }
     }
 }

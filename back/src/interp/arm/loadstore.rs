@@ -1,18 +1,19 @@
 //! Load/store instructions.
 
+use anyhow::bail;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::reg::CpuMode;
 use ironic_core::cpu::alu::*;
 use crate::bits::arm::*;
 use crate::interp::DispatchRes;
 
-pub fn do_amode(rn: u32, imm: u32, u: bool, p: bool, w: bool) -> Result<(u32, u32), String> {
+pub fn do_amode(rn: u32, imm: u32, u: bool, p: bool, w: bool) -> anyhow::Result<(u32, u32)> {
     let res = if u { rn.wrapping_add(imm) } else { rn.wrapping_sub(imm) };
     match (p, w) {
         (false, false)  => Ok((rn, res)),
         (true, false)   => Ok((res, rn)),
         (true, true)    => Ok((res, res)),
-        (false, true)   => Err("Unsupported addressing mode?".to_string()),
+        (false, true)   => bail!("Unsupported addressing mode?"),
     }
 }
 

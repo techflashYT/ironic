@@ -1,5 +1,6 @@
 //use crate::bus::task::*;
 //use crate::dev::hlwd::irq::*;
+use anyhow::bail;
 
 #[derive(Clone, Default, Debug)]
 pub struct MailboxState {
@@ -94,16 +95,16 @@ impl IpcInterface {
 }
 
 impl IpcInterface {
-    pub fn read_handler(&self, off: usize) -> Result<u32, String> {
+    pub fn read_handler(&self, off: usize) -> anyhow::Result<u32> {
         Ok(match off {
             0x00 => self.ppc_msg,
             0x04 => self.state.ppc_ctrl_read(),
             0x08 => self.arm_msg,
             0x0c => self.state.arm_ctrl_read(),
-            _ => { return Err(format!("IpcInterface invalid read at offset: {off}")); },
+            _ => { bail!("IpcInterface invalid read at offset: {off}"); },
         })
     }
-    pub fn write_handler(&mut self, off: usize, val: u32) -> Result<(), String> {
+    pub fn write_handler(&mut self, off: usize, val: u32) -> anyhow::Result<()> {
         match off {
             0x00 => {
                 println!("IPC PPC MSG write {val:08x}");
@@ -121,7 +122,7 @@ impl IpcInterface {
                 println!("IPC ARM CTRL write {val:08x}");
                 self.state.arm_ctrl_write(val);
             },
-            _ => { return Err(format!("IpcInterface invalid write to offset: {off} value: {val}")); },
+            _ => { bail!("IpcInterface invalid write to offset: {off} value: {val}"); },
         };
         Ok(())
     }

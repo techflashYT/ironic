@@ -6,13 +6,13 @@ use crate::interp::{ArmFn, ThumbFn};
 use crate::interp::{arm, thumb};
 use crate::decode::arm::ArmInst;
 use crate::decode::thumb::ThumbInst;
-
+use anyhow::anyhow;
 /// The result of dispatching an instruction.
 #[derive(Debug)]
 pub enum DispatchRes {
     /// There was some fatal error dispatching the instruction.
     /// This probably means that emulation should halt.
-    FatalErr(String),
+    FatalErr(anyhow::Error),
     /// This instruction was not executed because the associated condition 
     /// could not be met, and the program counter must be incremented. 
     CondFailed,
@@ -31,7 +31,7 @@ pub enum DispatchRes {
 /// Handler for unimplemented ARM instructions.
 pub fn arm_unimpl_instr(cpu: &mut Cpu, op: u32) -> DispatchRes {
     if (op & 0xe600_0000) != 0xe600_0000 {
-        return DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch instruction {op:08x} ({:?})",
+        return DispatchRes::FatalErr(anyhow!("pc={:08x} Couldn't dispatch instruction {op:08x} ({:?})",
         cpu.read_fetch_pc(), ArmInst::decode(op)));
     }
     DispatchRes::Exception(ExceptionType::Undef(op))
@@ -39,7 +39,7 @@ pub fn arm_unimpl_instr(cpu: &mut Cpu, op: u32) -> DispatchRes {
 
 /// Handler for unimplemented Thumb instructions.
 pub fn thumb_unimpl_instr(cpu: &mut Cpu, op: u16) -> DispatchRes {
-    DispatchRes::FatalErr(format!("pc={:08x} Couldn't dispatch Thumb instruction {op:04x} ({:?})",
+    DispatchRes::FatalErr(anyhow!("pc={:08x} Couldn't dispatch Thumb instruction {op:04x} ({:?})",
         cpu.read_fetch_pc(), ThumbInst::decode(op)))
 }
 

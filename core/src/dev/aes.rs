@@ -3,6 +3,7 @@ extern crate aes;
 extern crate cbc;
 
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use anyhow::{bail};
 
 type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
 type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
@@ -76,15 +77,15 @@ impl AesInterface {
 impl MmioDevice for AesInterface {
     type Width = u32;
 
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         match off {
             //0x00 => BusPacket::Word(self.ctrl),
             0x00 => Ok(BusPacket::Word(0)),
-            _ => Err(format!("Unhandled AES interface read {off:x}")),
+            _ => bail!("Unhandled AES interface read {off:x}"),
         }
     }
 
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x00 => {
                 self.ctrl = val;
@@ -118,14 +119,14 @@ impl MmioDevice for AesInterface {
                 }
                 self.iv_fifo.make_contiguous();
             }
-            _ => { return Err(format!("Unimplemented AES write to offset {off:x}")); },
+            _ => { bail!("Unimplemented AES write to offset {off:x}"); },
         }
         Ok(None)
     }
 }
 
 impl Bus {
-    pub fn handle_task_aes(&mut self, val: u32) -> Result<(), String> {
+    pub fn handle_task_aes(&mut self, val: u32) -> anyhow::Result<()> {
         let cmd = AesCommand::from(val);
 
         // Read data from the source address

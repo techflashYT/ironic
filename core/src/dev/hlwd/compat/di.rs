@@ -1,3 +1,5 @@
+use anyhow::bail;
+
 use crate::bus::mmio::*;
 use crate::bus::prim::*;
 use crate::bus::task::*;
@@ -17,20 +19,20 @@ pub struct DriveInterface {
 }
 impl MmioDevice for DriveInterface {
     type Width = u32;
-    fn read(&self, off: usize) -> Result<BusPacket, String> {
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x00 => self.disr,
             0x04 => self.dicvr,
             0x24 => self.dicfg,
-            _ => {return Err(format!("DI read to undefined offset {off:x}")); },
+            _ => { bail!("DI read to undefined offset {off:x}"); },
         };
         Ok(BusPacket::Word(val))
     }
-    fn write(&mut self, off: usize, val: u32) -> Result<Option<BusTask>, String> {
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x00 => self.disr = val,
             0x04 => self.dicvr = val,
-            _ => {return Err(format!("DI write {val:08x?} to undefined offset {off:x}")); },
+            _ => { bail!("DI write {val:08x?} to undefined offset {off:x}"); },
         }
         Ok(None)
     }
