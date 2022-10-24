@@ -100,7 +100,7 @@ impl Cpu {
             L1Descriptor::Coarse(e) => {
                 e.base_addr() | vaddr.l2_idx_coarse() << 2
             },
-            _ => unreachable!(),
+            _ => bail!("l2_fetch requires an L1::Coarse descriptor"),
         };
         let val = self.bus.read().map_err(|e| anyhow!(e.to_string()))?.read32(addr)?;
         Ok(L2Descriptor::from_u32(val))
