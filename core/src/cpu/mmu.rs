@@ -109,14 +109,10 @@ impl Cpu {
     /// Translate a virtual address into a physical address.
     pub fn translate(&self, req: TLBReq) -> anyhow::Result<u32> {
         if self.p15.c1_ctrl.mmu_enabled() {
-            let desc = match self.l1_fetch(req.vaddr){ 
-                Ok(val) => val,
-                Err(reason) => return Err(reason),
-            };
-            match desc {
+            match self.l1_fetch(req.vaddr)? {
                 L1Descriptor::Section(entry) => Ok(self.resolve_section(req, entry)?),
                 L1Descriptor::Coarse(entry) => self.resolve_coarse(req, entry),
-                _ => bail!("TLB first-level descriptor {desc:?} unimplemented"),
+                other => bail!("TLB first-level descriptor {other:?} unimplemented"),
             }
         } else {
             Ok(req.vaddr.0)
