@@ -40,7 +40,7 @@ pub struct Cpu {
     pub irq_input: bool,
 }
 impl Cpu {
-    pub fn new(bus: Arc<RwLock<Bus>>) -> Self { 
+    pub fn new(bus: Arc<RwLock<Bus>>) -> Self {
         Cpu {
             bus,
             reg: reg::RegisterFile::new(),
@@ -76,6 +76,3 @@ impl Cpu {
         self.reg.pc = self.reg.pc.wrapping_add(pc_inc);
     }
 }
-
-
-

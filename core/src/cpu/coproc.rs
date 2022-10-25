@@ -1,5 +1,10 @@
 //! Coprocessor register definitions and functionality.
 
+use std::{cell::RefCell, collections::BTreeMap, sync::{RwLock, Arc}};
+use anyhow::anyhow;
+
+use crate::bus::Bus;
+
 /// The system control register (p15 register 1).
 #[derive(Copy, Clone)]
 #[repr(transparent)]
@@ -91,7 +96,7 @@ pub struct SystemControl {
     /// System control register
     pub c1_ctrl: ControlRegister,
     /// Translation table base register 0
-    pub c2_ttbr0: u32,
+    c2_ttbr0: u32,
     /// Domain access control register
     pub c3_dacr: DACRegister,
     /// Fault status register (data)
@@ -100,6 +105,8 @@ pub struct SystemControl {
     pub c5_ifsr: u32,
     /// Fault address register (data)
     pub c6_dfar: u32,
+    /// Holds a cache of L1 MMU translations
+    l1_tlb: RefCell<BTreeMap<u32, u32>>,
 }
 
 impl Default for SystemControl {
@@ -117,6 +124,7 @@ impl SystemControl {
             c5_dfsr: 0,
             c5_ifsr: 0,
             c6_dfar: 0,
+            l1_tlb: RefCell::new(BTreeMap::new()),
         }
     }
 
@@ -151,13 +159,19 @@ impl SystemControl {
         use SystemControlReg::*;
         match SystemControlReg::from(reg) {
             Control => match (crm, opcd2) {
-                (0, 0) => self.c1_ctrl.0 = val,
+                (0, 0) => {
+                    self.clear_tlb(); // They could be doing something interesting, like shutting off the MMU
+                    self.c1_ctrl.0 = val
+                },
                 _ => panic!("Unimpl P15 write {:08x} {:?} crm={} opcd2={}",
                     val, SystemControlReg::from(reg), crm, opcd2),
             },
 
             PageControl => match (crm, opcd2) {
-                (0, 0) => self.c2_ttbr0 = val,
+                (0, 0) => {
+                    self.clear_tlb();
+                    self.write_ttbr(val)
+                },
                 _ => panic!("Unimpl P15 write {:08x} {:?} crm={} opcd2={}",
                     val, SystemControlReg::from(reg), crm, opcd2),
             },
@@ -193,7 +207,7 @@ impl SystemControl {
             },
 
             TlbControl => match (crm, opcd2) {
-                (7, 0) => {}, // Invalidate entire TLB
+                (7, 0) => { self.clear_tlb(); }, // Invalidate entire TLB
                 _ => panic!("Unimpl P15 write {:08x} {:?} crm={} opcd2={}",
                     val, SystemControlReg::from(reg), crm, opcd2),
             },
@@ -204,3 +218,32 @@ impl SystemControl {
     }
 }
 
+impl SystemControl {
+    pub fn write_ttbr(&mut self, new: u32) {
+        self.clear_tlb();
+        self.c2_ttbr0 = new;
+    }
+
+    pub fn read_ttbr(&self) -> u32 {
+        self.c2_ttbr0
+    }
+
+    /// Perform the actual L1 lookup
+    /// Technically this is an MMU operation, but having it here is easier for now.
+    pub fn l1_fetch(&self, addr: u32, bus: &Arc<RwLock<Bus>>) -> anyhow::Result<u32> {
+        let mut tlb_inner = self.l1_tlb.borrow_mut();
+        let val = match tlb_inner.get(&addr) {
+            Some(val) => *val, // TLB hit
+            None => { // miss
+                let val = bus.read().map_err(|e| anyhow!(e.to_string()))?.read32(addr)?;
+                tlb_inner.insert(addr, val);
+                val
+            },
+        };
+        Ok(val)
+    }
+
+    pub fn clear_tlb(&self) {
+        self.l1_tlb.borrow_mut().clear();
+    }
+}
