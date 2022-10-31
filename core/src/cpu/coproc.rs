@@ -1,9 +1,10 @@
 //! Coprocessor register definitions and functionality.
 
-use std::{cell::RefCell, collections::BTreeMap, sync::{RwLock, Arc}};
+use std::{cell::RefCell, collections::HashMap, sync::{RwLock, Arc}, hash::BuildHasherDefault};
 use anyhow::anyhow;
 
 use crate::bus::Bus;
+use fxhash::FxHasher32;
 
 /// The system control register (p15 register 1).
 #[derive(Copy, Clone)]
@@ -106,7 +107,7 @@ pub struct SystemControl {
     /// Fault address register (data)
     pub c6_dfar: u32,
     /// Holds a cache of L1 MMU translations
-    l1_tlb: RefCell<BTreeMap<u32, u32>>,
+    l1_tlb: RefCell<HashMap<u32, u32, BuildHasherDefault<FxHasher32>>>,
 }
 
 impl Default for SystemControl {
@@ -124,7 +125,7 @@ impl SystemControl {
             c5_dfsr: 0,
             c5_ifsr: 0,
             c6_dfar: 0,
-            l1_tlb: RefCell::new(BTreeMap::new()),
+            l1_tlb: RefCell::new(HashMap::with_hasher(BuildHasherDefault::<FxHasher32>::default())),
         }
     }
 
