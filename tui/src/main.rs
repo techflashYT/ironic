@@ -41,19 +41,19 @@ fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
     let dir = temp_dir();
 
     let mut sram0_dir = temp_dir();
-    sram0_dir.push("sram0-bkpt");
+    sram0_dir.push("sram0");
     bus.sram0.dump(&sram0_dir)?;
 
     let mut sram1_dir = temp_dir();
-    sram1_dir.push("sram1-bkpt");
+    sram1_dir.push("sram1");
     bus.sram1.dump(&sram1_dir)?;
 
     let mut mem1_dir = temp_dir();
-    mem1_dir.push("mem1-bkpt");
+    mem1_dir.push("mem1");
     bus.mem1.dump(&mem1_dir)?;
 
     let mut mem2_dir = dir;
-    mem2_dir.push("mem2-bkpt");
+    mem2_dir.push("mem2");
     bus.mem2.dump(&mem2_dir)?;
     Ok(())
 }
