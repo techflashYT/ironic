@@ -1,4 +1,4 @@
-use clap::{ArgEnum, Parser};
+use clap::{Parser, ValueEnum};
 
 use ironic_core::bus::*;
 use ironic_backend::interp::*;
@@ -12,16 +12,22 @@ use std::thread::Builder;
 use std::env::temp_dir;
 
 /// User-specified backend type.
-#[derive(ArgEnum, Clone, Debug)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum BackendType {
     Interp,
     JIT
 }
 
+impl std::fmt::Display for BackendType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Parser, Debug)]
 struct Args {
     /// Emulator backend to use
-    #[clap(short, long, arg_enum, default_value_t = BackendType::Interp)]
+    #[clap(short, long, default_value = "interp")]
     backend: BackendType,
     /// Path to a custom kernel ELF
     #[clap(short, long)]
