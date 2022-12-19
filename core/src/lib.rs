@@ -1,3 +1,4 @@
+#![feature(once_cell)]
 
 /// Emulated CPU state and common operations.
 pub mod cpu;

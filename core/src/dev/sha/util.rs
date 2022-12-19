@@ -12,7 +12,10 @@
 //! messages which aren't a multiple of 64-bytes long, or it always performs 
 //! DMA reads in 64-byte chunks).
 
+use std::cell::OnceCell;
+
 const K: [u32; 4] = [ 0x5a82_7999, 0x6ed9_eba1, 0x8f1b_bcdc, 0xca62_c1d6, ];
+const PROCESS_MSG_FN: OnceCell<unsafe fn(&mut Sha1State)> = OnceCell::new();
 
 pub struct Sha1State {
     pub digest: [u32; 5],
@@ -27,6 +30,9 @@ impl Default for Sha1State {
 
 impl Sha1State {
     pub fn new() -> Self {
+        if PROCESS_MSG_FN.get().is_none() {
+            init_process_msg_fn_ptr();
+        }
         Sha1State { digest: [0; 5], buf: [0; 64] }
     }
     pub fn reset(&mut self) {
@@ -44,9 +50,46 @@ impl Sha1State {
         }
     }
 
-    // I wonder if this would perform better if you unrolled everything?
     fn process_message(&mut self) {
-        //let k = K;
+        // SAFETY:
+        //   for unwrap_unchecked - we could only be here if we have &mut self
+        //     and the only constructor initialized the OnceCell or panics
+        //   for calling the unsafe funtion ptr - these functions are unsafe
+        //      due to the use of #[target_feature] to enable optimizations, the initialization
+        //      of the OnceCell does the proper feature checks to ensure the target_feature is present
+        //      on the current CPU
+        unsafe { PROCESS_MSG_FN.get().unwrap_unchecked()(self) };
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    #[target_feature(enable = "neon")]
+    #[target_feature(enable = "sve2")]
+    unsafe fn process_message_aarch_neon_sve2(&mut self) {
+        self.process_message_scalar()
+    }
+
+
+    #[cfg(target_arch = "aarch64")]
+    #[target_feature(enable = "neon")]
+    unsafe fn process_message_aarch_neon(&mut self) {
+        self.process_message_scalar()
+    }
+
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    #[target_feature(enable = "avx2")]
+    #[target_feature(enable = "fma")]
+    unsafe fn process_message_ia_avx2_and_fma(&mut self) {
+        self.process_message_scalar()
+    }
+
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    #[target_feature(enable = "sse4.2")]
+    unsafe fn process_message_ia_sse42(&mut self) {
+        self.process_message_scalar()
+    }
+
+    #[inline(always)]
+    fn process_message_scalar(&mut self) {
         let mut a = self.digest[0];
         let mut b = self.digest[1];
         let mut c = self.digest[2];
@@ -67,7 +110,6 @@ impl Sha1State {
         }
 
         for t in 0..20 {
-            //let temp = a.rotate_left(5) + ((b & c) | ((!b) & d)) + e + w[t] + K[0];
             let temp = a.rotate_left(5)
                 .wrapping_add((b & c) | ((!b) & d))
                 .wrapping_add(e)
@@ -82,7 +124,6 @@ impl Sha1State {
         }
 
         for t in 20..40 {
-            //let temp = a.rotate_left(5) + (b ^ c ^ d) + e + w[t] + K[1];
             let temp = a.rotate_left(5)
                 .wrapping_add(b ^ c ^ d)
                 .wrapping_add(e)
@@ -97,7 +138,6 @@ impl Sha1State {
         }
 
         for t in 40..60 {
-            //let temp = a.rotate_left(5) + ((b & c) | (b & d) | (c & d)) + e + w[t] + K[2];
             let temp = a.rotate_left(5)
                 .wrapping_add((b & c) | (b & d) | (c & d))
                 .wrapping_add(e)
@@ -125,16 +165,54 @@ impl Sha1State {
             a = temp;
         }
 
-        //self.digest[0] += a;
-        //self.digest[1] += b;
-        //self.digest[2] += c;
-        //self.digest[3] += d;
-        //self.digest[4] += e;
         self.digest[0] = self.digest[0].wrapping_add(a);
         self.digest[1] = self.digest[1].wrapping_add(b);
         self.digest[2] = self.digest[2].wrapping_add(c);
         self.digest[3] = self.digest[3].wrapping_add(d);
         self.digest[4] = self.digest[4].wrapping_add(e);
 
+    }
+}
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+fn init_process_msg_fn_ptr() {
+    let err;
+    if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
+        err = PROCESS_MSG_FN.set(Sha1State::process_message_ia_avx2_and_fma);
+    }
+    else if is_x86_feature_detected!("sse4.2") {
+        err = PROCESS_MSG_FN.set(Sha1State::process_message_ia_sse42);
+    }
+    else {
+        err = PROCESS_MSG_FN.set(Sha1State::process_message_scalar)
+    }
+    if err.is_err() {
+        panic!("Failed to initialize Sha function pointer.");
+    }
+}
+
+
+#[cfg(target_arch = "aarch64")]
+fn init_process_msg_fn_ptr() {
+    use std::arch::is_aarch64_feature_detected;
+    let err;
+    if is_aarch64_feature_detected!("sve2") {
+        err = PROCESS_MSG_FN.set(Sha1State::process_message_aarch_neon_sve2)
+    }
+    else if is_aarch64_feature_detected!("neon") {
+        err = PROCESS_MSG_FN.set(Sha1State::process_message_aarch_neon);
+    }
+    else {
+        err = PROCESS_MSG_FN.set(Sha1State::process_message_scalar);
+    }
+    if err.is_err() {
+        panic!("Failed to initialize Sha function pointer.");
+    }
+}
+
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
+fn init_process_msg_fn_ptr() {
+    if PROCESS_MSG_FN.set(Sha1State::process_message_scalar).is_err() {
+        panic!("Failed to initialize Sha function pointer.");
     }
 }
