@@ -15,7 +15,20 @@
 use std::cell::OnceCell;
 
 const K: [u32; 4] = [ 0x5a82_7999, 0x6ed9_eba1, 0x8f1b_bcdc, 0xca62_c1d6, ];
-const PROCESS_MSG_FN: OnceCell<unsafe fn(&mut Sha1State)> = OnceCell::new();
+
+struct SyncSha1FnPtr {
+    pub inner: OnceCell<unsafe fn(&mut Sha1State)>
+}
+
+impl SyncSha1FnPtr {
+    const fn new() -> Self {
+        Self { inner: OnceCell::new() }
+    }
+}
+
+unsafe impl Sync for SyncSha1FnPtr {}
+
+static PROCESS_MSG_FN: SyncSha1FnPtr = SyncSha1FnPtr::new();
 
 pub struct Sha1State {
     pub digest: [u32; 5],
@@ -30,7 +43,7 @@ impl Default for Sha1State {
 
 impl Sha1State {
     pub fn new() -> Self {
-        if PROCESS_MSG_FN.get().is_none() {
+        if PROCESS_MSG_FN.inner.get().is_none() {
             init_process_msg_fn_ptr();
         }
         Sha1State { digest: [0; 5], buf: [0; 64] }
@@ -58,7 +71,7 @@ impl Sha1State {
         //      due to the use of #[target_feature] to enable optimizations, the initialization
         //      of the OnceCell does the proper feature checks to ensure the target_feature is present
         //      on the current CPU
-        unsafe { PROCESS_MSG_FN.get().unwrap_unchecked()(self) };
+        unsafe { PROCESS_MSG_FN.inner.get().unwrap_unchecked()(self) };
     }
 
     #[cfg(target_arch = "aarch64")]
@@ -178,13 +191,13 @@ impl Sha1State {
 fn init_process_msg_fn_ptr() {
     let err;
     if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
-        err = PROCESS_MSG_FN.set(Sha1State::process_message_ia_avx2_and_fma);
+        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_ia_avx2_and_fma);
     }
     else if is_x86_feature_detected!("sse4.2") {
-        err = PROCESS_MSG_FN.set(Sha1State::process_message_ia_sse42);
+        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_ia_sse42);
     }
     else {
-        err = PROCESS_MSG_FN.set(Sha1State::process_message_scalar)
+        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_scalar)
     }
     if err.is_err() {
         panic!("Failed to initialize Sha function pointer.");

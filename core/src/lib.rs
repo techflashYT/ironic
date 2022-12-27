@@ -1,4 +1,4 @@
-#![feature(once_cell)]
+#![feature(const_mut_refs, once_cell)]
 
 /// Emulated CPU state and common operations.
 pub mod cpu;
