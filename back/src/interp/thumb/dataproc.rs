@@ -230,8 +230,7 @@ pub fn cmp_reg_alt(cpu: &mut Cpu, op: CmpRegAltBits) -> DispatchRes {
     DispatchRes::RetireOk
 }
 
-/// NOTE: Not sure this is correct?
-pub fn rsb_imm(cpu: &mut Cpu, op: RsbImmBits) -> DispatchRes {
+pub fn neg(cpu: &mut Cpu, op: NegBits) -> DispatchRes {
     let rn_val = cpu.reg[op.rn()];
     let (alu_out, n, z, c, v) = sub_generic(0, rn_val);
     cpu.reg[op.rd()] = alu_out;

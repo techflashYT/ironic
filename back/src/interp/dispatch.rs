@@ -158,7 +158,7 @@ impl ThumbFn {
             StrbImm     => ThumbFn(tfn!(thumb::loadstore::strb_imm)),
             StrhImm     => ThumbFn(tfn!(thumb::loadstore::strh_imm)),
 
-            RsbImm      => ThumbFn(tfn!(thumb::dataproc::rsb_imm)),
+            Neg         => ThumbFn(tfn!(thumb::dataproc::neg)),
             CmpImm      => ThumbFn(tfn!(thumb::dataproc::cmp_imm)),
             CmpReg      => ThumbFn(tfn!(thumb::dataproc::cmp_reg)),
             CmpRegAlt   => ThumbFn(tfn!(thumb::dataproc::cmp_reg_alt)),

@@ -10,10 +10,10 @@ impl BlBits {
 }
 
 
-/// ['RsbImm']
+/// ['Neg']
 #[repr(transparent)]
-pub struct RsbImmBits(pub u16);
-impl RsbImmBits {
+pub struct NegBits(pub u16);
+impl NegBits {
     #[inline(always)]
     pub fn rn(&self) -> u16 { (self.0 & 0x0038) >> 3 }
     #[inline(always)]

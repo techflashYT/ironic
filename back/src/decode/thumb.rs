@@ -6,7 +6,7 @@ pub enum ThumbInst {
     AndReg, MovReg, SubReg, AddReg, CmpRegAlt, AddRegAlt, MovRegAlt,
     MovRegShiftReg,
 
-    RsbImm, AddImm, MovImm, SubImm, CmpImm, AddSpImm, SubSpImm,
+    Neg, AddImm, MovImm, SubImm, CmpImm, AddSpImm, SubSpImm,
     AddSpImmAlt, AddImmAlt, SubImmAlt, 
 
     StrbReg, LdrhReg, LdrbReg, StrReg, StrhReg, LdrReg, LdrsbReg, LdrshReg,
@@ -29,7 +29,7 @@ impl ThumbInst {
     pub const fn decode(opcd: u16) -> ThumbInst {
         use ThumbInst::*;
         match opcd & 0xffc0 {
-            0x4240 => return RsbImm,
+            0x4240 => return Neg,
             0x4180 => return SbcReg,
             0x4280 => return CmpReg,
             0x4300 => return OrrReg,
