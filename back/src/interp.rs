@@ -25,6 +25,16 @@ use ironic_core::cpu::{Cpu, CpuRes};
 use ironic_core::cpu::reg::Reg;
 use ironic_core::cpu::excep::ExceptionType;
 
+/// A list of known boot1 hashes in OTP
+/// https://wiibrew.org/wiki/Boot1
+static BOOT1_VERSIONS: &[([u32;5], &str)] = &[
+    ([0x0, 0x0, 0x0, 0x0, 0x0], "? - OTP NOT FACTORY PROGRAMMED!"),
+    ([0xb30c32b9, 0x62c7cd08, 0xabe33d01, 0x5b9b8b1d, 0xb1097544], "a"),
+    ([0xef3ef781, 0x09608d56, 0xdf5679a6, 0xf92e13f7, 0x8bbddfdf], "b"),
+    ([0xd220c8a4, 0x86c631d0, 0xdf5adb31, 0x96ecbc66, 0x8780cc8d], "c"),
+    ([0xf793068a, 0x09e80986, 0xe2a023c0, 0xc23f0614, 0x0ed16974], "d"),
+];
+
 
 /// Current stage in the platform's boot process.
 #[derive(PartialEq)]
@@ -97,31 +107,51 @@ impl InterpBackend {
     pub fn update_boot_status(&mut self) {
         match self.boot_status {
             BootStatus::Boot0 => {
-                if self.cpu.read_fetch_pc() == 0xfff0_0000 { 
-                    println!("Entered boot1");
+                if self.cpu.read_fetch_pc() == 0xfff0_0000 {
+                    if let Ok(bus) = self.bus.try_read() { // Try to detect boot1 version
+                        let boot1_otp_hash =
+                        [
+                            bus.hlwd.otp.read(0),
+                            bus.hlwd.otp.read(1),
+                            bus.hlwd.otp.read(2),
+                            bus.hlwd.otp.read(3),
+                            bus.hlwd.otp.read(4),
+                        ];
+                        let mut version = "? (unknown)";
+                        for known_versions in BOOT1_VERSIONS {
+                            if boot1_otp_hash == known_versions.0 {
+                                version = known_versions.1;
+                                break;
+                            }
+                        }
+                        eprintln!("Entered boot1. Version: boot1{version}");
+                    }
+                    else { // Couldn't get bus -> no problem skip it.
+                        eprintln!("Entered boot1");
+                    }
                     self.boot_status = BootStatus::Boot1;
                 }
             }
             BootStatus::Boot1 => {
-                if self.cpu.read_fetch_pc() == 0xfff0_0058 { 
+                if self.cpu.read_fetch_pc() == 0xfff0_0058 {
                     println!("Entered boot2 stub");
                     self.boot_status = BootStatus::Boot2Stub;
                 }
             }
             BootStatus::Boot2Stub => {
-                if self.cpu.read_fetch_pc() == 0xffff_0000 { 
+                if self.cpu.read_fetch_pc() == 0xffff_0000 {
                     println!("Entered boot2");
                     self.boot_status = BootStatus::Boot2;
                 }
             }
             BootStatus::Boot2 => {
-                if self.cpu.read_fetch_pc() == 0xffff_2224 { 
+                if self.cpu.read_fetch_pc() == 0xffff_2224 {
                     println!("Entered kernel");
                     self.boot_status = BootStatus::IOSKernel;
                 }
             }
             BootStatus::IOSKernel => {
-                if self.cpu.read_fetch_pc() == 0x0001_0000 { 
+                if self.cpu.read_fetch_pc() == 0x0001_0000 {
                     println!("Entered foreign kernel stub");
                     self.boot_status = BootStatus::UserKernelStub;
                 }

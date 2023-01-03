@@ -23,7 +23,7 @@ impl OtpInterface {
 
 impl OtpInterface {
     /// Read a word from OTP memory.
-    fn read(&self, word_idx: usize) -> u32 {
+    pub fn read(&self, word_idx: usize) -> u32 {
         let off = word_idx * 4;
         assert!(off + 4 <= self.data.len());
         //println!("OTP read {:08x} @ idx={:x}", res, word_idx);
