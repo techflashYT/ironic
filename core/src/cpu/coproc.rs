@@ -198,6 +198,10 @@ impl SystemControl {
             },
 
             CacheControl => match (crm, opcd2) {
+                (0, 4) => { // wait for interrupt
+                    // This isn't implemented currently. Since interrupts are serviced immediately, we should be able to no-op right?
+                    unimplemented!("CacheControl WaitForInterrupt (crm={crm} opcd2={opcd2})")
+                },
                 (5, 0) => {}, // Invalidate entire icache
                 (6, 0) => {}, // Invalidate entire dcache
                 (6, 1) => {}, // Invalidate dcache line
