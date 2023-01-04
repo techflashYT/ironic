@@ -408,7 +408,8 @@ impl Backend for InterpBackend {
             match res {
                 CpuRes::StepOk => {},
                 CpuRes::HaltEmulation(reason) => {
-                    println!("CPU returned fatal error: {reason}");
+                    eprintln!("CPU returned fatal error: {reason}");
+                    eprintln!("{:?}", self.cpu.reg);
                     break;
                 },
                 CpuRes::StepException(e) => {
