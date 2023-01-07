@@ -2,6 +2,7 @@
 pub mod util;
 
 use anyhow::bail;
+use log::{debug, trace, log_enabled};
 
 use crate::bus::*;
 use crate::bus::prim::*;
@@ -94,20 +95,21 @@ impl Bus {
 
         let mut sha_buf = vec![0u8; cmd.len as usize];
         self.dma_read(self.sha.src, &mut sha_buf)?;
-        /*
-        eprintln!("SHA DMA Buffer dump: {} bytes", sha_buf.len());
-        for chunk in sha_buf.chunks(8) {
-            for byte in chunk {
-                eprint!("{byte:04x} ");
+        if log_enabled!(target: "SHA", log::Level::Trace) {
+            let mut msg = format!("SHA DMA Buffer dump: {} bytes\n", sha_buf.len());
+            for chunk in sha_buf.chunks(8) {
+                for byte in chunk {
+                    msg += &format!("{byte:04x} ");
+                }
+                msg += "\n";
             }
-            eprintln!();
+            trace!(target: "SHA", "{msg}");
         }
-        */
 
         self.sha.state.update(&sha_buf);
 
-        //eprintln!("SHA Digest addr={:08x} len={:08x}", self.sha.src, cmd.len);
-        //eprintln!("SHA buffer {:02x?}", self.sha.state.digest);
+        debug!(target: "SHA", "SHA Digest addr={:08x} len={:08x}", self.sha.src, cmd.len);
+        debug!(target: "SHA", "SHA buffer {:02x?}", self.sha.state.digest);
 
         // Mark the command as completed
         self.sha.src += cmd.len;
