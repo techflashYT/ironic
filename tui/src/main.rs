@@ -35,6 +35,9 @@ struct Args {
     /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
     ppc_hle: Option<bool>,
+    /// Define log levels for the program
+    #[clap(long)]
+    logging: Option<String>,
 }
 
 fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
@@ -60,6 +63,7 @@ fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+    handle_logging_argument(args.logging.unwrap_or("error".to_string()))?;
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle.unwrap_or(false);
 
@@ -114,3 +118,60 @@ fn main() -> anyhow::Result<()> {
 
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+enum LogTarget {
+    Other,
+}
+
+impl std::fmt::Display for LogTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Other => { return write!(f, "Other"); },
+        }
+    }
+}
+
+impl std::str::FromStr for LogTarget {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "other" => Ok(Self::Other),
+            _ => Err(anyhow::anyhow!("No such variant: {s}"))
+        }
+    }
+}
+
+fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarget, log::LevelFilter)]) -> anyhow::Result<()> {
+    let mut config = fern::Dispatch::new().level(base_level);
+    for specific_override in target_level_overrides {
+        config = config.level_for(specific_override.0.to_string(), specific_override.1);
+    }
+    config = config.format(|out, message, record| {
+        out.finish(format_args!(
+            "[{}][{}] {}",
+            record.target(),
+            record.level(),
+            message
+        ))
+    }).chain(std::io::stderr());
+    Ok(config.apply()?)
+}
+
+fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
+    if !log_string.contains(",") {
+        let base_only = log_string.parse::<log::LevelFilter>()?;
+        return setup_logger(base_only, &[]);
+    }
+    let mut split = log_string.split(",");
+    let base_level = split.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<log::LevelFilter>()?;
+    let mut target_level_overrides: Vec<(LogTarget, log::LevelFilter)> = Vec::new();
+    for part in split {
+        let mut inner = part.split(":");
+        let target = inner.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<LogTarget>()?;
+        let specific_override = inner.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<log::LevelFilter>()?;
+        target_level_overrides.push((target, specific_override));
+    }
+    setup_logger(base_level, target_level_overrides.as_slice())
+}
