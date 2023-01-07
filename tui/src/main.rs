@@ -121,13 +121,23 @@ fn main() -> anyhow::Result<()> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 enum LogTarget {
+    AES,
+    EXI,
+    NAND,
+    SHA,
+    xHCI,
     Other,
 }
 
 impl std::fmt::Display for LogTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Other => { return write!(f, "Other"); },
+            Self::AES        => return f.write_str("AES"),
+            Self::EXI        => return f.write_str("EXI"),
+            Self::NAND       => return f.write_str("NAND"),
+            Self::SHA        => return f.write_str("SHA"),
+            Self::xHCI       => return f.write_str("xHCI"),
+            Self::Other      => return f.write_str("Other"),
         }
     }
 }
@@ -137,6 +147,11 @@ impl std::str::FromStr for LogTarget {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "aes" => Ok(Self::AES),
+            "exi" => Ok(Self::EXI),
+            "nand" => Ok(Self::NAND),
+            "sha" => Ok(Self::SHA),
+            "xhci" => Ok(Self::xHCI),
             "other" => Ok(Self::Other),
             _ => Err(anyhow::anyhow!("No such variant: {s}"))
         }
