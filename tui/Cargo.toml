@@ -13,4 +13,4 @@ ironic-backend = { path = "../back" }
 clap = { version = "4.0.26", features = ["std", "derive", "suggestions", "color", "wrap_help"]}
 anyhow = { version = "1.0.66", features = ["std", "backtrace"] }
 log = { version = "0.4.17", default-features = false, features = ["std"] }
-fern = "0.6.1"
+fern = { version = "0.6.1", features = ["colored"] }

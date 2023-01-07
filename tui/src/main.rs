@@ -160,15 +160,17 @@ impl std::str::FromStr for LogTarget {
 }
 
 fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarget, log::LevelFilter)]) -> anyhow::Result<()> {
+    use fern::colors::{Color, ColoredLevelConfig};
+    let colors = ColoredLevelConfig::default().debug(Color::Cyan).trace(Color::BrightCyan);
     let mut config = fern::Dispatch::new().level(base_level);
     for specific_override in target_level_overrides {
         config = config.level_for(specific_override.0.to_string(), specific_override.1);
     }
-    config = config.format(|out, message, record| {
+    config = config.format(move |out, message, record| {
         out.finish(format_args!(
             "[{}][{}] {}",
             record.target(),
-            record.level(),
+            colors.color(record.level()),
             message
         ))
     }).chain(std::io::stderr());
