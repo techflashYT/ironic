@@ -20,7 +20,7 @@ pub enum BackendType {
 
 impl std::fmt::Display for BackendType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -120,6 +120,7 @@ fn main() -> anyhow::Result<()> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 enum LogTarget {
     AES,
     EXI,
@@ -132,12 +133,12 @@ enum LogTarget {
 impl std::fmt::Display for LogTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::AES        => return f.write_str("AES"),
-            Self::EXI        => return f.write_str("EXI"),
-            Self::NAND       => return f.write_str("NAND"),
-            Self::SHA        => return f.write_str("SHA"),
-            Self::xHCI       => return f.write_str("xHCI"),
-            Self::Other      => return f.write_str("Other"),
+            Self::AES        => f.write_str("AES"),
+            Self::EXI        => f.write_str("EXI"),
+            Self::NAND       => f.write_str("NAND"),
+            Self::SHA        => f.write_str("SHA"),
+            Self::xHCI       => f.write_str("xHCI"),
+            Self::Other      => f.write_str("Other"),
         }
     }
 }
@@ -175,15 +176,15 @@ fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarg
 }
 
 fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
-    if !log_string.contains(",") {
+    if !log_string.contains(',') {
         let base_only = log_string.parse::<log::LevelFilter>()?;
         return setup_logger(base_only, &[]);
     }
-    let mut split = log_string.split(",");
+    let mut split = log_string.split(',');
     let base_level = split.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<log::LevelFilter>()?;
     let mut target_level_overrides: Vec<(LogTarget, log::LevelFilter)> = Vec::new();
     for part in split {
-        let mut inner = part.split(":");
+        let mut inner = part.split(':');
         let target = inner.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<LogTarget>()?;
         let specific_override = inner.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<log::LevelFilter>()?;
         target_level_overrides.push((target, specific_override));
