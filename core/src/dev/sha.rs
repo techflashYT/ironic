@@ -94,12 +94,20 @@ impl Bus {
 
         let mut sha_buf = vec![0u8; cmd.len as usize];
         self.dma_read(self.sha.src, &mut sha_buf)?;
-        //println!("{:?}", sha_buf.hex_dump());
+        /*
+        eprintln!("SHA DMA Buffer dump: {} bytes", sha_buf.len());
+        for chunk in sha_buf.chunks(8) {
+            for byte in chunk {
+                eprint!("{byte:04x} ");
+            }
+            eprintln!();
+        }
+        */
 
         self.sha.state.update(&sha_buf);
 
-        //println!("SHA Digest addr={:08x} len={:08x}", sha.src, cmd.len);
-        //println!("SHA buffer {:02x?}", sha.state.digest);
+        //eprintln!("SHA Digest addr={:08x} len={:08x}", self.sha.src, cmd.len);
+        //eprintln!("SHA buffer {:02x?}", self.sha.state.digest);
 
         // Mark the command as completed
         self.sha.src += cmd.len;
