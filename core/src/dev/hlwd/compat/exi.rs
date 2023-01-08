@@ -147,10 +147,11 @@ impl EXIChannel {
             0x10 => self.data,
             _ => { bail!("EXI chn{} OOB read at {off:08x}", self.idx); },
         };
-        println!("EXI chn{} read {res:08x} from offset {off:x}", self.idx);
+        log::debug!(target: "EXI", "chn{} read {res:08x} from offset {off:x}", self.idx);
         Ok(res)
     }
     pub fn write(&mut self, off: usize, val: u32) -> anyhow::Result<()> {
+        log::debug!(target: "EXI", "chn{} write {val:08x} at {off:08x}", self.idx);
         match off {
             0x00 => {
                 self.csr = val;
@@ -173,8 +174,9 @@ impl EXIChannel {
         self.state = ChannelState::from_chn(self.idx, self.csr, self.ctrl);
 
         if self.state.transfer {
+            // FIXME: implement EXI transfers to something (literally anything)
             self.ctrl &= !1;
-            println!("FIXME FIXME EXI Transfer swallowed!");
+            log::error!(target: "EXI", "Transfer swallowed!");
         }
     }
 }
