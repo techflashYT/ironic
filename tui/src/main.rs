@@ -63,7 +63,7 @@ fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    handle_logging_argument(args.logging.unwrap_or("error".to_string()))?;
+    handle_logging_argument(args.logging.unwrap_or("info".to_string()))?;
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle.unwrap_or(false);
 
@@ -123,6 +123,7 @@ fn main() -> anyhow::Result<()> {
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 enum LogTarget {
     AES,
+    DEBUG_PORT,
     EXI,
     NAND,
     SHA,
@@ -134,6 +135,7 @@ impl std::fmt::Display for LogTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::AES        => f.write_str("AES"),
+            Self::DEBUG_PORT => f.write_str("DEBUG_PORT"),
             Self::EXI        => f.write_str("EXI"),
             Self::NAND       => f.write_str("NAND"),
             Self::SHA        => f.write_str("SHA"),
@@ -149,6 +151,7 @@ impl std::str::FromStr for LogTarget {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "aes" => Ok(Self::AES),
+            "debug_port" => Ok(Self::DEBUG_PORT),
             "exi" => Ok(Self::EXI),
             "nand" => Ok(Self::NAND),
             "sha" => Ok(Self::SHA),
