@@ -1,15 +1,22 @@
-use clap::{Parser, ValueEnum};
-
 use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
 use ironic_backend::ppc::*;
+use strum::VariantNames;
 
 use std::panic;
 use std::process;
 use std::sync::{Arc, RwLock};
 use std::thread::Builder;
 use std::env::temp_dir;
+
+use clap::{Parser, ValueEnum};
+
+const LOGGING_EXAMPLE_TXT: &str = "
+Example usage for --logging
+ Set base log level to INFO: `--logging info`
+ Set base log level to WARN but override SHA to DEBUG: --logging warn,sha:debug
+ Set base log level to ERROR but override SHA to TRACE and AES to DEBUG: --logging ERROR,sha:trace,aes:DEBUG";
 
 /// User-specified backend type.
 #[derive(Clone, Debug, ValueEnum)]
@@ -36,8 +43,8 @@ struct Args {
     #[clap(short, long)]
     ppc_hle: Option<bool>,
     /// Define log levels for the program
-    #[clap(long)]
-    logging: Option<String>,
+    #[clap(long, default_value="info")]
+    logging: String,
 }
 
 fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
@@ -63,7 +70,7 @@ fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    handle_logging_argument(args.logging.unwrap_or("info".to_string()))?;
+    handle_logging_argument(args.logging)?;
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle.unwrap_or(false);
 
@@ -118,8 +125,8 @@ fn main() -> anyhow::Result<()> {
 
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::AsRefStr, strum::Display, strum::EnumVariantNames, strum::EnumString)]
+#[strum(ascii_case_insensitive)]
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 enum LogTarget {
     AES,
@@ -129,37 +136,6 @@ enum LogTarget {
     SHA,
     xHCI,
     Other,
-}
-
-impl std::fmt::Display for LogTarget {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::AES        => f.write_str("AES"),
-            Self::DEBUG_PORT => f.write_str("DEBUG_PORT"),
-            Self::EXI        => f.write_str("EXI"),
-            Self::NAND       => f.write_str("NAND"),
-            Self::SHA        => f.write_str("SHA"),
-            Self::xHCI       => f.write_str("xHCI"),
-            Self::Other      => f.write_str("Other"),
-        }
-    }
-}
-
-impl std::str::FromStr for LogTarget {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "aes" => Ok(Self::AES),
-            "debug_port" => Ok(Self::DEBUG_PORT),
-            "exi" => Ok(Self::EXI),
-            "nand" => Ok(Self::NAND),
-            "sha" => Ok(Self::SHA),
-            "xhci" => Ok(Self::xHCI),
-            "other" => Ok(Self::Other),
-            _ => Err(anyhow::anyhow!("No such variant: {s}"))
-        }
-    }
 }
 
 fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarget, log::LevelFilter)]) -> anyhow::Result<()> {
@@ -180,19 +156,51 @@ fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarg
     Ok(config.apply()?)
 }
 
+// I'm sorry for this monster
 fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
     if !log_string.contains(',') {
-        let base_only = log_string.parse::<log::LevelFilter>()?;
-        return setup_logger(base_only, &[]);
+        if let Ok(base_only) = log_string.parse::<log::LevelFilter>() {
+            return setup_logger(base_only, &[]);
+        }
+        anyhow::bail!(
+            "Failed to parse --logging argument: Base-level must be `off`, `error`, `warn`, `info`, `debug`, or `trace`. You supplied \"{log_string}\"{LOGGING_EXAMPLE_TXT}"
+        );
     }
     let mut split = log_string.split(',');
-    let base_level = split.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<log::LevelFilter>()?;
-    let mut target_level_overrides: Vec<(LogTarget, log::LevelFilter)> = Vec::new();
-    for part in split {
-        let mut inner = part.split(':');
-        let target = inner.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<LogTarget>()?;
-        let specific_override = inner.next().ok_or_else(|| anyhow::anyhow!("Log string improper format"))?.parse::<log::LevelFilter>()?;
-        target_level_overrides.push((target, specific_override));
+    let maybe_base_level = split.next().expect("BUG parsing logging argument! First call to Split.next() should always be Some(...)");
+    if let Ok(base_level) = maybe_base_level.parse::<log::LevelFilter>() {
+        let mut target_level_overrides: Vec<(LogTarget, log::LevelFilter)> = Vec::new();
+        for part in split {
+            let mut inner = part.split(':');
+            let maybe_target = inner.next().expect("BUG parsing logging argument! First call to Split.next() should always be Some(...)");
+            if let Ok(target) = maybe_target.parse::<LogTarget>()
+            {
+                let maybe_specific_override = inner.next().expect("BUG parsing logging argument! If we got this far, this call to Split.next() should return Some(...)");
+                if let Ok(specific_override) = maybe_specific_override.parse::<log::LevelFilter>()
+                {
+                    target_level_overrides.push((target, specific_override));
+                }
+                else {
+                    //parsing level failed
+                    anyhow::bail!(
+                        "Failed to parse --logging argument: Log level for target: {target} is not valid. Log level must be be `off`, `error`, `warn`, `info`, `debug`, or `trace`. You supplied \"{maybe_specific_override}\"{LOGGING_EXAMPLE_TXT}"
+                    )
+                }
+            }
+            else {
+                // parsing target failed
+                anyhow::bail!(
+                    "Failed to parse --logging argument: Not a valid logging subsystem/target! You specified: \"{maybe_target}\"\nValid options are:\n{:#?}{LOGGING_EXAMPLE_TXT}",
+                    LogTarget::VARIANTS
+                );
+            }
+        }
+        return setup_logger(base_level, target_level_overrides.as_slice());
     }
-    setup_logger(base_level, target_level_overrides.as_slice())
+    else {
+        // Failed to parse base level
+        anyhow::bail!(
+            "Failed to parse --logging argument: Base-level must be `off`, `error`, `warn`, `info`, `debug`, or `trace`. You supplied \"{maybe_base_level}\"{LOGGING_EXAMPLE_TXT}"
+        );
+    }
 }
