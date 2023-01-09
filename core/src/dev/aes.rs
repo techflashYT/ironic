@@ -4,6 +4,8 @@ extern crate cbc;
 
 use aes::cipher::{block_padding::NoPadding, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use anyhow::{bail};
+use log::log_enabled;
+use log::{debug, trace};
 
 type Aes128CbcEnc = cbc::Encryptor<aes::Aes128>;
 type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
@@ -63,15 +65,6 @@ impl AesInterface {
             iv_buffer: [0; 0x10]
         }
     }
-    ///// Reset the AES interface.
-    //fn reset(&mut self) {
-    //    self.ctrl = 0;
-    //    self.src = 0;
-    //    self.dst = 0;
-    //    self.key_fifo.clear();
-    //    self.iv_fifo.clear();
-    //    self.iv_buffer = [0; 0x10];
-    //}
 }
 
 impl MmioDevice for AesInterface {
@@ -132,6 +125,16 @@ impl Bus {
         // Read data from the source address
         let mut aes_inbuf = vec![0u8; cmd.len];
         self.dma_read(self.aes.src, &mut aes_inbuf)?;
+        if log_enabled!(target: "AES", log::Level::Trace) {
+            let mut msg = format!("AES DMA Buffer dump: {} bytes\n", aes_inbuf.len());
+            for chunk in aes_inbuf.chunks(8) {
+                for byte in chunk {
+                    msg += &format!("{byte:04x} ");
+                }
+                msg += "\n";
+            }
+            trace!(target: "AES", "{msg}");
+        }
 
         if cmd.use_aes {
             // Build the right AES cipher for this request
@@ -143,10 +146,9 @@ impl Bus {
                 iv.copy_from_slice(self.aes.iv_fifo.as_slices().0);
             }
 
-            //println!("AES key={:02x?}", key);
-            //println!("AES iv={:02x?}", iv);
-            //println!("AES Decrypt src={:08x} dst={:08x} len={:08x}", 
-            //  self.aes.src, self.aes.dst, cmd.len);
+            debug!(target: "AES", "AES key={key:02x?}");
+            debug!(target: "AES", "AES iv={iv:02x?}");
+            debug!(target: "AES", "AES Decrypt src={:08x} dst={:08x} len={:08x}", self.aes.src, self.aes.dst, cmd.len);
 
             let cipher_dec = Aes128CbcDec::new_from_slices(key, &iv).unwrap();
             let cipher_enc = Aes128CbcEnc::new_from_slices(key, &iv).unwrap();
