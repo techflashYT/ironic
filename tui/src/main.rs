@@ -134,6 +134,7 @@ enum LogTarget {
     EXI,
     HLWD,
     IPC,
+    IRQ,
     NAND,
     SEEPROM,
     SHA,

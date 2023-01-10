@@ -1,4 +1,5 @@
 use anyhow::bail;
+use log::{debug, error, info};
 
 
 #[derive(Debug, Copy, Clone)]
@@ -91,25 +92,25 @@ impl IrqInterface {
         match off {
             0x04 => {
                 self.ppc_irq_enable.0 = val;
-                println!("IRQ PPC enable={val:08x}");
+                info!(target: "IRQ", "PPC enable={val:08x}");
             },
 
             0x08 => {
-                //println!("IRQ status bits {:08x} cleared", val);
+                debug!(target: "IRQ", "status bits {:08x} cleared", val);
                 self.arm_irq_status.0 &= !val;
             },
 
             // NOTE: When a pin is disabled, does it clear the status bit?
             0x0c => {
                 self.arm_irq_enable.0 = val;
-                println!("IRQ ARM enable={val:08x}");
+                info!(target: "IRQ", "ARM enable={val:08x}");
             },
 
             0x10 => {
                 self.arm_fiq_enable.0 = val;
             },
             0x2c => { // HW_DBGINTEN ???? temporarily ignore because it's a blocker to more interesting things.
-                println!("FIXME FIXME FIXME: suppressed IRQ write at offset: 0x2c (maybe: HW_BDGINTEN) val: {val:#10x}");
+                error!(target: "IRQ", "FIXME: suppressed IRQ write at offset: 0x2c (maybe: HW_BDGINTEN) val: {val:#10x}");
             },
             _ => { bail!("Unhandled write {:08x} on HLWD IRQ interface {:02x}", 
                 val, off); },
