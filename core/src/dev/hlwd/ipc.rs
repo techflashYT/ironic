@@ -1,6 +1,7 @@
 //use crate::bus::task::*;
 //use crate::dev::hlwd::irq::*;
 use anyhow::bail;
+use log::debug;
 
 #[derive(Clone, Default, Debug)]
 pub struct MailboxState {
@@ -24,7 +25,7 @@ impl MailboxState {
         if x & 0x0000_0004 != 0 { self.ppc_req = false; }
         self.ppc_req_int = x & 0x0000_0010 != 0;
         self.ppc_ack_int = x & 0x0000_0020 != 0;
-        println!("{self:?}");
+        debug!(target: "IPC", "{self:?}");
     }
 
     /// Write handler for ARM_CTRL
@@ -35,7 +36,7 @@ impl MailboxState {
         if x & 0x0000_0004 != 0 { self.arm_req = false; }
         self.arm_req_int = x & 0x0000_0010 != 0;
         self.arm_ack_int = x & 0x0000_0020 != 0;
-        println!("{self:?}");
+        debug!(target: "IPC", "{self:?}");
 
     }
 
@@ -107,19 +108,19 @@ impl IpcInterface {
     pub fn write_handler(&mut self, off: usize, val: u32) -> anyhow::Result<()> {
         match off {
             0x00 => {
-                println!("IPC PPC MSG write {val:08x}");
+                debug!(target: "IPC", "PPC MSG write {val:08x}");
                 self.ppc_msg = val;
             }
             0x04 => {
-                println!("IPC PPC CTRL write {val:08x}");
+                debug!(target: "IPC", "PPC CTRL write {val:08x}");
                 self.state.ppc_ctrl_write(val);
             },
             0x08 => {
-                println!("IPC ARM MSG write {val:08x}");
+                debug!(target: "IPC", "ARM MSG write {val:08x}");
                 self.arm_msg = val;
             },
             0x0c => {
-                println!("IPC ARM CTRL write {val:08x}");
+                debug!(target: "IPC", "ARM CTRL write {val:08x}");
                 self.state.arm_ctrl_write(val);
             },
             _ => { bail!("IpcInterface invalid write to offset: {off} value: {val}"); },
