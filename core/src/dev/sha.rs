@@ -72,7 +72,7 @@ impl MmioDevice for ShaInterface {
         match off {
             0x00 => {
                 self.ctrl = val;
-                //println!("SHA ctrl write {:08x}", val);
+                debug!(target: "SHA", "SHA ctrl write {:08x}", val);
                 if (val & 0x8000_0000) != 0 {
                     return Ok(Some(BusTask::Sha(val)));
                 }
