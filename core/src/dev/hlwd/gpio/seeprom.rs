@@ -2,6 +2,8 @@
 use crate::dev::hlwd::gpio::*;
 use crate::mem::*;
 
+use log::{debug, info};
+
 /// Set of commands to/states of the SEEPROM state machine.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SeepromOp { 
@@ -104,7 +106,7 @@ impl SeepromState {
                     Ewds => self.wren = false,
                     _ => { bail!("SEEPROM ext. op {extop:?} unimplemented"); },
                 }
-                println!("SEEPROM {extop:?}");
+                info!(target: "SEEPROM", "extended Op: {extop:?}");
             },
 
             // At this point, the last 8 bits represent an address
@@ -134,7 +136,7 @@ impl SeepromState {
                     let addr = self.addr.unwrap();
                     let res = self.data.read::<u16>(addr * 2)?;
                     self.out_buf = Some(res);
-                    //println!("SEEPROM read {:04x} @ {:02x}", res, addr);
+                    debug!(target: "SEEPROM", "read {:04x} @ {:02x}", res, addr);
                     Ok(None)
                 } 
                 // Shift out bits from the read command
@@ -156,7 +158,7 @@ impl SeepromState {
                     let addr = self.addr.unwrap();
                     if self.wren {
                         self.data.write::<u16>(addr * 2, val)?;
-                        println!("SEEPROM write {val:04x} @ {addr:02x}");
+                        info!(target: "SEEPROM", "write {val:04x} @ {addr:02x}");
                     } else {
                         bail!("SEEPROM write {val:04x} @ {addr:02x} without WREN");
                     }
@@ -179,10 +181,6 @@ impl GpioInterface {
 
         // When CS is deasserted, the state of the SEEPROM is irrelevant.
         if !cs {
-            //if self.seeprom.num_bits > 0 {
-            //    println!("SEEPROM CS deasserted after {} input bits, {:b}", 
-            //        self.seeprom.num_bits, self.seeprom.in_buf);
-            //}
             self.seeprom.reset();
         } 
 
