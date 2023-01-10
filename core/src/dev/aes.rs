@@ -128,8 +128,11 @@ impl Bus {
         if log_enabled!(target: "AES", log::Level::Trace) {
             let mut msg = format!("AES DMA Buffer dump: {} bytes\n", aes_inbuf.len());
             for chunk in aes_inbuf.chunks(8) {
+                let mut space = false;
                 for byte in chunk {
-                    msg += &format!("{byte:04x} ");
+                    msg += &format!("{byte:02x}");
+                    if space { msg+= " "; }
+                    space = !space;
                 }
                 msg += "\n";
             }

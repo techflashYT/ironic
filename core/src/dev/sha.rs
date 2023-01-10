@@ -98,8 +98,11 @@ impl Bus {
         if log_enabled!(target: "SHA", log::Level::Trace) {
             let mut msg = format!("SHA DMA Buffer dump: {} bytes\n", sha_buf.len());
             for chunk in sha_buf.chunks(8) {
+                let mut space = false;
                 for byte in chunk {
-                    msg += &format!("{byte:04x} ");
+                    msg += &format!("{byte:02x}");
+                    if space { msg+= " "; }
+                    space = !space;
                 }
                 msg += "\n";
             }
