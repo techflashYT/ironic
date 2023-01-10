@@ -3,6 +3,8 @@ use std::io::Read;
 use std::fs::File;
 use crate::bus::prim::AccessWidth;
 
+use log::{debug, trace, log_enabled};
+
 /// One-time programmable memory device/interface.
 pub struct OtpInterface {
     /// Bits fused to the device.
@@ -17,6 +19,13 @@ impl OtpInterface {
         let mut f = File::open("otp.bin")?;
         let mut otp = OtpInterface { data: [0; 0x80], cmd: 0, out: 0 };
         f.read_exact(&mut otp.data)?;
+        if log_enabled!(target: "OTP", log::Level::Trace) {
+            trace!(target: "OTP", "Initial data: {} bytes", otp.data.len());
+            for (word_idx, chunk )in otp.data.chunks(4).enumerate() {
+                trace!(target: "OTP", "Word {word_idx:02}: {:02x}{:02x}{:02x}{:02x}", chunk[0], chunk[1], chunk[2], chunk[3]);
+            }
+            trace!(target: "OTP", "End Initial data");
+        }
         Ok(otp)
     }
 }
@@ -26,7 +35,11 @@ impl OtpInterface {
     pub fn read(&self, word_idx: usize) -> u32 {
         let off = word_idx * 4;
         assert!(off + 4 <= self.data.len());
-        //println!("OTP read {:08x} @ idx={:x}", res, word_idx);
+        if log_enabled!(target: "OTP", log::Level::Debug) {
+            let mut tmp = [0u8;4];
+            tmp.copy_from_slice(&self.data[off..off+4]);
+            debug!(target: "OTP", "read {:02x}{:02x}{:02x}{:02x} @ idx={:x}", tmp[0], tmp[1], tmp[2], tmp[3], word_idx);
+        }
         AccessWidth::from_be_bytes(&self.data[off..off+4])
     }
 
