@@ -10,26 +10,26 @@ pub enum SeepromOp {
     Ewds, Wral, Eral, Ewen, Ext, Write, Read, Erase, Init
 }
 impl SeepromOp {
-    pub fn from_initial(x: u32) -> Self {
+    pub fn from_initial(x: u32) -> anyhow::Result<Self> {
         use SeepromOp::*;
-        match x {
+        Ok(match x {
             0b1_00 => Ext,
             0b1_01 => Write,
             0b1_10 => Read,
             0b1_11 => Erase,
-            _ => unreachable!(),
-        }
+            _ => bail!("SEEPROM Invalid initial bits {x:04x}"),
+        })
     }
 
-    pub fn from_ext(x: u32) -> Self {
+    pub fn from_ext(x: u32) -> anyhow::Result<Self> {
         use SeepromOp::*;
-        match x {
+        Ok(match x {
             0b1_00_00 => Ewds,
             0b1_00_01 => Wral,
             0b1_00_10 => Eral,
             0b1_00_11 => Ewen,
-            _ => unreachable!(),
-        }
+            _ => bail!("SEEPROM Invalid extended bits {x:04x}"),
+        })
     }
 
 }
@@ -95,12 +95,12 @@ impl SeepromState {
             },
 
             // After reading three bits, we can determine the opcode
-            0x03 => self.opcd = SeepromOp::from_initial(self.in_buf),
+            0x03 => self.opcd = SeepromOp::from_initial(self.in_buf)?,
 
             // If this an extended opcode, there are no more relevant bits,
             // so we can just apply whatever side-effects are necessary
             0x05 => if self.opcd == Ext {
-                let extop = SeepromOp::from_ext(self.in_buf);
+                let extop = SeepromOp::from_ext(self.in_buf)?;
                 match extop {
                     Ewen => self.wren = true,
                     Ewds => self.wren = false,
