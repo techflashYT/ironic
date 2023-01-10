@@ -132,6 +132,7 @@ enum LogTarget {
     AES,
     DEBUG_PORT,
     EXI,
+    HLWD,
     NAND,
     SHA,
     xHCI,

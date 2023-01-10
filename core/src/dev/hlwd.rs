@@ -1,10 +1,10 @@
-
-use anyhow::bail;
-
 use crate::bus::*;
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
 use crate::bus::task::*;
+
+use anyhow::bail;
+use log::{error, info};
 
 /// One-time programmable [fused] memory.
 pub mod otp;
@@ -37,7 +37,7 @@ impl TimerInterface {
             self.timer += 1;
             self.cpu_cycle_prev = current_cpu_cycle;
             if self.timer == self.alarm {
-                println!("HLWD alarm IRQ {:08x}", self.timer);
+                info!(target: "HLWD", "alarm IRQ {:08x}", self.timer);
                 return true;
             } else {
                 return false;
@@ -142,7 +142,7 @@ impl MmioDevice for AhbInterface {
             0x08 => 0,
             0x10 => self.unk_10,
             0x3fe4 => {
-                println!("FIXME: AHB Read from weird (0x3fe4) - returning 0");
+                error!(target: "HLWD", "FIXME: AHB Read from weird (0x3fe4) - returning 0");
                 0
             }
             _ => { bail!("AHB read to undefined offset {off:x}"); },
@@ -156,7 +156,7 @@ impl MmioDevice for AhbInterface {
             },
             0x10 => self.unk_10 = val,
             0x3fe4..=0x3fe8 => {
-                println!("FIXME: AHB write to weird ({off:x}) offset: {val:x}")
+                error!(target: "HLWD", "FIXME: AHB write to weird ({off:x}) offset: {val:x}")
             }
             _ => { bail!("AHB write {val:08x} to undefined offset {off:x}"); },
         }
@@ -271,12 +271,12 @@ impl MmioDevice for Hollywood {
         match off {
             0x000..=0x00c => self.ipc.write_handler(off, val)?,
             0x014 => {
-                println!("HLWD alarm={val:08x} (timer={:08x})", self.timer.timer);
+                info!(target: "HLWD", "alarm={val:08x} (timer={:08x})", self.timer.timer);
                 self.timer.alarm = val;
             },
             0x030..=0x05c => self.irq.write_handler(off - 0x30, val)?,
             0x060 => {
-                println!("HLWD SRNPROT={val:08x}");
+                info!(target: "HLWD", "SRNPROT={val:08x}");
                 let diff = self.busctrl.srnprot ^ val;
                 self.busctrl.srnprot = val;
                 let task = if (diff & 0x0000_0020) != 0 {
@@ -305,7 +305,7 @@ impl MmioDevice for Hollywood {
                 }
             },
             0x18c => {
-                println!("HLWD SPARE1={val:08x}");
+                info!(target: "HLWD", "SPARE1={val:08x}");
                 // Potentially toggle the boot ROM mapping
                 let diff = self.spare1 ^ val;
                 self.spare1 = val;
@@ -321,15 +321,15 @@ impl MmioDevice for Hollywood {
                 let diff = self.resets ^ val;
                 if diff & 0x0000_0030 != 0 {
                     if (val & 0x0000_0020 != 0) && (val & 0x0000_0010 != 0) {
-                        println!("HLWD Broadway power on");
+                        info!(target: "HLWD", "Broadway power on");
                         self.ppc_on = true;
                     } else {
-                        println!("HLWD Broadway power off");
+                        info!(target: "HLWD", "Broadway power off");
                         self.ppc_on = false;
                     }
                 }
 
-                println!("HLWD resets={val:08x}");
+                info!(target: "HLWD", "resets={val:08x}");
                 self.resets = val;
             },
             0x1b0 => self.pll.sys = val,
