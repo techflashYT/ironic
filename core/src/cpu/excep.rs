@@ -86,7 +86,7 @@ impl Cpu {
             ExceptionType::get_pc_off(e, self.reg.cpsr.thumb()));
 
         if let ExceptionType::Undef(opcd) = e {
-            ios::resolve_syscall(self, opcd).unwrap_or_default(); // Just a println. Ok to fail
+            ios::log_syscall(self, opcd);
         }
 
 

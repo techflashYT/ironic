@@ -139,6 +139,7 @@ enum LogTarget {
     OTP,
     SEEPROM,
     SHA,
+    SYSCALL,
     xHCI,
     Other,
 }

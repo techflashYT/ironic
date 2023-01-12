@@ -7,6 +7,8 @@ use crate::cpu::Cpu;
 use crate::cpu::reg::Reg;
 use crate::cpu::mmu::prim::{Access, TLBReq};
 
+use log::{info, trace, log_enabled};
+
 /// NOTE: `skyeye-starlet` does something like this; wonder if there's a
 /// better way of keeping track of the threads?
 #[derive(Debug)]
@@ -69,7 +71,13 @@ pub fn read_string(cpu: &Cpu, ptr: u32) -> anyhow::Result<String> {
 
     let mut line_buf = [0u8; 64];
     cpu.bus.read().unwrap().dma_read(paddr, &mut line_buf)?;
-    //println!("{:?}", line_buf.hex_dump());
+    if log_enabled!(target: "SYSCALL", log::Level::Trace) {
+        let mut msg = String::new();
+        for chunk in line_buf.chunks_exact(8) {
+            msg += &format!("{:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x} {:02x}\n", chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7]);
+        }
+        trace!(target: "SYSCALL", "Line buffer dump:\n{msg}");
+    }
 
     let mut end: Option<usize> = None;
     for (i, b) in line_buf.iter().enumerate() {
@@ -164,12 +172,12 @@ pub fn get_syscall_desc(idx: u32) -> Option<SyscallDef> {
 
 
 /// Resolve information about an IOS syscall and its arguments.
-pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> anyhow::Result<()> {
+pub fn log_syscall(cpu: &mut Cpu, opcd: u32) {
     // Get the syscall index (and ignore some)
     let idx = (opcd & 0x00ff_ffe0) >> 5;
     let res = get_syscall_desc(idx);
     if res.is_none() {
-        return Ok(());
+        return;
     }
     let syscall = res.unwrap();
     let mut arg_buf = String::new();
@@ -180,7 +188,9 @@ pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> anyhow::Result<()> {
                 arg_buf.push_str(&format!("0x{val:08x}"));
             },
             ArgType::StrPtr => {
-                let s = read_string(cpu, val)?;
+                let s = read_string(cpu, val);
+                if s.is_err() { return; }
+                let s = s.unwrap();
                 arg_buf.push_str(&format!("\"{s}\""));
             },
             ArgType::Int => {
@@ -194,10 +204,9 @@ pub fn resolve_syscall(cpu: &mut Cpu, opcd: u32) -> anyhow::Result<()> {
             arg_buf.push_str(", ");
         }
     }
-    println!("IOS [{:?}] {}({arg_buf}) (lr={:08x})", 
+    info!(target: "SYSCALL", "[{:?}] {}({arg_buf}) (lr={:08x})",
         ExecutionCtx::from(cpu.read_fetch_pc()),
         syscall.name, cpu.reg[Reg::Lr]
     );
-    Ok(())
 }
 
