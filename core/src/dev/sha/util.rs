@@ -210,13 +210,13 @@ fn init_process_msg_fn_ptr() {
     use std::arch::is_aarch64_feature_detected;
     let err;
     if is_aarch64_feature_detected!("sve2") {
-        err = PROCESS_MSG_FN.set(Sha1State::process_message_aarch_neon_sve2)
+        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_aarch_neon_sve2)
     }
     else if is_aarch64_feature_detected!("neon") {
-        err = PROCESS_MSG_FN.set(Sha1State::process_message_aarch_neon);
+        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_aarch_neon);
     }
     else {
-        err = PROCESS_MSG_FN.set(Sha1State::process_message_scalar);
+        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_scalar);
     }
     if err.is_err() {
         panic!("Failed to initialize Sha function pointer.");
@@ -225,7 +225,7 @@ fn init_process_msg_fn_ptr() {
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
 fn init_process_msg_fn_ptr() {
-    if PROCESS_MSG_FN.set(Sha1State::process_message_scalar).is_err() {
+    if PROCESS_MSG_FN.inner.set(Sha1State::process_message_scalar).is_err() {
         panic!("Failed to initialize Sha function pointer.");
     }
 }
