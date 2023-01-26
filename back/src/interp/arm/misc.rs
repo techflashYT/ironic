@@ -1,30 +1,8 @@
-use std::env::temp_dir;
-use ironic_core::bus::Bus;
 use ironic_core::cpu::Cpu;
+use log::debug;
 use crate::bits::arm::*;
 use crate::interp::DispatchRes;
 use anyhow::anyhow;
-
-fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
-    let dir = temp_dir();
-
-    let mut sram0_dir = temp_dir();
-    sram0_dir.push("sram0-bkpt");
-    bus.sram0.dump(&sram0_dir)?;
-
-    let mut sram1_dir = temp_dir();
-    sram1_dir.push("sram1-bkpt");
-    bus.sram1.dump(&sram1_dir)?;
-
-    let mut mem1_dir = temp_dir();
-    mem1_dir.push("mem1-bkpt");
-    bus.mem1.dump(&mem1_dir)?;
-
-    let mut mem2_dir = dir;
-    mem2_dir.push("mem2-bkpt");
-    bus.mem2.dump(&mem2_dir)?;
-    Ok(())
-}
 
 /// Breakpoint instruction:
 /// ffff = Immediately stop emulator (dumps RAM)
@@ -50,10 +28,13 @@ pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
         },
         0xfffb => {
             let bus = cpu.bus.read().expect("breakpoint instruction - bus access");
-            if let Err(e) = dump_memory(&bus) {
-                return DispatchRes::FatalErr(e);
-            };
-            return DispatchRes::RetireOk;
+            match bus.dump_memory("bkpt.bin") {
+                Ok(path) => {
+                    debug!(target: "Other", "Dumped RAM to {}", path.to_string_lossy());
+                    return DispatchRes::RetireOk;
+                },
+                Err(e) => { return DispatchRes::FatalErr(e); }
+            }
         },
         _      => {},
     }

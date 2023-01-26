@@ -3,6 +3,8 @@ pub mod decode;
 pub mod dispatch;
 pub mod mmio;
 pub mod task;
+use std::env::temp_dir;
+
 use crate::bus::task::*;
 
 use crate::mem::*;
@@ -74,6 +76,31 @@ impl Bus {
             debug: false,
             debug_allowed_cycles: 0,
         })
+    }
+
+    pub fn dump_memory(&self, suffix: &'static str) -> anyhow::Result<std::path::PathBuf> {
+        let dir = temp_dir();
+
+        let mut sram0_dir = dir.clone();
+        sram0_dir.push("sram0");
+        sram0_dir.set_extension(suffix);
+        self.sram0.dump(&sram0_dir)?;
+
+        let mut sram1_dir = dir.clone();
+        sram1_dir.push("sram1");
+        sram1_dir.set_extension(suffix);
+        self.sram1.dump(&sram1_dir)?;
+
+        let mut mem1_dir = dir.clone();
+        mem1_dir.push("mem1");
+        mem1_dir.set_extension(suffix);
+        self.mem1.dump(&mem1_dir)?;
+
+        let mut mem2_dir = dir.clone();
+        mem2_dir.push("mem2");
+        mem2_dir.set_extension(suffix);
+        self.mem2.dump(&mem2_dir)?;
+        Ok(dir)
     }
 }
 

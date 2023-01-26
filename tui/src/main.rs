@@ -2,13 +2,13 @@ use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
 use ironic_backend::ppc::*;
+use log::{debug, error};
 use strum::VariantNames;
 
 use std::panic;
 use std::process;
 use std::sync::{Arc, RwLock};
 use std::thread::Builder;
-use std::env::temp_dir;
 
 use clap::{Parser, ValueEnum};
 
@@ -45,27 +45,6 @@ struct Args {
     /// Define log levels for the program
     #[clap(long, default_value="info")]
     logging: String,
-}
-
-fn dump_memory(bus: &Bus) -> anyhow::Result<()> {
-    let dir = temp_dir();
-
-    let mut sram0_dir = temp_dir();
-    sram0_dir.push("sram0");
-    bus.sram0.dump(&sram0_dir)?;
-
-    let mut sram1_dir = temp_dir();
-    sram1_dir.push("sram1");
-    bus.sram1.dump(&sram1_dir)?;
-
-    let mut mem1_dir = temp_dir();
-    mem1_dir.push("mem1");
-    bus.mem1.dump(&mem1_dir)?;
-
-    let mut mem2_dir = dir;
-    mem2_dir.push("mem2");
-    bus.mem2.dump(&mem2_dir)?;
-    Ok(())
 }
 
 fn main() -> anyhow::Result<()> {
@@ -119,7 +98,14 @@ fn main() -> anyhow::Result<()> {
             reason.into_inner()
         }
     };
-    dump_memory(&bus_ref)?;
+    match bus_ref.dump_memory("bin") {
+        Ok(path) => {
+            debug!(target: "Other", "Dumped ram to {}", path.to_string_lossy())
+        }
+        Err(e) => {
+            error!(target: "Other", "Failed to dump ram: {e:?}");
+        }
+    }
     println!("Bus cycles elapsed: {}", bus_ref.cycle);
     process::exit(0);
 

@@ -8,6 +8,7 @@ use std::mem;
 
 use anyhow::Context;
 use anyhow::bail;
+use log::debug;
 
 use crate::bus::prim::AccessWidth;
 
@@ -30,9 +31,10 @@ impl BigEndianMemory {
     }
 
     pub fn dump(&self, filename: &impl AsRef<Path>) -> anyhow::Result<()> {
-        let mut f = File::create(filename).context("BigEndianMemory: Couldn't create dump file")?;
+        let filename = filename.as_ref();
+        let mut f = File::create(filename).context(format!("BigEndianMemory: Couldn't create dump file: {}", filename.to_string_lossy()))?;
         let res = f.write(self.data.as_slice())?;
-        println!("Dumped memory to {} ({res:?})", filename.as_ref().display());
+        debug!(target: "Other", "Dumped memory to {} ({res:?})", filename.display());
         Ok(())
     }
 }
