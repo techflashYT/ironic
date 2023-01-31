@@ -48,7 +48,6 @@ pub struct Bus {
     pub tasks: Vec<Task>,
     pub cycle: usize,
     pub debug: bool,
-    pub debug_allowed_cycles: u64,
 }
 impl Bus {
     pub fn new()-> anyhow::Result<Self> {
@@ -74,7 +73,6 @@ impl Bus {
             tasks: Vec::new(),
             cycle: 0,
             debug: false,
-            debug_allowed_cycles: 0,
         })
     }
 
