@@ -9,8 +9,8 @@ const SEQ_REG_LEN: usize = 0x4c + 1;
 
 #[derive(Clone)]
 pub struct DdrInterface {
-    pub ddr_reg: [u16; DDR_REG_LEN],
-    pub seq_reg: [u16; SEQ_REG_LEN],
+    pub ddr_reg: Box<[u16; DDR_REG_LEN]>,
+    pub seq_reg: Box<[u16; SEQ_REG_LEN]>,
 
     pub seq_addr: u16,
     pub seq_data: u16,
@@ -28,8 +28,8 @@ impl Default for DdrInterface {
 impl DdrInterface {
     pub fn new() -> Self {
         DdrInterface {
-            ddr_reg: [0; DDR_REG_LEN],
-            seq_reg: [0; SEQ_REG_LEN],
+            ddr_reg: Box::new([0; DDR_REG_LEN]),
+            seq_reg: Box::new([0; SEQ_REG_LEN]),
             seq_addr: 0,
             seq_data: 0,
             ahmflush: 0,

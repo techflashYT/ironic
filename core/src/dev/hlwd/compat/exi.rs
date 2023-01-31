@@ -186,13 +186,13 @@ impl EXIChannel {
 #[derive(Debug, Clone)]
 pub struct EXInterface {
     /// EXI Channel 0 state
-    pub chan0: EXIChannel,
+    pub chan0: Box<EXIChannel>,
     /// EXI Channel 1 state
-    pub chan1: EXIChannel,
+    pub chan1: Box<EXIChannel>,
     /// EXI Channel 2 state
-    pub chan2: EXIChannel,
+    pub chan2: Box<EXIChannel>,
     /// Buffer for Broadway bootstrap instructions
-    pub ppc_bootstrap: [u32; 0x10],
+    pub ppc_bootstrap: Box<[u32; 0x10]>,
 }
 
 impl Default for EXInterface {
@@ -204,10 +204,10 @@ impl Default for EXInterface {
 impl EXInterface {
     pub fn new() -> Self {
         EXInterface {
-            chan0: EXIChannel::new(0),
-            chan1: EXIChannel::new(1),
-            chan2: EXIChannel::new(2),
-            ppc_bootstrap: [0; 0x10],
+            chan0: Box::new(EXIChannel::new(0)),
+            chan1: Box::new(EXIChannel::new(1)),
+            chan2: Box::new(EXIChannel::new(2)),
+            ppc_bootstrap: Box::new([0; 0x10]),
         }
     }
 }

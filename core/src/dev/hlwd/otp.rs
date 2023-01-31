@@ -8,7 +8,7 @@ use log::{debug, trace, log_enabled};
 /// One-time programmable memory device/interface.
 pub struct OtpInterface {
     /// Bits fused to the device.
-    data: [u8; 0x80],
+    data: Box<[u8; 0x80]>,
     /// Command register.
     pub cmd: u32,
     /// Command output register.
@@ -17,8 +17,8 @@ pub struct OtpInterface {
 impl OtpInterface {
     pub fn new() -> Result<Self, std::io::Error> {
         let mut f = File::open("otp.bin")?;
-        let mut otp = OtpInterface { data: [0; 0x80], cmd: 0, out: 0 };
-        f.read_exact(&mut otp.data)?;
+        let mut otp = OtpInterface { data: Box::new([0; 0x80]), cmd: 0, out: 0 };
+        f.read_exact(otp.data.as_mut_slice())?;
         if log_enabled!(target: "OTP", log::Level::Trace) {
             trace!(target: "OTP", "Initial data: {} bytes", otp.data.len());
             for (word_idx, chunk )in otp.data.chunks(4).enumerate() {
