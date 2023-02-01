@@ -6,6 +6,7 @@ pub mod dispatch;
 pub mod lut;
 
 use anyhow::{anyhow, bail};
+use log::{error, info};
 
 use std::io::{Read, Seek};
 use std::sync::{Arc, RwLock};
@@ -371,19 +372,35 @@ impl Backend for InterpBackend {
                 Ok(res) => res,
                 Err(e)  => { bail!("Custom Kernel ELF error: {e:?}"); },
             };
+            match validate_custom_kernel(&kernel_elf.ehdr) {
+                CustomKernelValidationResult::Ok => {/* We have a valid ELF (probably) */},
+                CustomKernelValidationResult::Problem(p) => {
+                    error!(target: "Custom Kernel", "!!!!!!!!!!");
+                    error!(target: "Custom Kernel", "Custom Kernel ELF header validation failed. Things may not work as expected.");
+                    error!(target: "Custom Kernel", "Failed validations:");
+                    for problem in p {
+                        error!(target: "Custom Kernel", "{}", problem);
+                    }
+                    error!(target: "Custom Kernel", "!!!!!!!!!");
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+                    // We try to continue, chances are we crash and burn shortly after this
+                    // but on the chance this mangled ELF executes for a while via dumb luck
+                    // we sleep for a few seconds to let the user see the error.
+                }
+            }
+
             let headers = kernel_elf.phdrs;
-            // We have a valid ELF (probably)
-            let mut bus = self.bus.write().map_err(|e| anyhow!(e.to_string()))?;
+            let mut bus = self.bus.write().map_err(|_| anyhow!("Custom kernel load: Bus access failed"))?;
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
             bus.rom_disabled = true;
             bus.mirror_enabled = true;
             // A basic ELF loader
             for header in headers.iter() {
-                if header.progtype == elf::types::ProgType(1) && header.filesz > 0 { // progtype 1 == PT_LOAD
+                if header.progtype == elf::types::PT_LOAD && header.filesz > 0 {
                     let start = header.offset as usize;
                     let end = start + header.filesz as usize;
-                    println!("CUSTOM KERNEL: LOADING offset: {:#10x}  phys addr: {:#10x} filesz: {:#10x}", header.offset, header.paddr, header.filesz);
+                    info!(target: "Custom Kernel", "Loading offset: {:#10x}  phys addr: {:#10x} filesz: {:#10x}", header.offset, header.paddr, header.filesz);
                     bus.dma_write(header.paddr as u32, &kernel_bytes[start..end])?;
                 }
             }
@@ -432,5 +449,35 @@ impl Backend for InterpBackend {
         }
         println!("CPU stopped at pc={:08x}", self.cpu.read_fetch_pc());
         Ok(())
+    }
+}
+
+enum CustomKernelValidationResult {
+    Ok,
+    Problem(Vec<String>)
+}
+
+macro_rules! elf_header_expect_equal {
+    ($vec:ident, $have:expr, $want:expr, $message:expr) => {
+        if $have != $want {
+            $vec.push(format!("{}. Expected: {} Got: {}", $message, $want, $have));
+        }
+    };
+}
+
+fn validate_custom_kernel(header: &elf::types::FileHeader) -> CustomKernelValidationResult {
+    let mut problems: Vec<String> = Vec::with_capacity(0);
+    elf_header_expect_equal!(problems, header.class, elf::types::ELFCLASS32, "ELF Class is not 32-bit");
+    elf_header_expect_equal!(problems, header.data, elf::types::ELFDATA2MSB, "ELF Data is not big endian");
+    elf_header_expect_equal!(problems, header.version, elf::types::EV_CURRENT, "ELF Version is not known to us");
+    elf_header_expect_equal!(problems, header.osabi, elf::types::ELFOSABI_SYSV, "ELF ABI is not known to us");
+    elf_header_expect_equal!(problems, header.elftype, elf::types::ET_EXEC, "Our ELF loader only implements EXEC type ELF");
+    elf_header_expect_equal!(problems, header.machine, elf::types::EM_ARM, "ELF Type is not 32-bit ARM");
+    elf_header_expect_equal!(problems, header.entry, 0xffff_0000u64, "Entry point of ELF does not match CPU reset vector");
+    if problems.is_empty() {
+        CustomKernelValidationResult::Ok
+    }
+    else {
+        CustomKernelValidationResult::Problem(problems)
     }
 }
