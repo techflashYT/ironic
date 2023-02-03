@@ -7,15 +7,6 @@ members = [
 
 [profile.dev]
 opt-level = 1
-lto = false
-overflow-checks = true
-debug = true
-debug-assertions = true
-incremental = true
-
-[profile.dev.build-override]
-opt-level = 2
-
 
 [profile.release]
 debug = true
