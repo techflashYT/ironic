@@ -122,7 +122,7 @@ impl IrqInterface {
 
 impl IrqInterface {
     /// Update the state of the output IRQ signal to both CPUs.
-    fn update_irq_lines(&mut self) {
+    pub fn update_irq_lines(&mut self) {
         if (self.arm_irq_status.0 & self.arm_irq_enable.0) == 0 {
             self.arm_irq_output = false;
         } else {

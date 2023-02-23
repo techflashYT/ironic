@@ -151,6 +151,7 @@ impl PpcBackend {
                     println!("[PPC] got extra ACK");
                     bus.hlwd.ipc.state.ppc_ack = false;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
+                    bus.hlwd.irq.update_irq_lines();
                     continue
                 }
 
@@ -160,8 +161,11 @@ impl PpcBackend {
                     bus.hlwd.ipc.state.ppc_req = false;
                     bus.hlwd.ipc.state.arm_ack = true;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
+                    bus.hlwd.irq.update_irq_lines();
                     return armmsg;
                 }
+
+                unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!");
             } else {
                 thread::sleep(std::time::Duration::from_millis(10));
             }
@@ -180,6 +184,7 @@ impl PpcBackend {
                     bus.hlwd.ipc.state.ppc_ack = false;
                     println!("[PPC] got ACK");
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
+                    bus.hlwd.irq.update_irq_lines();
                     break;
                 }
                 if bus.hlwd.ipc.state.ppc_req {
@@ -188,8 +193,11 @@ impl PpcBackend {
                     bus.hlwd.ipc.state.ppc_req = false;
                     bus.hlwd.ipc.state.arm_ack = true;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
+                    bus.hlwd.irq.update_irq_lines();
                     continue;
                 }
+
+                unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!")
             } else {
                 thread::sleep(std::time::Duration::from_millis(10));
             }
