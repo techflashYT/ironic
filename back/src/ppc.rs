@@ -165,6 +165,7 @@ impl PpcBackend {
                     return armmsg;
                 }
 
+                drop(bus); // Drop bus to avoid poisoning the lock.
                 unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!");
             } else {
                 thread::sleep(std::time::Duration::from_millis(10));
@@ -197,6 +198,7 @@ impl PpcBackend {
                     continue;
                 }
 
+                drop(bus); // Drop bus to avoid poisoning the lock.
                 unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!")
             } else {
                 thread::sleep(std::time::Duration::from_millis(10));
