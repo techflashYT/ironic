@@ -260,13 +260,12 @@ impl Backend for PpcBackend {
         println!("[PPC] PPC backend thread started");
         self.bus.write().unwrap().hlwd.ipc.state.ppc_ctrl_write(0x36);
 
-        'wait_for_broadway: loop { 
+        loop {
             if self.bus.read().unwrap().hlwd.ppc_on {
                 println!("[PPC] Broadway came online");
-                break 'wait_for_broadway;
-            } else {
-                thread::sleep(std::time::Duration::from_millis(500));
+                break;
             }
+            thread::sleep(std::time::Duration::from_millis(500));
         }
 
         // Block until we get an IRQ with an ACK/MSG
