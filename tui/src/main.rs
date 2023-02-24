@@ -123,6 +123,7 @@ enum LogTarget {
     IRQ,
     NAND,
     OTP,
+    PPC,
     SEEPROM,
     SHA,
     SYSCALL,

@@ -7,6 +7,8 @@ use ironic_core::bus::*;
 use ironic_core::dev::hlwd::irq::*;
 use crate::back::*;
 
+use log::{info, error};
+
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::thread;
@@ -108,13 +110,13 @@ impl PpcBackend {
             let mut client = match res {
                 Ok((stream, _)) => stream,
                 Err(e) => { 
-                    println!("[PPC] accept() error {e:?}");
+                    info!(target:"PPC", "accept() error {e:?}");
                     break;
                 }
             };
 
             loop {
-                println!("[PPC] waiting for command ...");
+                info!(target:"PPC", "waiting for command");
 
                 let res = self.wait_for_request(&mut client);
                 if let Some(req) = res {
@@ -141,14 +143,14 @@ impl PpcBackend {
 
     /// Block until we get a response from ARM-world.
     fn wait_for_resp(&mut self) -> u32 {
-        println!("[PPC] waiting for response ...");
+        info!(target: "PPC", "waiting for response ...");
         loop {
             if self.bus.read().unwrap().hlwd.irq.ppc_irq_output {
-                println!("[PPC] got irq");
+                info!(target: "PPC", "got irq");
                 let mut bus = self.bus.write().unwrap();
 
                 if bus.hlwd.ipc.state.ppc_ack {
-                    println!("[PPC] got extra ACK");
+                    info!(target: "PPC", "got extra ACK");
                     bus.hlwd.ipc.state.ppc_ack = false;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
                     bus.hlwd.irq.update_irq_lines();
@@ -157,7 +159,7 @@ impl PpcBackend {
 
                 if bus.hlwd.ipc.state.ppc_req {
                     let armmsg = bus.hlwd.ipc.arm_msg;
-                    println!("[PPC] Got message from ARM {armmsg:08x}");
+                    info!(target: "PPC", "Got message from ARM {armmsg:08x}");
                     bus.hlwd.ipc.state.ppc_req = false;
                     bus.hlwd.ipc.state.arm_ack = true;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
@@ -166,6 +168,7 @@ impl PpcBackend {
                 }
 
                 drop(bus); // Drop bus to avoid poisoning the lock.
+                error!(target: "PPC", "Invalid IRQ state");
                 unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!");
             } else {
                 thread::sleep(std::time::Duration::from_millis(10));
@@ -175,22 +178,22 @@ impl PpcBackend {
 
     /// Block until we get an ACK from ARM-world.
     fn wait_for_ack(&mut self) {
-        println!("[PPC] waiting for ACK ...");
+        info!(target: "PPC", "waiting for ACK ...");
         loop {
             if self.bus.read().unwrap().hlwd.irq.ppc_irq_output {
-                println!("[PPC] got irq");
+                info!(target: "PPC", "got irq");
                 let mut bus = self.bus.write().unwrap();
 
                 if bus.hlwd.ipc.state.ppc_ack {
                     bus.hlwd.ipc.state.ppc_ack = false;
-                    println!("[PPC] got ACK");
+                    info!(target: "PPC", "got ACK");
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
                     bus.hlwd.irq.update_irq_lines();
                     break;
                 }
                 if bus.hlwd.ipc.state.ppc_req {
                     let armmsg = bus.hlwd.ipc.arm_msg;
-                    println!("[PPC] Got extra message from ARM {armmsg:08x}");
+                    info!(target: "PPC", "Got extra message from ARM {armmsg:08x}");
                     bus.hlwd.ipc.state.ppc_req = false;
                     bus.hlwd.ipc.state.arm_ack = true;
                     bus.hlwd.irq.ppc_irq_status.unset(HollywoodIrq::PpcIpc);
@@ -199,6 +202,7 @@ impl PpcBackend {
                 }
 
                 drop(bus); // Drop bus to avoid poisoning the lock.
+                error!(target: "PPC", "Invalid IRQ state");
                 unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!")
             } else {
                 thread::sleep(std::time::Duration::from_millis(10));
@@ -220,7 +224,7 @@ impl PpcBackend {
 
     /// Read from physical memory.
     pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
-        println!("[PPC] read {:x} bytes at {:08x}", req.len, req.addr);
+        info!(target: "PPC", "read {:x} bytes at {:08x}", req.len, req.addr);
         self.bus.read().unwrap().dma_read(req.addr,
             &mut self.obuf[0..req.len as usize])?;
         let _ = client.write(&self.obuf[0..req.len as usize])?; // maybe FIXME: is it ok to ignore the # of bytes written here?
@@ -229,7 +233,7 @@ impl PpcBackend {
 
     /// Write to physical memory.
     pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
-        println!("[PPC] write {:x} bytes at {:08x}", req.len, req.addr);
+        info!(target: "PPC", "write {:x} bytes at {:08x}", req.len, req.addr);
         let data = &self.ibuf[0xc..(0xc + req.len as usize)];
         self.bus.write().unwrap().dma_write(req.addr, data)?;
         let _ = client.write("OK".as_bytes())?; // maybe FIXME: is it ok to ignore the # of bytes written here?
@@ -259,12 +263,12 @@ impl PpcBackend {
 
 impl Backend for PpcBackend {
     fn run(&mut self) -> anyhow::Result<()> {
-        println!("[PPC] PPC backend thread started");
+        info!(target: "PPC", "PPC backend thread started");
         self.bus.write().unwrap().hlwd.ipc.state.ppc_ctrl_write(0x36);
 
         loop {
             if self.bus.read().unwrap().hlwd.ppc_on {
-                println!("[PPC] Broadway came online");
+                info!(target: "PPC", "Broadway came online");
                 break;
             }
             thread::sleep(std::time::Duration::from_millis(500));
@@ -287,7 +291,7 @@ impl Backend for PpcBackend {
         let sock = match res {
             Ok(sock) => Some(sock),
             Err(e) => {
-                println!("[PPC] Couldn't bind to {},\n{e:?}", PpcBackend::resolve_socket_path().to_string_lossy());
+                error!(target: "PPC", "Couldn't bind to {},\n{e:?}", PpcBackend::resolve_socket_path().to_string_lossy());
                 None
             }
         };
@@ -296,7 +300,7 @@ impl Backend for PpcBackend {
         if sock.is_some() {
             self.server_loop(sock.unwrap())?;
         }
-        println!("[PPC] thread exited");
+        info!(target: "PPC", "thread exited");
         Ok(())
     }
 }
