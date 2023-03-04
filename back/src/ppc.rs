@@ -212,7 +212,18 @@ impl PpcBackend {
 
     /// Block until we receive some command message from a client.
     fn wait_for_request(&mut self, client: &mut UnixStream) -> Option<SocketReq> {
-        let _ = self.recv(client)?; // maybe FIXME: allow discarding recv length here?
+        let mut long_block = 0u8;
+        loop {
+            let try_recv = self.recv(client); // maybe FIXME: allow discarding recv length here?
+            // As we wait longer, increase the time we sleep
+            if try_recv.is_none() {
+                long_block = long_block.saturating_add(1);
+                std::thread::sleep(std::time::Duration::from_millis(5 * long_block as u64));
+            }
+            else {
+                break;
+            }
+        }
         let req = SocketReq::from_buf(
             &self.ibuf[0..0xc].try_into().unwrap()
         );
