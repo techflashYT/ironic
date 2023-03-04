@@ -47,7 +47,7 @@ pub struct SDInterface {
 impl MmioDevice for SDInterface {
     type Width = u32;
     fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
-        return match off {
+        match off {
             0xfc => Ok(BusPacket::Word(REPORTED_SDHC_VER)),
             0x38 => Ok(BusPacket::Word(self.intsen)), // Interrupt Signal Enable
 
@@ -66,10 +66,10 @@ impl MmioDevice for SDInterface {
             // Max Capabilities register
             0x48 => Ok(BusPacket::Word(self.maxcap)),
             _ => bail!("SDHC0 read at {off:x} unimplemented")
-        };
+        }
     }
     fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
-        return match off {
+        match off {
             0x38 => { // Interrupt Signal Enable
                 self.intsen = val;
                 Ok(None)
@@ -114,7 +114,7 @@ impl MmioDevice for SDInterface {
                 Ok(None)
             }
             _ => bail!("SDHC0 write {val:08x} at {off:x} unimpl")
-        };
+        }
     }
 }
 
