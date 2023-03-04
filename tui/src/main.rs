@@ -68,8 +68,9 @@ fn main() -> anyhow::Result<()> {
     let emu_bus = bus.clone();
     let emu_thread = match args.backend {
         BackendType::Interp => {
+            let ppc_early_on = custom_kernel.is_some() && enable_ppc_hle;
             Builder::new().name("EmuThread".to_owned()).spawn(move || {
-                let mut back = InterpBackend::new(emu_bus, custom_kernel);
+                let mut back = InterpBackend::new(emu_bus, custom_kernel, ppc_early_on);
                 if let Err(reason) = back.run() {
                     println!("InterpBackend returned an Err: {reason}");
                 };
