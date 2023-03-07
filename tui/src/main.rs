@@ -1,3 +1,5 @@
+#![deny(unsafe_op_in_unsafe_fn)]
+
 use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;

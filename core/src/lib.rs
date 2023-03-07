@@ -1,5 +1,7 @@
 #![feature(const_mut_refs, once_cell)]
 
+#![deny(unsafe_op_in_unsafe_fn)]
+
 /// Emulated CPU state and common operations.
 pub mod cpu;
 /// Implementation of emulated memories.
