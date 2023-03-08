@@ -28,8 +28,9 @@ implementation since the beginning:
 - [ ] Tools for fuzzing guest code
 - [ ] Other related tools?
 
-If there end up being features specific to Linux platforms, I am not planning 
-on Windows/Mac compatibility. It's also probably very slow, sorry.
+ironic is primarily developed on Linux and macOS (x86-64 and AArch64).
+Support for Windows is provided on best-effort basis. For technical reasons, minimum support is at Windows 10 1809 and Server 2019.
+
 
 ## Contributing
 I am not interested in accepting contributions to this project and I will 
@@ -55,9 +56,11 @@ directory:
 - `otp.bin` - The associated OTP/fused memory dumped from your console
 - `seeprom.bin` - The associated SEEPROM memory dumped from your console
 
+The included script `create_binfiles_from_nand.sh` will generate otp.bin and seeprom.bin for you using your nand.bin
+
 You can run the emulator with the interpreter backend like this:
 ```
-$ cargo run --release --bin ironic-tui interp
+$ cargo run --release
 ```
 
 Like `skyeye-starlet`, the `ironic-tui` target includes a server for PPC HLE.
