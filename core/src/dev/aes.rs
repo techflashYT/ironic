@@ -153,14 +153,18 @@ impl Bus {
             debug!(target: "AES", "AES iv={iv:02x?}");
             debug!(target: "AES", "AES Decrypt src={:08x} dst={:08x} len={:08x}", self.aes.src, self.aes.dst, cmd.len);
 
-            let cipher_dec = Aes128CbcDec::new_from_slices(key, &iv).unwrap();
-            let cipher_enc = Aes128CbcEnc::new_from_slices(key, &iv).unwrap();
             // Decrypt/encrypt the data, then DMA write to memory
-            let aes_outbuf = if cmd.decrypt {
-                cipher_dec.decrypt_padded_vec_mut::<NoPadding>(&aes_inbuf).unwrap()
-            } else {
-                cipher_enc.encrypt_padded_vec_mut::<NoPadding>(&aes_inbuf)
+            let aes_outbuf = match cmd.decrypt {
+                true => {
+                    let cipher_dec = Aes128CbcDec::new_from_slices(key, &iv).unwrap();
+                    cipher_dec.decrypt_padded_vec_mut::<NoPadding>(&aes_inbuf).unwrap()
+                },
+                false => {
+                    let cipher_enc = Aes128CbcEnc::new_from_slices(key, &iv).unwrap();
+                    cipher_enc.encrypt_padded_vec_mut::<NoPadding>(&aes_inbuf)
+                },
             };
+
             self.dma_write(self.aes.dst, &aes_outbuf)?;
 
             // Update IV buffer with the last 16 bytes of data
