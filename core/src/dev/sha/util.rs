@@ -16,13 +16,12 @@ use std::cell::OnceCell;
 
 const K: [u32; 4] = [ 0x5a82_7999, 0x6ed9_eba1, 0x8f1b_bcdc, 0xca62_c1d6, ];
 
-struct SyncSha1FnPtr {
-    pub inner: OnceCell<unsafe fn(&mut Sha1State)>
-}
+#[repr(transparent)]
+struct SyncSha1FnPtr(OnceCell<unsafe fn(&mut Sha1State)>);
 
 impl SyncSha1FnPtr {
     const fn new() -> Self {
-        Self { inner: OnceCell::new() }
+        Self(OnceCell::new())
     }
 }
 
@@ -43,7 +42,7 @@ impl Default for Sha1State {
 
 impl Sha1State {
     pub fn new() -> Self {
-        if PROCESS_MSG_FN.inner.get().is_none() {
+        if PROCESS_MSG_FN.0.get().is_none() {
             init_process_msg_fn_ptr();
         }
         Sha1State { digest: [0; 5], buf: [0; 64] }
@@ -55,9 +54,9 @@ impl Sha1State {
 }
 
 impl Sha1State {
-    pub fn update(&mut self, input: &Vec<u8>) {
-        assert!(input.len() % 64 == 0);
-        for chunk in input.chunks(64) {
+    pub fn update(&mut self, input: &[u8]) {
+        debug_assert!(input.len() & 63 == 0);
+        for chunk in input.chunks_exact(64) {
             self.buf.copy_from_slice(chunk);
             self.process_message();
         }
@@ -71,7 +70,7 @@ impl Sha1State {
         //      due to the use of #[target_feature] to enable optimizations, the initialization
         //      of the OnceCell does the proper feature checks to ensure the target_feature is present
         //      on the current CPU
-        unsafe { PROCESS_MSG_FN.inner.get().unwrap_unchecked()(self) };
+        unsafe { PROCESS_MSG_FN.0.get().unwrap_unchecked()(self) };
     }
 
     #[cfg(target_arch = "aarch64")]
@@ -191,13 +190,13 @@ impl Sha1State {
 fn init_process_msg_fn_ptr() {
     let err;
     if is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma") {
-        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_ia_avx2_and_fma);
+        err = PROCESS_MSG_FN.0.set(Sha1State::process_message_ia_avx2_and_fma);
     }
     else if is_x86_feature_detected!("sse4.2") {
-        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_ia_sse42);
+        err = PROCESS_MSG_FN.0.set(Sha1State::process_message_ia_sse42);
     }
     else {
-        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_scalar)
+        err = PROCESS_MSG_FN.0.set(Sha1State::process_message_scalar)
     }
     if err.is_err() {
         panic!("Failed to initialize Sha function pointer.");
@@ -210,13 +209,13 @@ fn init_process_msg_fn_ptr() {
     use std::arch::is_aarch64_feature_detected;
     let err;
     if is_aarch64_feature_detected!("sve2") {
-        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_aarch_neon_sve2)
+        err = PROCESS_MSG_FN.0.set(Sha1State::process_message_aarch_neon_sve2)
     }
     else if is_aarch64_feature_detected!("neon") {
-        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_aarch_neon);
+        err = PROCESS_MSG_FN.0.set(Sha1State::process_message_aarch_neon);
     }
     else {
-        err = PROCESS_MSG_FN.inner.set(Sha1State::process_message_scalar);
+        err = PROCESS_MSG_FN.0.set(Sha1State::process_message_scalar);
     }
     if err.is_err() {
         panic!("Failed to initialize Sha function pointer.");
@@ -225,7 +224,7 @@ fn init_process_msg_fn_ptr() {
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")))]
 fn init_process_msg_fn_ptr() {
-    if PROCESS_MSG_FN.inner.set(Sha1State::process_message_scalar).is_err() {
+    if PROCESS_MSG_FN.0.set(Sha1State::process_message_scalar).is_err() {
         panic!("Failed to initialize Sha function pointer.");
     }
 }
