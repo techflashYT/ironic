@@ -133,41 +133,41 @@ impl InterpBackend {
                                 break;
                             }
                         }
-                        eprintln!("Entered boot1. Version: boot1{version}");
+                        info!(target: "Other", "Entered boot1. Version: boot1{version}");
                     }
                     else { // Couldn't get bus -> no problem skip it.
-                        eprintln!("Entered boot1");
+                        info!(target: "Other", "Entered boot1");
                     }
                     self.boot_status = BootStatus::Boot1;
                 }
             }
             BootStatus::Boot1 => {
                 if self.cpu.read_fetch_pc() == 0xfff0_0058 {
-                    println!("Entered boot2 stub");
+                    info!(target: "Other", "Entered boot2 stub");
                     self.boot_status = BootStatus::Boot2Stub;
                 }
             }
             BootStatus::Boot2Stub => {
                 if self.cpu.read_fetch_pc() == 0xffff_0000 {
-                    println!("Entered boot2");
+                    info!(target: "Other", "Entered boot2");
                     self.boot_status = BootStatus::Boot2;
                 }
             }
             BootStatus::Boot2 => {
                 if self.cpu.read_fetch_pc() == 0xffff_2224 {
-                    println!("Entered kernel");
+                    info!(target: "Other", "Entered kernel");
                     self.boot_status = BootStatus::IOSKernel;
                 }
             }
             BootStatus::IOSKernel => {
                 if self.cpu.read_fetch_pc() == 0x0001_0000 {
-                    println!("Entered foreign kernel stub");
+                    info!(target: "Other", "Entered foreign kernel stub");
                     self.boot_status = BootStatus::UserKernelStub;
                 }
             }
             BootStatus::UserKernelStub=> {
                 if self.cpu.read_fetch_pc() == 0xffff_0000 {
-                    println!("Entered foreign kernel");
+                    info!(target: "Other", "Entered foreign kernel");
                     self.boot_status = BootStatus::UserKernel;
                 }
             },
@@ -203,7 +203,7 @@ impl InterpBackend {
         if let Some(idx) = self.svc_buf.find('\n') {
             let string: String = self.svc_buf.chars()
                 .take(idx).collect();
-            println!("SVC {string}");
+            info!(target: "Other", "SVC {string}");
             self.svc_buf.clear();
         }
         Ok(())
@@ -211,7 +211,7 @@ impl InterpBackend {
 
     /// Log IOS syscalls to stdout.
     pub fn syscall_log(&mut self, opcd: u32) {
-        println!("IOS syscall {opcd:08x}, lr={:08x}", self.cpu.reg[Reg::Lr]);
+        info!(target: "Other", "IOS syscall {opcd:08x}, lr={:08x}", self.cpu.reg[Reg::Lr]);
     }
 
     /// Write the current instruction to stdout.
@@ -225,13 +225,13 @@ impl InterpBackend {
                     return Ok(());
                 }
                 let name = format!("{:?}", ThumbInst::decode(opcd));
-                println!("({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
-                //println!("{:?}", self.cpu.reg);
+                info!(target: "Other", "({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
+                //info!(target: "Other", "{:?}", self.cpu.reg);
             } else {
                 let opcd = self.cpu.read32(pc)?;
                 let name = format!("{:?}", ArmInst::decode(opcd));
-                println!("({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
-                //println!("{:?}", self.cpu.reg);
+                info!(target: "Other", "({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
+                //info!(target: "Other", "{:?}", self.cpu.reg);
             };
         }
         Ok(())
@@ -266,8 +266,8 @@ impl InterpBackend {
                 let paddr = self.cpu.translate(
                     TLBReq::new(vaddr, Access::Debug)
                 )?;
-                println!("DBG hotpatching module entrypoint {paddr:08x}");
-                println!("{:?}", self.cpu.reg);
+                info!(target: "Other", "DBG hotpatching module entrypoint {paddr:08x}");
+                info!(target: "Other", "{:?}", self.cpu.reg);
                 self.bus.write().map_err(|e| anyhow!(e.to_string()))?.dma_write(paddr,
                     &Self::THREAD_CANCEL_PATCH)?;
             }
@@ -436,8 +436,8 @@ impl Backend for InterpBackend {
             match res {
                 CpuRes::StepOk => {},
                 CpuRes::HaltEmulation(reason) => {
-                    eprintln!("CPU returned fatal error: {reason}");
-                    eprintln!("{:?}", self.cpu.reg);
+                    info!(target: "Other", "CPU returned fatal error: {reason}");
+                    info!(target: "Other", "{:?}", self.cpu.reg);
                     break;
                 },
                 CpuRes::StepException(e) => {
@@ -445,20 +445,20 @@ impl Backend for InterpBackend {
                         ExceptionType::Undef(_) => {},
                         ExceptionType::Irq => {},
                         _ => {
-                            println!("Unimplemented exception type {e:?}");
+                            info!(target: "Other", "Unimplemented exception type {e:?}");
                             break;
                         }
                     }
                 },
                 CpuRes::Semihosting => {
                     self.svc_read().unwrap_or_else(|reason|{
-                        println!("FIXME: svc_read got error {reason}");
+                        info!(target: "Other", "FIXME: svc_read got error {reason}");
                     });
                 }
             }
             self.cpu_cycle += 1;
         }
-        println!("CPU stopped at pc={:08x}", self.cpu.read_fetch_pc());
+        info!(target: "Other", "CPU stopped at pc={:08x}", self.cpu.read_fetch_pc());
         Ok(())
     }
 }

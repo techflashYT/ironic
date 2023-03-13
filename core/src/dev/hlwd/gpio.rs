@@ -1,6 +1,7 @@
 
 pub mod seeprom;
 use anyhow::bail;
+use log::{info, error};
 
 use crate::dev::hlwd::gpio::seeprom::*;
 use crate::dev::hlwd::*;
@@ -51,9 +52,9 @@ impl GpioInterface {
         } else if (diff & 0x00ff_0000) != 0 {
             log::info!(target: "DEBUG_PORT", "[{:02x}]", (val & 0x00ff_0000) >> 16);
         } else if (diff & 0x0000_000c) != 0 {
-            println!("GPIO Fan/DCDC output {diff:08x}");
+            info!(target: "Other", "GPIO Fan/DCDC output {diff:08x}");
         } else if (diff & 0x0000_0020) != 0 {
-            println!("GPIO Disc Slot LED output");
+            info!(target: "Other", "GPIO Disc Slot LED output");
         }
         else {
             bail!("Unhandled GPIO output arm.output={:08x} val={val:08x} diff={diff:08x}", self.arm.output);
@@ -134,7 +135,7 @@ impl PpcGpio {
         match off {
             0x00 => self.output = data,
             0x04 => self.dir = data,
-            _ => println!("FIXME: unimplemented PpcGpio write {off:08x}: 0x{data:08x}"),
+            _ => error!(target: "Other", "FIXME: unimplemented PpcGpio write {off:08x}: 0x{data:08x}"),
         };
         Ok(())
     }

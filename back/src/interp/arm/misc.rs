@@ -1,5 +1,5 @@
 use ironic_core::cpu::Cpu;
-use log::debug;
+use log::{debug, info};
 use crate::bits::arm::*;
 use crate::interp::DispatchRes;
 use anyhow::anyhow;
@@ -13,7 +13,7 @@ use anyhow::anyhow;
 /// All other values, store in scratch reg and wait for debugger
 pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
     let cmd = op.imm16() as u16;
-    println!("Breakpoint instruction: {cmd:#x}");
+    info!(target: "Other", "Breakpoint instruction: {cmd:#x}");
 
     match cmd {
         0xffff => { return DispatchRes::FatalErr(anyhow!("Breakpoint 0xffff - stopping emulation")) }

@@ -1,5 +1,6 @@
 pub mod util;
 use anyhow::bail;
+use log::info;
 
 use crate::dev::nand::util::*;
 
@@ -205,7 +206,7 @@ impl MmioDevice for NandInterface {
             0x10 => self.reg.databuf,
             0x14 => self.reg.eccbuf,
             0x18 => {
-                println!("NND unimpl read from 0x18");
+                info!(target: "Other", "NND unimpl read from 0x18");
                 self.reg.unk
             },
             _ => { bail!("Unhandled NND read at {off:x} "); },
@@ -229,7 +230,7 @@ impl MmioDevice for NandInterface {
             0x10 => self.reg.databuf = val,
             0x14 => self.reg.eccbuf = val,
             0x18 => {
-                println!("NND unimpl write to 0x18");
+                info!(target: "Other", "NND unimpl write to 0x18");
                 self.reg.unk = val;
             }
             _ => { bail!("Unhandled write32 on {off:08x}"); },
@@ -269,7 +270,7 @@ impl Bus {
         let off = reg.addr2 as usize * NAND_PAGE_LEN;
         self.nand.read_data(off, &mut local_buf)?;
 
-        //println!("{:?}", local_buf.hex_dump());
+        //info!(target: "Other", "{:?}", local_buf.hex_dump());
         // Do the DMA writes to memory
         self.dma_write(reg.databuf, &local_buf[..0x800])?;
         self.dma_write(reg.eccbuf, &local_buf[0x800..])?;
@@ -279,7 +280,7 @@ impl Bus {
             let addr = (reg.eccbuf ^ 0x40) + (i as u32 * 4);
             let new_ecc = calc_ecc(&mut local_buf[(i * 0x200)..]);
             // let old_ecc = self.read32(addr);
-            //println!("NND old_ecc={:08x} new_ecc={:08x}", old_ecc, new_ecc);
+            //info!(target: "Other", "NND old_ecc={:08x} new_ecc={:08x}", old_ecc, new_ecc);
             self.write32(addr, new_ecc)?;
         }
         Ok(())
@@ -313,7 +314,7 @@ impl Bus {
         let reg = self.read_nand_regs();
         let mut next_cycle = 0;
 
-        //println!("NND cmd={:?} addr={:05b} addr1={:08x} addr2={:08x} databuf={:08x} eccbuf={:08x} len={:08x}",
+        //info!(target: "Other", "NND cmd={:?} addr={:05b} addr1={:08x} addr2={:08x} databuf={:08x} eccbuf={:08x} len={:08x}",
         //    cmd.opcd, cmd.addr, reg.addr1, reg.addr2, reg.databuf, reg.eccbuf, cmd.len);
 
         // Execute a NAND command.
@@ -366,7 +367,7 @@ impl Bus {
 
             // Assert an IRQ if requested in the command
             //if cmd.irq { 
-            //    println!("NND IRQ assert by cmd {:?}", cmd.opcd);
+            //    info!(target: "Other", "NND IRQ assert by cmd {:?}", cmd.opcd);
             //    dev.hlwd.irq.assert(HollywoodIrq::Nand); 
             //}
 

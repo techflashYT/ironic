@@ -3,7 +3,7 @@ use crate::interp::DispatchRes;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::excep::ExceptionType;
 use anyhow::anyhow;
-use log::debug;
+use log::{debug, info};
 
 pub fn svc(_cpu: &mut Cpu, _op: MiscBits) -> DispatchRes {
     DispatchRes::Exception(ExceptionType::Swi)
@@ -18,7 +18,7 @@ pub fn svc(_cpu: &mut Cpu, _op: MiscBits) -> DispatchRes {
 /// All other values, store in scratch reg and wait for debugger
 pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
     let cmd = op.imm8() as u8;
-    println!("Breakpoint instruction: {cmd:#x}");
+    info!(target:"Other", "Breakpoint instruction: {cmd:#x}");
 
     match cmd {
         0xff => { return DispatchRes::FatalErr(anyhow!("Breakpoint 0xff - stopping emulation")) }
