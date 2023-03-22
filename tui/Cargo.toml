@@ -10,8 +10,8 @@ edition = "2021"
 ironic-core = { path = "../core" }
 ironic-backend = { path = "../back" }
 
-clap = { version = "4.0.26", features = ["std", "derive", "suggestions", "color", "wrap_help"]}
-anyhow = { version = "1.0.66", features = ["std", "backtrace"] }
+clap = { version = "=4.0.32", features = ["std", "derive", "suggestions", "color", "wrap_help"]}
+anyhow = { version = "1.0.40", features = ["std", "backtrace"] }
 log = { version = "0.4.17", default-features = false, features = ["std"] }
 fern = { version = "0.6.1", features = ["colored"] }
 strum = { version = "0.24.1", features = ["derive"] }
