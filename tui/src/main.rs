@@ -148,7 +148,7 @@ fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarg
             colors.color(record.level()),
             message
         ))
-    }).chain(std::io::stderr());
+    }).chain(std::io::stdout());
     Ok(config.apply()?)
 }
 
