@@ -1,6 +1,9 @@
 //! Load/store instructions.
 
+use std::sync::RwLockReadGuard;
+
 use anyhow::bail;
+use ironic_core::bus::Bus;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::reg::CpuMode;
 use ironic_core::cpu::alu::*;
@@ -237,6 +240,7 @@ pub fn ldm_user(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
     }
     for i in 0..16 {
         if (reglist & (1 << i)) != 0 {
+
             let val = match cpu.read32(addr) {
                 Ok(val) => val,
                 Err(reason) => {
@@ -265,6 +269,11 @@ pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
     if op.p() == op.u() {
         addr += 4;
     }
+
+    let current_mode = cpu.reg.cpsr.mode();
+    if current_mode != CpuMode::Usr { 
+        cpu.reg.swap_bank(current_mode, CpuMode::Usr); 
+    }
     for i in 0..=14 {
         if (reglist & (1 << i)) != 0 {
             let val = match cpu.read32(addr) {
@@ -284,13 +293,16 @@ pub fn ldm_user_pc(cpu: &mut Cpu, op: LdmRegUserBits) -> DispatchRes {
             return DispatchRes::FatalErr(reason);
         }
     };
+    addr += 4;
+    if op.w() {
+        dbg!(addr);
+        cpu.reg[op.rn()] = addr;
+    }
+
     if let Err(reason) = cpu.exception_return(new_pc){
         return DispatchRes::FatalErr(reason);
     };
-    addr += 4;
-    if op.w() {
-        cpu.reg[op.rn()] = addr;
-    }
+
     DispatchRes::RetireBranch
 }
 
