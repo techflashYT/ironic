@@ -75,8 +75,6 @@ impl Cpu {
 
     /// Change CPU state to reflect the fact that we've entered an exception.
     pub fn generate_exception(&mut self, e: ExceptionType) -> anyhow::Result<()> {
-        anyhow::ensure!(e != ExceptionType::Swi, "Swi exceptions are not allowed");
-
         let old_cpsr = self.reg.cpsr;
         let target_mode = CpuMode::from(e);
         let target_pc = ExceptionType::get_vector(e);
