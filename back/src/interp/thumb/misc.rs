@@ -16,7 +16,7 @@ pub fn svc(_cpu: &mut Cpu, _op: MiscBits) -> DispatchRes {
 /// fc = cpu debug print off
 /// fb = dump RAM and continue
 /// All other values, store in scratch reg and wait for debugger
-pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
+pub fn bkpt(cpu: &mut Cpu, op: MiscBits) -> DispatchRes {
     let cmd = op.imm8() as u8;
     info!(target:"Other", "Breakpoint instruction: {cmd:#x}");
 
