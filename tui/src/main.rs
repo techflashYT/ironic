@@ -66,6 +66,33 @@ fn main() -> anyhow::Result<()> {
 
     let bus = Arc::new(RwLock::new(bus));
 
+    // Setup panic hook
+    // We try to avoid panics inside the emulator, but it can happen so try to dump guest memory.
+    let panic_bus = bus.clone();
+    let orig_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info|{
+        // We only care if the emulator thread crashes, so check the thread name and see whodunnit
+        let thread = std::thread::current();
+        match thread.name() {
+            Some("EmuThread") => {
+                let bus = match panic_bus.read(){
+                    Ok(b) => b,
+                    Err(e) => {
+                        e.into_inner()
+                    },
+                };
+                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                match bus.dump_memory("crash.bin") {
+                    Ok(p) => println!("Emulator crashed! Dumped RAM to {}", p.to_string_lossy()),
+                    Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
+                }
+                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            }
+            other => {dbg!(other);}
+        }
+        orig_hook(panic_info);
+    }));
+
     // Fork off the backend thread
     let emu_bus = bus.clone();
     let emu_thread = match args.backend {
