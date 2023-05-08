@@ -6,19 +6,19 @@ use crate::interp::DispatchRes;
 use anyhow::anyhow;
 
 /// Breakpoint instruction:
-/// ffff = Immediately stop emulator (dumps RAM)
-/// fffe = cpu debug print toggle
-/// fffd = cpu debug print on
-/// fffc = cpu debug print off
-/// fffb = dump RAM and continue
+/// ff = Immediately stop emulator (dumps RAM)
+/// fe = cpu debug print toggle
+/// fd = cpu debug print on
+/// fc = cpu debug print off
+/// fb = dump RAM and continue
 /// All other values, store in scratch reg and wait for debugger
 pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
     let cmd = op.imm16() as u16;
     info!(target: "Other", "Breakpoint instruction: {cmd:#x}");
 
     match cmd {
-        0xffff => { return DispatchRes::FatalErr(anyhow!("Breakpoint 0xffff - stopping emulation")) }
-        0xfffc..=0xfffe => {
+        0xff => { return DispatchRes::FatalErr(anyhow!("Breakpoint 0xffff - stopping emulation")) }
+        0xfc..=0xfe => {
             match cmd & 0x3 {
                 0b10 => { cpu.dbg_on = !cpu.dbg_on; }
                 0b01 => { cpu.dbg_on = true; }
@@ -27,7 +27,7 @@ pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
             }
             return DispatchRes::RetireOk;
         },
-        0xfffb => {
+        0xfb => {
             let bus = cpu.bus.read().expect("breakpoint instruction - bus access");
             match bus.dump_memory("bkpt.bin") {
                 Ok(path) => {
