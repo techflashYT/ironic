@@ -83,7 +83,7 @@ fn main() -> anyhow::Result<()> {
                 };
                 println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
                 match bus.dump_memory("crash.bin") {
-                    Ok(p) => println!("Emulator crashed! Dumped RAM to {}", p.to_string_lossy()),
+                    Ok(p) => println!("Emulator crashed! Dumped RAM to {}/*.crash.bin", p.to_string_lossy()),
                     Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
                 }
                 println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
@@ -130,7 +130,7 @@ fn main() -> anyhow::Result<()> {
     };
     match bus_ref.dump_memory("bin") {
         Ok(path) => {
-            debug!(target: "Other", "Dumped ram to {}", path.to_string_lossy())
+            debug!(target: "Other", "Dumped ram to {}/*.bin", path.to_string_lossy())
         }
         Err(e) => {
             error!(target: "Other", "Failed to dump ram: {e:?}");

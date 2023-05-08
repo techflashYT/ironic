@@ -31,7 +31,7 @@ pub fn bkpt(cpu: &mut Cpu, op: BkptBits) -> DispatchRes {
             let bus = cpu.bus.read().expect("breakpoint instruction - bus access");
             match bus.dump_memory("bkpt.bin") {
                 Ok(path) => {
-                    debug!(target: "Other", "Dumped RAM to {}", path.to_string_lossy());
+                    debug!(target: "Other", "Dumped RAM to {}/*.bkpt.bin", path.to_string_lossy());
                     return DispatchRes::RetireOk;
                 },
                 Err(e) => { return DispatchRes::FatalErr(e); }
