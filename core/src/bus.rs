@@ -3,7 +3,7 @@ pub mod decode;
 pub mod dispatch;
 pub mod mmio;
 pub mod task;
-use std::env::temp_dir;
+use std::env::current_dir;
 
 use crate::bus::task::*;
 
@@ -77,7 +77,7 @@ impl Bus {
     }
 
     pub fn dump_memory(&self, suffix: &'static str) -> anyhow::Result<std::path::PathBuf> {
-        let dir = temp_dir();
+        let dir = current_dir()?;
 
         let mut sram0_dir = dir.clone();
         sram0_dir.push("sram0");
