@@ -8,7 +8,6 @@ pub mod lut;
 use anyhow::{anyhow, bail};
 use log::{error, info};
 
-use std::io::{Read, Seek};
 use std::sync::{Arc, RwLock};
 use std::fs;
 
@@ -380,18 +379,8 @@ impl Backend for InterpBackend {
         if self.custom_kernel.is_some() {
             // Read the user supplied kernel file
             let filename = self.custom_kernel.as_ref().unwrap();
-            let maybe_kernel_file = fs::File::open(filename);
-            let mut kernel_file = match maybe_kernel_file {
-                Ok(f) => f,
-                Err(e) => {
-                    bail!("Error opening kernel file: {filename}, got error: {e}");
-                },
-            };
-            let mut kernel_bytes:Vec<u8> = Vec::with_capacity(kernel_file.metadata()?.len() as usize);
-            kernel_file.read_to_end(&mut kernel_bytes)?;
-            // Reuse the file for the ELF parser
-            kernel_file.rewind()?;
-            let kernel_elf = match elf::File::open_stream(&mut kernel_file) {
+            let mut kernel_bytes = fs::read(filename).map_err(|ioerr| anyhow!("Error opening kernel file: {filename}. Got error: {ioerr}"))?;
+            let kernel_elf = match elf::File::open_stream(&mut std::io::Cursor::new(&mut kernel_bytes)) {
                 Ok(res) => res,
                 Err(e)  => { bail!("Custom Kernel ELF error: {e:?}"); },
             };
@@ -413,7 +402,7 @@ impl Backend for InterpBackend {
             }
 
             let headers = kernel_elf.phdrs;
-            let mut bus = self.bus.write().map_err(|_| anyhow!("Custom kernel load: Bus access failed"))?;
+            let mut bus = self.bus.write().unwrap();
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
             bus.rom_disabled = true;
