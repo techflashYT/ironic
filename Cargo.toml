@@ -3,6 +3,7 @@ members = [
 	"core",
 	"back",
 	"tui",
+	"vendor/rust-elf",
 ]
 
 [profile.dev]

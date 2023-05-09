@@ -1,0 +1,16 @@
+[package]
+name = "elf"
+version = "0.0.12"
+authors = ["Christopher Cole <chris.cole.09@gmail.com>"]
+license = "MIT/Apache-2.0"
+homepage = "https://github.com/cole14/rust-elf/"
+repository = "https://github.com/cole14/rust-elf/"
+documentation = "https://docs.rs/elf/latest/elf/"
+description = "A pure-rust library for parsing ELF files"
+keywords = ["elf"]
+readme = "README.md"
+
+[lib]
+name = "elf"
+
+[dependencies]
