@@ -5,7 +5,7 @@ pub mod thumb;
 pub mod dispatch;
 pub mod lut;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use log::{error, info};
 
 use std::sync::{Arc, RwLock};
@@ -380,10 +380,7 @@ impl Backend for InterpBackend {
             // Read the user supplied kernel file
             let filename = self.custom_kernel.as_ref().unwrap();
             let mut kernel_bytes = fs::read(filename).map_err(|ioerr| anyhow!("Error opening kernel file: {filename}. Got error: {ioerr}"))?;
-            let kernel_elf = match elf::File::open_stream(&mut std::io::Cursor::new(&mut kernel_bytes)) {
-                Ok(res) => res,
-                Err(e)  => { bail!("Custom Kernel ELF error: {e:?}"); },
-            };
+            let kernel_elf = elf::File::open_stream(&mut std::io::Cursor::new(&mut kernel_bytes))?;
             match validate_custom_kernel(&kernel_elf.ehdr) {
                 CustomKernelValidationResult::Ok => {/* We have a valid ELF (probably) */},
                 CustomKernelValidationResult::Problem(p) => {

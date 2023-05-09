@@ -1,3 +1,5 @@
+use thiserror::Error;
+
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -35,25 +37,20 @@ impl std::fmt::Display for File {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum ParseError {
+    #[error("EndianError")]
     EndianError,
-    IoError(io::Error),
+    #[error("IO Error")]
+    IoError(#[from] io::Error),
+    #[error("Invalid Magic")]
     InvalidMagic,
-    InvalidFormat(Option<std::string::FromUtf8Error>),
+    #[error("Invalid Format")]
+    InvalidFormat,
+    #[error("UTF-8 Invalid")]
+    Utf8Error(#[from]std::string::FromUtf8Error),
+    #[error("Not implemented")]
     NotImplemented,
-}
-
-impl std::convert::From<std::io::Error> for ParseError {
-    fn from(e: std::io::Error) -> Self {
-        ParseError::IoError(e)
-    }
-}
-
-impl std::convert::From<std::string::FromUtf8Error> for ParseError {
-    fn from(e: std::string::FromUtf8Error) -> Self {
-        ParseError::InvalidFormat(Some(e))
-    }
 }
 
 impl File {
@@ -70,7 +67,7 @@ impl File {
         let nread = io_file.read(ident.as_mut())?;
 
         if nread != types::EI_NIDENT {
-            return Err(ParseError::InvalidFormat(None));
+            return Err(ParseError::InvalidFormat);
         }
 
         // Verify the magic number
@@ -318,7 +315,7 @@ impl std::fmt::Display for Section {
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
-    use File;
+    use crate::File;
 
     #[test]
     fn test_open_path() {

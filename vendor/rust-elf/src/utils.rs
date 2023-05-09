@@ -1,6 +1,6 @@
 use std::io;
-use types;
-use ParseError;
+use crate::types;
+use crate::ParseError;
 
 #[inline]
 pub fn read_u16<T: io::Read>(endian: types::Data, io: &mut T) -> Result<u16, ParseError> {
