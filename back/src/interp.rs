@@ -202,7 +202,7 @@ impl InterpBackend {
         if let Some(idx) = self.svc_buf.find('\n') {
             let string: String = self.svc_buf.chars()
                 .take(idx).collect();
-            info!(target: "Other", "SVC {string}");
+            info!(target: "SVC", "{string}");
             self.svc_buf.clear();
         }
         Ok(())

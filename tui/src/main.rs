@@ -157,6 +157,7 @@ enum LogTarget {
     SEEPROM,
     SHA,
     SYSCALL,
+    SVC,
     xHCI,
     Other,
 }
@@ -169,12 +170,17 @@ fn setup_logger(base_level: log::LevelFilter, target_level_overrides: &[(LogTarg
         config = config.level_for(specific_override.0.to_string(), specific_override.1);
     }
     config = config.format(move |out, message, record| {
-        out.finish(format_args!(
-            "[{}][{}] {}",
-            record.target(),
-            colors.color(record.level()),
-            message
-        ))
+        if record.target() == "SVC" {
+            out.finish(format_args!("[SVC] {}", message));
+        }
+        else {
+            out.finish(format_args!(
+                "[{}][{}] {}",
+                record.target(),
+                colors.color(record.level()),
+                message
+            ))
+        }
     }).chain(std::io::stdout());
     Ok(config.apply()?)
 }
