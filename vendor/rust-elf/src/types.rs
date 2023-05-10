@@ -627,6 +627,12 @@ pub struct FileHeader {
     pub entry: u64,
 }
 
+impl Default for FileHeader {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileHeader {
     pub fn new() -> FileHeader {
         FileHeader {

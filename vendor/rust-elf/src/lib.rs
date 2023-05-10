@@ -114,7 +114,7 @@ impl File {
         // Parse the program headers
         io_file.seek(io::SeekFrom::Start(phoff))?;
         for _ in 0..phnum {
-            let progtype: types::ProgType;
+            let progtype = types::ProgType(utils::read_u32(elf_f.ehdr.data, io_file)?);
             let offset: u64;
             let vaddr: u64;
             let paddr: u64;
@@ -123,7 +123,6 @@ impl File {
             let flags: types::ProgFlag;
             let align: u64;
 
-            progtype = types::ProgType(utils::read_u32(elf_f.ehdr.data, io_file)?);
             if elf_f.ehdr.class == types::ELFCLASS32 {
                 offset = utils::read_u32(elf_f.ehdr.data, io_file)? as u64;
                 vaddr = utils::read_u32(elf_f.ehdr.data, io_file)? as u64;
@@ -143,14 +142,14 @@ impl File {
             }
 
             elf_f.phdrs.push(types::ProgramHeader {
-                progtype: progtype,
-                offset: offset,
-                vaddr: vaddr,
-                paddr: paddr,
-                filesz: filesz,
-                memsz: memsz,
-                flags: flags,
-                align: align,
+                progtype,
+                offset,
+                vaddr,
+                paddr,
+                filesz,
+                memsz,
+                flags,
+                align,
             });
         }
 
@@ -159,7 +158,6 @@ impl File {
         io_file.seek(io::SeekFrom::Start(shoff))?;
         for _ in 0..shnum {
             let name: String = String::new();
-            let shtype: types::SectionType;
             let flags: types::SectionFlag;
             let addr: u64;
             let offset: u64;
@@ -170,7 +168,7 @@ impl File {
             let entsize: u64;
 
             name_idxs.push(utils::read_u32(elf_f.ehdr.data, io_file)?);
-            shtype = types::SectionType(utils::read_u32(elf_f.ehdr.data, io_file)?);
+            let shtype = types::SectionType(utils::read_u32(elf_f.ehdr.data, io_file)?);
             if elf_f.ehdr.class == types::ELFCLASS32 {
                 flags = types::SectionFlag(utils::read_u32(elf_f.ehdr.data, io_file)? as u64);
                 addr = utils::read_u32(elf_f.ehdr.data, io_file)? as u64;
@@ -193,16 +191,16 @@ impl File {
 
             elf_f.sections.push(Section {
                 shdr: types::SectionHeader {
-                    name: name,
-                    shtype: shtype,
-                    flags: flags,
-                    addr: addr,
-                    offset: offset,
-                    size: size,
-                    link: link,
-                    info: info,
-                    addralign: addralign,
-                    entsize: entsize,
+                    name,
+                    shtype,
+                    flags,
+                    addr,
+                    offset,
+                    size,
+                    link,
+                    info,
+                    addralign,
+                    entsize,
                 },
                 data: Vec::new(),
             });
@@ -288,9 +286,9 @@ impl File {
 
         symbols.push(types::Symbol {
             name: utils::get_string(link, name as usize)?,
-            value: value,
-            size: size,
-            shndx: shndx,
+            value,
+            size,
+            shndx,
             symtype: types::SymbolType(info[0] & 0xf),
             bind: types::SymbolBind(info[0] >> 4),
             vis: types::SymbolVis(other[0] & 0x3),
