@@ -1,16 +1,20 @@
-use std::io;
 use crate::types;
 use crate::ParseError;
+use std::io;
 
 #[inline]
 pub fn read_u16<T: io::Read>(endian: types::Data, io: &mut T) -> Result<u16, ParseError> {
     let mut buf = [0u8; 2];
     io.read_exact(&mut buf)?;
     match endian {
-        types::ELFDATA2LSB => { Ok(u16::from_le_bytes(buf)) }
-        types::ELFDATA2MSB => { Ok(u16::from_be_bytes(buf)) }
-        types::ELFDATANONE => { return Err(ParseError::EndianError); }
-        _ => { return Err(ParseError::EndianError); }
+        types::ELFDATA2LSB => Ok(u16::from_le_bytes(buf)),
+        types::ELFDATA2MSB => Ok(u16::from_be_bytes(buf)),
+        types::ELFDATANONE => {
+            return Err(ParseError::EndianError);
+        }
+        _ => {
+            return Err(ParseError::EndianError);
+        }
     }
 }
 
@@ -19,10 +23,14 @@ pub fn read_u32<T: io::Read>(endian: types::Data, io: &mut T) -> Result<u32, Par
     let mut buf = [0u8; 4];
     io.read_exact(&mut buf)?;
     match endian {
-        types::ELFDATA2LSB => { Ok(u32::from_le_bytes(buf)) }
-        types::ELFDATA2MSB => { Ok(u32::from_be_bytes(buf)) }
-        types::ELFDATANONE => { return Err(ParseError::EndianError); }
-        _ => { return Err(ParseError::EndianError); }
+        types::ELFDATA2LSB => Ok(u32::from_le_bytes(buf)),
+        types::ELFDATA2MSB => Ok(u32::from_be_bytes(buf)),
+        types::ELFDATANONE => {
+            return Err(ParseError::EndianError);
+        }
+        _ => {
+            return Err(ParseError::EndianError);
+        }
     }
 }
 
@@ -31,10 +39,14 @@ pub fn read_u64<T: io::Read>(endian: types::Data, io: &mut T) -> Result<u64, Par
     let mut buf = [0u8; 8];
     io.read_exact(&mut buf)?;
     match endian {
-        types::ELFDATA2LSB => { Ok(u64::from_le_bytes(buf)) }
-        types::ELFDATA2MSB => { Ok(u64::from_be_bytes(buf)) }
-        types::ELFDATANONE => { return Err(ParseError::EndianError); }
-        _ => { return Err(ParseError::EndianError); }
+        types::ELFDATA2LSB => Ok(u64::from_le_bytes(buf)),
+        types::ELFDATA2MSB => Ok(u64::from_be_bytes(buf)),
+        types::ELFDATANONE => {
+            return Err(ParseError::EndianError);
+        }
+        _ => {
+            return Err(ParseError::EndianError);
+        }
     }
 }
 
@@ -130,28 +142,36 @@ mod tests {
 
     #[test]
     fn test_read_u64_lsb() {
-        let data = [0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8];
+        let data = [
+            0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8,
+        ];
         let result = read_u64(types::ELFDATA2LSB, &mut data.as_ref()).unwrap();
         assert_eq!(result, 0x8070605040302010u64);
     }
 
     #[test]
     fn test_read_u64_msb() {
-        let data = [0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8];
+        let data = [
+            0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8,
+        ];
         let result = read_u64(types::ELFDATA2MSB, &mut data.as_ref()).unwrap();
         assert_eq!(result, 0x1020304050607080u64);
     }
 
     #[test]
     fn test_read_u64_none() {
-        let data = [0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8];
+        let data = [
+            0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8,
+        ];
         let result: Result<u64, ParseError> = read_u64(types::ELFDATANONE, &mut data.as_ref());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_read_u64_invalid_endianness() {
-        let data = [0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8];
+        let data = [
+            0x10u8, 0x20u8, 0x30u8, 0x40u8, 0x50u8, 0x60u8, 0x70u8, 0x80u8,
+        ];
         let result: Result<u64, ParseError> = read_u64(types::Data(42), &mut data.as_ref());
         assert!(result.is_err());
     }
@@ -162,5 +182,4 @@ mod tests {
         let result: Result<u64, ParseError> = read_u64(types::ELFDATA2LSB, &mut data.as_ref());
         assert!(result.is_err());
     }
-
 }

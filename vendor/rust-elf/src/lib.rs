@@ -2,8 +2,8 @@ use thiserror::Error;
 
 use std::fs;
 use std::io;
-use std::path::Path;
 use std::io::{Read, Seek};
+use std::path::Path;
 
 pub mod types;
 
@@ -48,7 +48,7 @@ pub enum ParseError {
     #[error("Invalid Format")]
     InvalidFormat,
     #[error("UTF-8 Invalid")]
-    Utf8Error(#[from]std::string::FromUtf8Error),
+    Utf8Error(#[from] std::string::FromUtf8Error),
     #[error("Not implemented")]
     NotImplemented,
 }
@@ -71,8 +71,11 @@ impl File {
         }
 
         // Verify the magic number
-        if ident[0] != types::ELFMAG0 || ident[1] != types::ELFMAG1
-                || ident[2] != types::ELFMAG2 || ident[3] != types::ELFMAG3 {
+        if ident[0] != types::ELFMAG0
+            || ident[1] != types::ELFMAG1
+            || ident[2] != types::ELFMAG2
+            || ident[3] != types::ELFMAG3
+        {
             return Err(ParseError::InvalidMagic);
         }
 
@@ -140,15 +143,15 @@ impl File {
             }
 
             elf_f.phdrs.push(types::ProgramHeader {
-                    progtype: progtype,
-                    offset:   offset,
-                    vaddr:    vaddr,
-                    paddr:    paddr,
-                    filesz:   filesz,
-                    memsz:    memsz,
-                    flags:    flags,
-                    align:    align,
-                });
+                progtype: progtype,
+                offset: offset,
+                vaddr: vaddr,
+                paddr: paddr,
+                filesz: filesz,
+                memsz: memsz,
+                flags: flags,
+                align: align,
+            });
         }
 
         // Parse the section headers
@@ -189,26 +192,28 @@ impl File {
             }
 
             elf_f.sections.push(Section {
-                    shdr: types::SectionHeader {
-                        name:      name,
-                        shtype:    shtype,
-                        flags:     flags,
-                        addr:      addr,
-                        offset:    offset,
-                        size:      size,
-                        link:      link,
-                        info:      info,
-                        addralign: addralign,
-                        entsize:   entsize,
-                    },
-                    data: Vec::new(),
-                });
+                shdr: types::SectionHeader {
+                    name: name,
+                    shtype: shtype,
+                    flags: flags,
+                    addr: addr,
+                    offset: offset,
+                    size: size,
+                    link: link,
+                    info: info,
+                    addralign: addralign,
+                    entsize: entsize,
+                },
+                data: Vec::new(),
+            });
         }
 
         // Read the section data
         let mut s_i: usize = 0;
         loop {
-            if s_i == shnum as usize { break; }
+            if s_i == shnum as usize {
+                break;
+            }
 
             let off = elf_f.sections[s_i].shdr.offset;
             let size = elf_f.sections[s_i].shdr.size;
@@ -225,11 +230,14 @@ impl File {
         // Parse the section names from the string header string table
         s_i = 0;
         loop {
-            if s_i == shnum as usize { break; }
+            if s_i == shnum as usize {
+                break;
+            }
 
             elf_f.sections[s_i].shdr.name = utils::get_string(
                 &elf_f.sections[shstrndx as usize].data,
-                name_idxs[s_i] as usize)?;
+                name_idxs[s_i] as usize,
+            )?;
 
             s_i += 1;
         }
@@ -249,7 +257,12 @@ impl File {
         Ok(symbols)
     }
 
-    fn parse_symbol<T: Read + Seek>(&self, io_section: &mut T, symbols: &mut Vec<types::Symbol>, link: &[u8]) -> Result<(), ParseError> {
+    fn parse_symbol<T: Read + Seek>(
+        &self,
+        io_section: &mut T,
+        symbols: &mut Vec<types::Symbol>,
+        link: &[u8],
+    ) -> Result<(), ParseError> {
         let name: u32;
         let value: u64;
         let size: u64;
@@ -274,21 +287,21 @@ impl File {
         }
 
         symbols.push(types::Symbol {
-                name:    utils::get_string(link, name as usize)?,
-                value:   value,
-                size:    size,
-                shndx:   shndx,
-                symtype: types::SymbolType(info[0] & 0xf),
-                bind:    types::SymbolBind(info[0] >> 4),
-                vis:     types::SymbolVis(other[0] & 0x3),
-            });
+            name: utils::get_string(link, name as usize)?,
+            value: value,
+            size: size,
+            shndx: shndx,
+            symtype: types::SymbolType(info[0] & 0xf),
+            bind: types::SymbolBind(info[0] >> 4),
+            vis: types::SymbolVis(other[0] & 0x3),
+        });
         Ok(())
     }
 
     pub fn get_section<T: AsRef<str>>(&self, name: T) -> Option<&Section> {
         self.sections
             .iter()
-            .find(|section| section.shdr.name == name.as_ref() )
+            .find(|section| section.shdr.name == name.as_ref())
     }
 
     pub fn new() -> File {
@@ -314,13 +327,12 @@ impl std::fmt::Display for Section {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
     use crate::File;
+    use std::path::PathBuf;
 
     #[test]
     fn test_open_path() {
-        let file = File::open_path(PathBuf::from("tests/samples/test1"))
-            .expect("Open test1");
+        let file = File::open_path(PathBuf::from("tests/samples/test1")).expect("Open test1");
         let bss = file.get_section(".bss").expect("Get .bss section");
         assert!(bss.data.iter().all(|&b| b == 0));
     }
