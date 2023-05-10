@@ -1,30 +1,14 @@
-[![](https://img.shields.io/crates/v/elf.svg)](https://crates.io/crates/elf)
-[![](https://img.shields.io/crates/d/elf.svg)](https://crates.io/crates/elf)
-[![Build Status](https://github.com/cole14/rust-elf/actions/workflows/rust.yml/badge.svg)](https://github.com/cole14/rust-elf/actions)
-[![](https://docs.rs/elf/badge.svg)](https://docs.rs/elf/)
+# rust-elf2
+A fork of the `elf` crate, rolled back to 0.0.12 and updated from there.
 
-# rust-elf
-Pure-Rust library for parsing ELF files
+The package name has been changed to elf2 to avoid conflicts if I ever publish to crates.io
 
-[Documentation](https://docs.rs/elf/)
+If you are already using elf 0.0.X you can update seamlessly with cargo's package renaming feature
 
-## Example:
-```rust
-extern crate elf;
+Change your Cargo.toml from
 
-use std::path::PathBuf;
+`elf = "..."`
 
-let path = PathBuf::from("/some/file/path");
-let file = match elf::File::open_path(&path) {
-    Ok(f) => f,
-    Err(e) => panic!("Error: {:?}", e),
-};
+to
 
-let text_scn = match file.get_section(".text") {
-    Some(s) => s,
-    None => panic!("Failed to look up .text section"),
-};
-
-println!("{:?}", text_scn.data);
-
-```
+`elf = { package = "elf2", path = "/path/to/rust-elf2" }`

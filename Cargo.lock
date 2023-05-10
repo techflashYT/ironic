@@ -244,7 +244,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "elf"
+name = "elf2"
 version = "0.0.12"
 dependencies = [
  "thiserror",
@@ -382,7 +382,7 @@ name = "ironic-backend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "elf",
+ "elf2",
  "ironic-core",
  "log",
  "uds_windows",
