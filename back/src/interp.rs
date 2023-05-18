@@ -397,6 +397,10 @@ impl Backend for InterpBackend {
                     // we sleep for a few seconds to let the user see the error.
                 }
             }
+            match load_custom_kernel_debuginfo(&kernel_elf) {
+                Ok(debuginfo) => {self.bus.write().unwrap().install_debuginfo(debuginfo)},
+                Err(err) => {error!(target: "Custom Kernel", "Failed to load debuginfo for kernel: {err}")},
+            }
 
             let headers = kernel_elf.phdrs;
             let mut bus = self.bus.write().unwrap();
@@ -424,6 +428,7 @@ impl Backend for InterpBackend {
                 let mut bus = self.bus.write().unwrap();
                 bus.step(self.cpu_cycle)?;
                 self.bus_cycle += 1;
+                bus.update_debug_location(self.cpu.reg.pc, self.cpu.reg.r[14]);
                 self.cpu.irq_input = bus.hlwd.irq.arm_irq_output;
             }
 
@@ -493,4 +498,17 @@ fn validate_custom_kernel(header: &elf::types::FileHeader) -> CustomKernelValida
     else {
         CustomKernelValidationResult::Problem(problems)
     }
+}
+
+fn load_custom_kernel_debuginfo(kernel_elf: &elf::File) -> anyhow::Result<gimli::Dwarf<Vec<u8>>> {
+    use gimli::*;
+    let loader = |id: gimli::SectionId| -> core::result::Result<Vec<u8>, gimli::Error> {
+        match kernel_elf.get_section(id.name()) {
+            Some(section) => {
+                Ok(section.data.clone())
+            },
+            None => Ok(Vec::with_capacity(0)),
+        }
+    };
+    Ok(Dwarf::load(loader)?)
 }

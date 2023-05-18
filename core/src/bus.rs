@@ -16,6 +16,7 @@ use crate::dev::ehci::*;
 use crate::dev::ohci::*;
 use crate::dev::sdhc::*;
 
+use gimli::Dwarf;
 
 /// Implementation of an emulated bus.
 ///
@@ -47,7 +48,9 @@ pub struct Bus {
     /// Queue for pending work on I/O devices.
     pub tasks: Vec<Task>,
     pub cycle: usize,
-    pub debug: bool,
+    pub debuginfo: Option<Box<Dwarf<Vec<u8>>>>,
+    /// Last known PC/LR for debugging purposes
+    pub debug_location: Option<(u32, u32)>,
 }
 impl Bus {
     pub fn new()-> anyhow::Result<Self> {
@@ -72,9 +75,18 @@ impl Bus {
             mirror_enabled: false,
             tasks: Vec::new(),
             cycle: 0,
-            debug: false,
+            debuginfo: None,
+            debug_location: None,
         })
     }
+
+    pub fn install_debuginfo(&mut self, debuginfo: Dwarf<Vec<u8>>) {
+        self.debuginfo = Some(Box::new(debuginfo));
+    }
+
+    pub fn update_debug_location(&mut self, pc: u32, lr: u32) {
+        self.debug_location = Some((pc, lr));
+    } 
 
     pub fn dump_memory(&self, suffix: &'static str) -> anyhow::Result<std::path::PathBuf> {
         let dir = current_dir()?;

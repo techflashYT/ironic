@@ -12,3 +12,4 @@ aes = "0.8.2"
 anyhow = { version = "1.0.70", features = ["std", "backtrace"] }
 fxhash = "0.2.1"
 log = { version = "0.4.17", default-features = false, features = ["std"] }
+gimli = "~0.27.2"

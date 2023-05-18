@@ -73,22 +73,38 @@ fn main() -> anyhow::Result<()> {
     std::panic::set_hook(Box::new(move |panic_info|{
         // We only care if the emulator thread crashes, so check the thread name and see whodunnit
         let thread = std::thread::current();
-        match thread.name() {
-            Some("EmuThread") => {
-                let bus = match panic_bus.read(){
-                    Ok(b) => b,
-                    Err(e) => {
-                        e.into_inner()
-                    },
-                };
-                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-                match bus.dump_memory("crash.bin") {
-                    Ok(p) => println!("Emulator crashed! Dumped RAM to {}/*.crash.bin", p.to_string_lossy()),
-                    Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
-                }
-                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+        if thread.name() == Some("EmuThread") {
+            let bus = match panic_bus.read(){
+                Ok(b) => b,
+                Err(e) => {
+                    e.into_inner()
+                },
+            };
+            // Dump emulator memory.
+            println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            match bus.dump_memory("crash.bin") {
+                Ok(p) => println!("Emulator crashed! Dumped RAM to {}/*.crash.bin", p.to_string_lossy()),
+                Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
             }
-            other => {dbg!(other);}
+            println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+            // Attempt a debuginfo enhanced crashdump.
+            if bus.debug_location.is_none() {
+                println!("Debug location never saved to bus, can not continue crashdump");
+            }
+            let (pc, lr) = bus.debug_location.unwrap();
+            if let Some(ref debuginfo) = bus.debuginfo {
+                let debuginfo_b = debuginfo.borrow(|section| {
+                    gimli::EndianSlice::new(&section, gimli::BigEndian)
+                });
+                match addr2line::Context::from_dwarf(debuginfo_b) {
+                    Ok(addr2line_ctx) => {
+                      let pc_line = addr2line_ctx.find_location(pc as u64).unwrap_or_default();
+                      let lr_line = addr2line_ctx.find_location(lr as u64).unwrap_or_default();
+                      println!("addr2line\nPC:{pc:08x} Loc:{}\nLR:{lr:08x} Loc:{}", fmt_location(pc_line), fmt_location(lr_line));
+                    },
+                    Err(err) => println!("Failed to initialize addr2line, cannot procede with crashdump! {err}"),
+                }
+            }
         }
         orig_hook(panic_info);
     }));
@@ -231,5 +247,14 @@ fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
         anyhow::bail!(
             "Failed to parse --logging argument: Base-level must be `off`, `error`, `warn`, `info`, `debug`, or `trace`. You supplied \"{maybe_base_level}\"{LOGGING_EXAMPLE_TXT}"
         );
+    }
+}
+
+fn fmt_location(loc: Option<addr2line::Location>) -> String {
+    if let Some(real_loc) = loc {
+        format!("{}:{}:{}", real_loc.file.unwrap_or("??"), real_loc.line.unwrap_or(0), real_loc.column.unwrap_or(0))
+    }
+    else {
+        "??:0".to_owned()
     }
 }

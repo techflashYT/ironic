@@ -15,3 +15,5 @@ anyhow = { version = "1.0.40", features = ["std", "backtrace"] }
 log = { version = "0.4.17", default-features = false, features = ["std"] }
 fern = { version = "0.6.2", features = ["colored"] }
 strum = { version = "0.24.1", features = ["derive"] }
+addr2line = { version = "~0.20.0", default-features = false, features = ["std"] }
+gimli = "~0.27.2"
