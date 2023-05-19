@@ -6,6 +6,7 @@ pub mod dispatch;
 pub mod lut;
 
 use anyhow::anyhow;
+use gimli::{BigEndian, read::*};
 use log::{error, info};
 
 use std::sync::{Arc, RwLock};
@@ -402,6 +403,11 @@ impl Backend for InterpBackend {
                 Err(err) => {error!(target: "Custom Kernel", "Failed to load debuginfo for kernel: {err}")},
             }
 
+            match load_custom_kernel_debug_frame(&kernel_elf) {
+                Ok(debug_frames) => {self.bus.write().unwrap().install_debug_frames(debug_frames)},
+                Err(err) => {error!(target: "Custom Kernel", "Failed to load debug frames for kernel: {err}")},
+            }
+
             let headers = kernel_elf.phdrs;
             let mut bus = self.bus.write().unwrap();
             // We are relying on the mirror being available
@@ -428,7 +434,7 @@ impl Backend for InterpBackend {
                 let mut bus = self.bus.write().unwrap();
                 bus.step(self.cpu_cycle)?;
                 self.bus_cycle += 1;
-                bus.update_debug_location(self.cpu.reg.pc, self.cpu.reg.r[14]);
+                bus.update_debug_location(Some(self.cpu.reg.pc), Some(self.cpu.reg.r[14]), Some(self.cpu.reg.r[13]));
                 self.cpu.irq_input = bus.hlwd.irq.arm_irq_output;
             }
 
@@ -500,15 +506,27 @@ fn validate_custom_kernel(header: &elf::types::FileHeader) -> CustomKernelValida
     }
 }
 
-fn load_custom_kernel_debuginfo(kernel_elf: &elf::File) -> anyhow::Result<gimli::Dwarf<Vec<u8>>> {
-    use gimli::*;
-    let loader = |id: gimli::SectionId| -> core::result::Result<Vec<u8>, gimli::Error> {
+fn load_custom_kernel_debuginfo(kernel_elf: &elf::File) -> anyhow::Result<Dwarf<EndianArcSlice<BigEndian>>> {
+    let loader = |id: gimli::SectionId| -> core::result::Result<EndianArcSlice<BigEndian>, gimli::Error> {
         match kernel_elf.get_section(id.name()) {
             Some(section) => {
-                Ok(section.data.clone())
+                let d = section.data.as_slice();
+                Ok(EndianArcSlice::new(Arc::from(&d[..]), BigEndian))
             },
-            None => Ok(Vec::with_capacity(0)),
+            None => Ok(EndianArcSlice::new(Arc::new([]), BigEndian)),
         }
     };
     Ok(Dwarf::load(loader)?)
+}
+
+fn load_custom_kernel_debug_frame(kernel_elf:&elf::File) -> anyhow::Result<gimli::read::DebugFrame<EndianArcSlice<BigEndian>>> {
+    match kernel_elf.get_section(".debug_frame") {
+        Some(debug_frame_section) => {
+            let d = debug_frame_section.data.as_slice();
+            let mut debug_frame = DebugFrame::from(EndianArcSlice::new(Arc::from(&d[..]), BigEndian));
+            debug_frame.set_address_size(std::mem::size_of::<u32>() as u8);
+            Ok(debug_frame)
+        },
+        None => anyhow::bail!("No debug frame section found"),
+    }
 }

@@ -1,6 +1,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use addr2line::Context;
+use gimli::BigEndian;
 use gimli::EndianSlice;
 use ironic_core::bus::*;
 use ironic_backend::interp::*;
@@ -91,14 +92,16 @@ fn main() -> anyhow::Result<()> {
             }
             println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
             // Attempt a debuginfo enhanced crashdump.
-            if bus.debug_location.is_none() {
+            if bus.debuginfo.debuginfo.is_none() {
                 println!("Debug location never saved to bus, can not continue crashdump");
                 return;
             }
-            let (pc, lr) = bus.debug_location.unwrap();
-            if let Some(ref debuginfo) = bus.debuginfo {
-                let debuginfo_b = debuginfo.borrow(|section| {
-                    gimli::EndianSlice::new(&section, gimli::BigEndian)
+            let pc = bus.debuginfo.last_pc.unwrap();
+            let lr = bus.debuginfo.last_lr.unwrap();
+            let _sp = bus.debuginfo.last_sp.unwrap();
+            if let Some(ref debuginfo) = bus.debuginfo.debuginfo {
+                let debuginfo_b = debuginfo.borrow(|section|{
+                    EndianSlice::new(section, BigEndian)
                 });
                 match addr2line::Context::from_dwarf(debuginfo_b) {
                     Ok(addr2line_ctx) => {
@@ -252,11 +255,13 @@ fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
     }
 }
 
-fn enhanced_crashdump(addr2line_ctx: Context<EndianSlice<gimli::BigEndian>>, _bus: &RwLockReadGuard<Bus>, pc: u32, lr: u32) -> anyhow::Result<()> {
+fn enhanced_crashdump(addr2line_ctx: Context<EndianSlice<BigEndian>>, _bus: &RwLockReadGuard<Bus>, pc: u32, lr: u32) -> anyhow::Result<()> {
     // addr2line of PC and LR
-    let pc_line = addr2line_ctx.find_location(pc as u64).unwrap_or_default();
-    let lr_line = addr2line_ctx.find_location(lr as u64).unwrap_or_default();
-    println!("addr2line\nPC:{pc:08x} Loc:{}\nLR:{lr:08x} Loc:{}", fmt_location(pc_line), fmt_location(lr_line));
+    {
+        let pc_line = addr2line_ctx.find_location(pc as u64).unwrap_or_default();
+        let lr_line = addr2line_ctx.find_location(lr as u64).unwrap_or_default();
+        println!("addr2line\nPC:{pc:08x} Loc:{}\nLR:{lr:08x} Loc:{}", fmt_location(pc_line), fmt_location(lr_line));
+    }
     Ok(())
 }
 

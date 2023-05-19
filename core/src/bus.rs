@@ -16,7 +16,19 @@ use crate::dev::ehci::*;
 use crate::dev::ohci::*;
 use crate::dev::sdhc::*;
 
+use gimli::BigEndian;
+use gimli::DebugFrame;
 use gimli::Dwarf;
+use gimli::EndianArcSlice;
+
+#[derive(Default)]
+pub struct DebugInfo {
+    pub debuginfo: Option<Dwarf<EndianArcSlice<BigEndian>>>,
+    pub debug_frames: Option<DebugFrame<EndianArcSlice<BigEndian>>>,
+    pub last_pc: Option<u32>,
+    pub last_lr: Option<u32>,
+    pub last_sp: Option<u32>,
+}
 
 /// Implementation of an emulated bus.
 ///
@@ -48,9 +60,7 @@ pub struct Bus {
     /// Queue for pending work on I/O devices.
     pub tasks: Vec<Task>,
     pub cycle: usize,
-    pub debuginfo: Option<Box<Dwarf<Vec<u8>>>>,
-    /// Last known PC/LR for debugging purposes
-    pub debug_location: Option<(u32, u32)>,
+    pub debuginfo: Box<DebugInfo>,
 }
 impl Bus {
     pub fn new()-> anyhow::Result<Self> {
@@ -75,17 +85,31 @@ impl Bus {
             mirror_enabled: false,
             tasks: Vec::new(),
             cycle: 0,
-            debuginfo: None,
-            debug_location: None,
+            debuginfo: Box::default(),
         })
     }
 
-    pub fn install_debuginfo(&mut self, debuginfo: Dwarf<Vec<u8>>) {
-        self.debuginfo = Some(Box::new(debuginfo));
+    pub fn install_debuginfo(&mut self, debuginfo: Dwarf<EndianArcSlice<BigEndian>>) {
+        self.debuginfo.debuginfo = Some(debuginfo);
     }
 
-    pub fn update_debug_location(&mut self, pc: u32, lr: u32) {
-        self.debug_location = Some((pc, lr));
+    pub fn install_debug_frames(&mut self, debug_frames: DebugFrame<EndianArcSlice<BigEndian>>) {
+        self.debuginfo.debug_frames = Some(debug_frames);
+    }
+
+    pub fn update_debug_location(&mut self, pc: Option<u32>, lr: Option<u32>, sp: Option<u32>) {
+        match pc {
+            Some(pc) => self.debuginfo.last_pc = Some(pc),
+            None => (),
+        }
+        match lr {
+            Some(lr) => self.debuginfo.last_lr = Some(lr),
+            None => (),
+        }
+        match sp {
+            Some(sp) => self.debuginfo.last_sp = Some(sp),
+            None => (),
+        }
     } 
 
     pub fn dump_memory(&self, suffix: &'static str) -> anyhow::Result<std::path::PathBuf> {
