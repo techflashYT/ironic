@@ -90,6 +90,7 @@ fn main() -> anyhow::Result<()> {
             // Attempt a debuginfo enhanced crashdump.
             if bus.debug_location.is_none() {
                 println!("Debug location never saved to bus, can not continue crashdump");
+                return;
             }
             let (pc, lr) = bus.debug_location.unwrap();
             if let Some(ref debuginfo) = bus.debuginfo {
