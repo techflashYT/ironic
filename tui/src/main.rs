@@ -1,5 +1,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
+use addr2line::Context;
+use gimli::EndianSlice;
 use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
@@ -9,6 +11,7 @@ use strum::VariantNames;
 
 use std::panic;
 use std::process;
+use std::sync::RwLockReadGuard;
 use std::sync::{Arc, RwLock};
 use std::thread::Builder;
 
@@ -99,9 +102,7 @@ fn main() -> anyhow::Result<()> {
                 });
                 match addr2line::Context::from_dwarf(debuginfo_b) {
                     Ok(addr2line_ctx) => {
-                      let pc_line = addr2line_ctx.find_location(pc as u64).unwrap_or_default();
-                      let lr_line = addr2line_ctx.find_location(lr as u64).unwrap_or_default();
-                      println!("addr2line\nPC:{pc:08x} Loc:{}\nLR:{lr:08x} Loc:{}", fmt_location(pc_line), fmt_location(lr_line));
+                        let _ = enhanced_crashdump(addr2line_ctx, &bus, pc, lr);
                     },
                     Err(err) => println!("Failed to initialize addr2line, cannot procede with crashdump! {err}"),
                 }
@@ -249,6 +250,14 @@ fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
             "Failed to parse --logging argument: Base-level must be `off`, `error`, `warn`, `info`, `debug`, or `trace`. You supplied \"{maybe_base_level}\"{LOGGING_EXAMPLE_TXT}"
         );
     }
+}
+
+fn enhanced_crashdump(addr2line_ctx: Context<EndianSlice<gimli::BigEndian>>, _bus: &RwLockReadGuard<Bus>, pc: u32, lr: u32) -> anyhow::Result<()> {
+    // addr2line of PC and LR
+    let pc_line = addr2line_ctx.find_location(pc as u64).unwrap_or_default();
+    let lr_line = addr2line_ctx.find_location(lr as u64).unwrap_or_default();
+    println!("addr2line\nPC:{pc:08x} Loc:{}\nLR:{lr:08x} Loc:{}", fmt_location(pc_line), fmt_location(lr_line));
+    Ok(())
 }
 
 fn fmt_location(loc: Option<addr2line::Location>) -> String {
