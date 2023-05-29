@@ -89,9 +89,12 @@ class IPCClient(object):
         """ Write some data to guest physical memory """
         self.sock.send_guestwrite(paddr, buf)
 
-    def guest_ipc(self, ipcmsg: IPCMsg):
+    def guest_ipc(self, ipcmsg: IPCMsg, noret=False):
         """ Send an IPC request, block, return a handle to the response """
         buf = self.alloc_buf(ipcmsg.to_buffer())
+        if noret:
+            self.sock.send_ipcmsg_noret(buf.paddr)
+            return
         self.sock.send_ipcmsg(buf.paddr)
         response_ptr = self.sock.recv_ipcmsg()
         return MemHandle(self.sock, response_ptr, 0x20)
@@ -127,7 +130,7 @@ class IPCClient(object):
                 raise ValueError("Invalid ioctlv format string")
         return handles
 
-    def IOSIoctlv(self, fd, cmd, fmt, *args):
+    def IOSIoctlv(self, fd, cmd, fmt, *args, **kwargs):
         iargs = []
         oargs = []
         arglist = list(args)
@@ -159,6 +162,9 @@ class IPCClient(object):
 
         msg = IPCMsg(self.IPC_IOCTLV, fd=fd, 
                 args=[cmd, len(ibufs), len(obufs), buf.paddr])
+        if "noret" in kwargs:
+            self.guest_ipc(msg, noret=True)
+            return
         res = self.guest_ipc(msg)
         return unpack(">i", res.read()[4:8])[0]
 

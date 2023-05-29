@@ -1,17 +1,19 @@
-from enum import Enum
+from enum import IntEnum
 from struct import pack, unpack
 
-class IOSErr(Enum):
+class IOSErr(IntEnum):
     FS_EINVAL       = -4
     FS_EACCESS      = -102
     FS_ENOENT       = -106
     ES_EINVAL       = -1017
 
 
-class ES(Enum):
+class ES(IntEnum):
     AddTicket       = 0x01
     LaunchTitle     = 0x08
     GetTitlesCount  = 0x0e
+    GetNumTicketViews  = 0x12
+    GetTicketViews  = 0x13
     GetTitles       = 0x0f
     LaunchBC        = 0x25
 
