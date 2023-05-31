@@ -4,6 +4,7 @@ use crate::interp::DispatchRes;
 use ironic_core::cpu::Cpu;
 use ironic_core::cpu::reg::{Reg, Cond};
 use anyhow::anyhow;
+use log::error;
 
 pub fn sign_extend(x: u32, bits: i32) -> i32 {
     if ((x as i32 >> (bits - 1)) & 1) != 0 { 
@@ -39,7 +40,17 @@ pub fn blx_imm_suffix(cpu: &mut Cpu, op: BlBits) -> DispatchRes {
 }
 pub fn bx(cpu: &mut Cpu, op: BxBits) -> DispatchRes {
     let dest_pc = if op.rm() == 15 {
-        cpu.read_exec_pc()
+        // temporary shity cIOS hack
+        // they literally just flick between ARM and thumb using a bx pc
+        // with no regard to alignment
+        let new_pc = cpu.read_exec_pc();
+        if new_pc & 0b11 != 0 {
+            error!(target: "Other", "bx pc alignment failed!! Hotfixing for you this time.. please fix your code.");
+            new_pc & 0xffff_fffc
+        }
+        else {
+            new_pc
+        }
     } else {
         cpu.reg[op.rm()]
     };
