@@ -151,6 +151,11 @@ impl SystemControl {
                 _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
                     SystemControlReg::from(reg)),
             },
+            AccessControl => match (crm, opcd2) {
+                (0, 0) => self.c3_dacr.0,
+                _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
+                    SystemControlReg::from(reg)),
+            },
             _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
                 SystemControlReg::from(reg)),
         }
