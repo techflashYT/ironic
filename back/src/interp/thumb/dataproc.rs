@@ -39,7 +39,7 @@ pub fn mov_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
     let rm_val = cpu.reg[op.rm()];
 
     if rd == 15 {
-        cpu.write_exec_pc(rm_val);
+        cpu.write_exec_pc(rm_val & 0xffff_fffe);
         DispatchRes::RetireBranch
     } else {
         cpu.reg[rd] = rm_val;
