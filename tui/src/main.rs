@@ -7,6 +7,7 @@ use ironic_core::bus::*;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
 use ironic_backend::ppc::*;
+use log::info;
 use log::{debug, error};
 use strum::VariantNames;
 
@@ -92,6 +93,10 @@ fn main() -> anyhow::Result<()> {
                     Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
                 }
                 println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                match bus.nand.data.dump_writes() {
+                    Ok(_) => println!("NAND WRITES DUMPED TO {}", bus.nand.data.write_index),
+                    Err(e) => println!("FAILED TO DUMP NAND WRITE DATA: {e}"),
+                }
                 // Attempt a debuginfo enhanced crashdump.
                 if bus.debuginfo.debuginfo.is_none() {
                     println!("Debug location never saved to bus, can not continue crashdump");
@@ -115,6 +120,23 @@ fn main() -> anyhow::Result<()> {
         }
         orig_hook(panic_info);
     }));
+
+    // Setup Ctrl-C handler
+    let ctrl_c_bus = bus.clone();
+    ctrlc::set_handler(move ||{
+        debug!(target: "MEMSAVE", "BEMemory Ctrl-C handler. Good luck!");
+        let bus = match ctrl_c_bus.read() {
+            Ok(bus) => bus,
+            Err(poisoned_bus) => poisoned_bus.into_inner(),
+        };
+        match bus.nand.data.dump_writes() {
+            Ok(_) => info!(target: "MEMSAVE", "NAND writes saved sucessfully"),
+            Err(e) => error!(target: "MEMSAVE", "NAND writes failed to save {e}"),
+        }
+        // We are now responsible for terminating the program
+        // TODO: cleanup nicely?
+        std::process::exit(0);
+    }).unwrap();
 
     // Fork off the backend thread
     let emu_bus = bus.clone();
@@ -159,6 +181,10 @@ fn main() -> anyhow::Result<()> {
             error!(target: "Other", "Failed to dump ram: {e:?}");
         }
     }
+    match bus_ref.nand.data.dump_writes() {
+        Ok(_) => info!(target: "MEMSAVE", "NAND writes saved sucessfully"),
+        Err(e) => error!(target: "MEMSAVE", "NAND writes failed to save {e}"),
+    }
     println!("Bus cycles elapsed: {}", bus_ref.cycle);
     process::exit(0);
 
@@ -174,6 +200,7 @@ enum LogTarget {
     HLWD,
     IPC,
     IRQ,
+    MEMSAVE,
     NAND,
     OTP,
     PPC,

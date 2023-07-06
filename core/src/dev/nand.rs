@@ -145,7 +145,7 @@ impl NandInterface {
             current_poff: 0,
         };
         Ok(NandInterface {
-            data: Box::new(BigEndianMemory::new(NAND_SIZE, Some(filename))?),
+            data: Box::new(BigEndianMemory::new(NAND_SIZE, Some(filename), true)?),
             reg,
         })
     }

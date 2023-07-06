@@ -17,3 +17,4 @@ fern = { version = "0.6.2", features = ["colored"] }
 strum = { version = "0.24.1", features = ["derive"] }
 addr2line = { version = "~0.20.0", default-features = false, features = ["std"] }
 gimli = "~0.27.2"
+ctrlc = { version = "3.4.0", features = ["termination"] }

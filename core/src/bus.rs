@@ -65,11 +65,11 @@ pub struct Bus {
 impl Bus {
     pub fn new()-> anyhow::Result<Self> {
         Ok(Bus {
-            mrom: BigEndianMemory::new(0x0000_2000, Some("./boot0.bin"))?,
-            sram0: BigEndianMemory::new(0x0001_0000, None)?,
-            sram1: BigEndianMemory::new(0x0001_0000, None)?,
-            mem1: BigEndianMemory::new(0x0180_0000, None)?,
-            mem2: BigEndianMemory::new(0x0400_0000, None)?,
+            mrom: BigEndianMemory::new(0x0000_2000, Some("./boot0.bin"), false)?,
+            sram0: BigEndianMemory::new(0x0001_0000, None, false)?,
+            sram1: BigEndianMemory::new(0x0001_0000, None, false)?,
+            mem1: BigEndianMemory::new(0x0180_0000, None, false)?,
+            mem2: BigEndianMemory::new(0x0400_0000, None, false)?,
 
             hlwd: Hollywood::new()?,
             nand: NandInterface::new("./nand.bin")?,
