@@ -266,8 +266,8 @@ impl MemoryPatchFile {
                     self.ranges[i].data.extend(extend.iter());
                 }
             }
+            self.ranges.retain(|x|x.offset != 0xDEADC0DE);
             if !found { done = true; }
         }
-        self.ranges.retain(|x|x.offset != 0xDEADC0DE);
     }
 }
