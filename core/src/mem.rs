@@ -81,7 +81,7 @@ impl BigEndianMemory {
         let mut pfs: Vec<(u8, MemoryPatchFile)> = dir.filter_map(|maybe_entry|{
             if let Ok(entry) = maybe_entry {
                 debug!(target: "MEMSAVE", "Candidate entry: {:?}", entry.path());
-                if let Ok(num) = entry.file_name().to_string_lossy().to_owned().parse::<u8>() {
+                if let Ok(num) = entry.file_name().to_string_lossy().into_owned().parse::<u8>() {
                     let mpf = MemoryPatchFile::from_file(entry.path());
                     debug!(target: "MEMSAVE", "Found MemoryPatchFile: {num} {:?}", entry.path());
                     Some((num, mpf))
@@ -238,7 +238,7 @@ impl MemoryPatchFile {
     pub fn to_file(&self, path: std::path::PathBuf) -> anyhow::Result<()> {
         use std::io::BufWriter;
         use lz4_flex::frame::*;
-        let bytes = bincode::encode_to_vec(&self, config::standard())?;
+        let bytes = bincode::encode_to_vec(self, config::standard())?;
         let mut file = std::fs::File::create(&path)?;
         let mut writer = BufWriter::new(&mut file);
         let mut encoder = FrameEncoder::new(&mut writer);
