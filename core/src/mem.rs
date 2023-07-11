@@ -8,13 +8,13 @@ use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 
-
-
+use iset::IntervalMap;
 use anyhow::{bail, Context};
 use log::{error, debug};
 use bincode::{config, Decode, Encode};
 
 use crate::bus::prim::AccessWidth;
+
 
 /// An abstract, generic memory device.
 pub struct BigEndianMemory {
@@ -23,7 +23,7 @@ pub struct BigEndianMemory {
     /// Hash of initial data (used for write tracking)
     hash: u32,
     /// Holds all writes so they can be replayed next time the emulator launches
-    writes: Option<Vec<MemoryPatch>>,
+    writes: Option<IntervalMap<usize, Vec<u8>>>,
     /// write_index
     pub write_index: u8,
     already_wrote: AtomicBool,
@@ -41,9 +41,9 @@ impl BigEndianMemory {
             hash = 0xDEADC0DE;
             vec![0u8; len]
         };
-        let writes: Option<Vec<MemoryPatch>> = if track_writes {
+        let writes: Option<IntervalMap<usize, Vec<u8>>> = if track_writes {
             debug!(target: "MEMSAVE", "BEMemory: Writes Enabled, hash: {hash}");
-            Some(Vec::new())
+            Some(IntervalMap::new())
         }
         else {
             None
@@ -132,9 +132,12 @@ impl BigEndianMemory {
             bail!("dump_writes but already wrote the latest changes!");
         }
         self.already_wrote.store(true, Relaxed);
+        let patches: Vec<MemoryPatch> = self.writes.as_ref().unwrap().iter(..).map(|x|{
+            MemoryPatch { offset: x.0.start, data: x.1.clone() }
+        }).collect();
         let mut mpf = MemoryPatchFile {
             hash: self.hash,
-            ranges: self.writes.clone().unwrap(),
+            ranges: patches,
         };
         mpf.merge_adjacent_ranges();
         mpf.to_file(format!("./saved-writes/{}/{}", self.hash, self.write_index).into())?;
@@ -163,11 +166,8 @@ impl BigEndianMemory {
         if off + src_slice.len() > self.data.len() {
             bail!("Out-of-bounds write at {off:x}");
         }
-        if let Some(ref mut writes) = &mut self.writes {
-            self.already_wrote.store(false, Relaxed);
-            writes.push(
-                MemoryPatch { offset: off, data: src_slice.to_vec() }
-            );
+        if self.writes.is_some() {
+            self.handle_write_tracking(off, src_slice)
         }
         self.data[off..off + src_slice.len()].copy_from_slice(src_slice);
         Ok(())
@@ -187,11 +187,8 @@ impl BigEndianMemory {
         if off + src.len() > self.data.len() {
             bail!("OOB bulk write on BigEndianMemory, offset {off:x}");
         }
-        if let Some(ref mut writes) = &mut self.writes {
-            self.already_wrote.store(false, Relaxed);
-            writes.push(
-                MemoryPatch { offset: off, data: src.to_vec() }
-            );
+        if self.writes.is_some() {
+            self.handle_write_tracking(off, src);
         }
         self.data[off..off + src.len()].copy_from_slice(src);
         Ok(())
@@ -200,16 +197,55 @@ impl BigEndianMemory {
         if off + len > self.data.len() {
             bail!("OOB memset on BigEndianMemory, offset {off:x}");
         }
-        if let Some(ref mut writes) = &mut self.writes {
-            self.already_wrote.store(false, Relaxed);
-            writes.push(
-                MemoryPatch { offset: off, data: vec![val; len] }
-            );
+        if self.writes.is_some() {
+            self.handle_write_tracking(off, &(vec![val; len]));
         }
         for d in &mut self.data[off..off+len] {
             *d = val;
         }
         Ok(())
+    }
+
+    fn handle_write_tracking(&mut self, off: usize, data: &[u8]) {
+        use std::cmp::*;
+        self.already_wrote.store(false, Relaxed);
+        let writes = self.writes.as_mut().unwrap();
+        // Check if we have a write in this range already
+        if writes.has_overlap(off..off+data.len()) {
+            // ok find the overlapping range
+            let found = writes.iter(off..off+data.len()).next().unwrap();
+            let found_range = found.0.clone();
+            drop(found);
+            // calculate new combined range
+            let new_range = min(found_range.start, off)..max(found_range.end, off+data.len());
+            // if the new writes are entirely inside an existing range, just modify the data in place.
+            if found_range == new_range {
+                let existing_data = writes.get_mut(found_range.start..found_range.end).unwrap();
+                let inner_offset = off - found_range.start;
+                existing_data[inner_offset..(inner_offset+data.len())].copy_from_slice(data);
+                return;
+            }
+            // Not the case... so the range has to grow, but it's immutable in the tree
+            // So we have to pop it, modify the range+data, then re-insert
+            let found_data = writes.remove(found_range.clone()).unwrap();
+            let mut temp: Vec<u8> = vec![0; new_range.len()];
+            if found_range.start == new_range.start {
+                // grow right
+                temp[0..found_data.len()].copy_from_slice(&found_data);
+                let offset_start = off - found_range.start;
+                temp[offset_start..(offset_start+data.len())].copy_from_slice(data);
+            }
+            else {
+                // grow left
+                temp[(new_range.start - found_range.start)..found_range.len()].copy_from_slice(&found_data);
+                temp[0..data.len()].copy_from_slice(data);
+            }
+            writes.insert(new_range, temp);
+        }
+        else {
+            // trivial case, just a new range
+            writes.insert(off..off+data.len(), data.to_vec());
+        }
     }
 }
 
