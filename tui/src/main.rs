@@ -80,10 +80,14 @@ fn main() -> anyhow::Result<()> {
             // We only care if the emulator thread crashes, so check the thread name and see whodunnit
             let thread = std::thread::current();
             if thread.name() == Some("EmuThread") {
-                let bus = match panic_bus.read(){
+                let bus = match panic_bus.try_read(){
                     Ok(b) => b,
-                    Err(e) => {
-                        e.into_inner()
+                    Err(std::sync::TryLockError::WouldBlock) => {
+                        println!("Getting Bus lock would block the panic handler! bailing out, sorry no crash dump for you!");
+                        break 'attempt_fancy_crashdump;
+                    }
+                    Err(std::sync::TryLockError::Poisoned(p)) => {
+                        p.into_inner()
                     },
                 };
                 // Dump emulator memory.
