@@ -8,11 +8,12 @@ use ironic_core::dev::hlwd::irq::*;
 use crate::back::*;
 
 use log::{info, error};
+use parking_lot::RwLock;
 
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::thread;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::net::Shutdown;
 use std::io::{Read, Write};
 use std::convert::TryInto;
@@ -145,9 +146,9 @@ impl PpcBackend {
     fn wait_for_resp(&mut self) -> u32 {
         info!(target: "PPC", "waiting for response ...");
         loop {
-            if self.bus.read().unwrap().hlwd.irq.ppc_irq_output {
+            if self.bus.read().hlwd.irq.ppc_irq_output {
                 info!(target: "PPC", "got irq");
-                let mut bus = self.bus.write().unwrap();
+                let mut bus = self.bus.write();
 
                 if bus.hlwd.ipc.state.ppc_ack {
                     info!(target: "PPC", "got extra ACK");
@@ -167,7 +168,7 @@ impl PpcBackend {
                     return armmsg;
                 }
 
-                drop(bus); // Drop bus to avoid poisoning the lock.
+                drop(bus); // Release RwLock
                 error!(target: "PPC", "Invalid IRQ state");
                 unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!");
             } else {
@@ -180,9 +181,9 @@ impl PpcBackend {
     fn wait_for_ack(&mut self) {
         info!(target: "PPC", "waiting for ACK ...");
         loop {
-            if self.bus.read().unwrap().hlwd.irq.ppc_irq_output {
+            if self.bus.read().hlwd.irq.ppc_irq_output {
                 info!(target: "PPC", "got irq");
-                let mut bus = self.bus.write().unwrap();
+                let mut bus = self.bus.write();
 
                 if bus.hlwd.ipc.state.ppc_ack {
                     bus.hlwd.ipc.state.ppc_ack = false;
@@ -201,7 +202,7 @@ impl PpcBackend {
                     continue;
                 }
 
-                drop(bus); // Drop bus to avoid poisoning the lock.
+                drop(bus); // Release RwLock
                 error!(target: "PPC", "Invalid IRQ state");
                 unreachable!("Invalid IRQ state. You forgot to update your IRQ lines somewhere!")
             } else {
@@ -236,7 +237,7 @@ impl PpcBackend {
     /// Read from physical memory.
     pub fn handle_read(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
         info!(target: "PPC", "read {:x} bytes at {:08x}", req.len, req.addr);
-        self.bus.read().unwrap().dma_read(req.addr,
+        self.bus.read().dma_read(req.addr,
             &mut self.obuf[0..req.len as usize])?;
         let _ = client.write(&self.obuf[0..req.len as usize])?; // maybe FIXME: is it ok to ignore the # of bytes written here?
         Ok(())
@@ -246,7 +247,7 @@ impl PpcBackend {
     pub fn handle_write(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
         info!(target: "PPC", "write {:x} bytes at {:08x}", req.len, req.addr);
         let data = &self.ibuf[0xc..(0xc + req.len as usize)];
-        self.bus.write().unwrap().dma_write(req.addr, data)?;
+        self.bus.write().dma_write(req.addr, data)?;
         let _ = client.write("OK".as_bytes())?; // maybe FIXME: is it ok to ignore the # of bytes written here?
         Ok(())
     }
@@ -254,7 +255,7 @@ impl PpcBackend {
     /// Tell ARM-world that an IPC request is ready at the location indicated
     /// by the pointer in PPC_MSG.
     pub fn handle_message(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
-        let mut bus = self.bus.write().unwrap();
+        let mut bus = self.bus.write();
         bus.hlwd.ipc.ppc_msg = req.addr;
         bus.hlwd.ipc.state.arm_req = true;
         bus.hlwd.ipc.state.arm_ack = true;
@@ -263,7 +264,7 @@ impl PpcBackend {
     }
 
     pub fn handle_ack(&mut self, _req: SocketReq) -> anyhow::Result<()> {
-        let mut bus = self.bus.write().unwrap();
+        let mut bus = self.bus.write();
         let ppc_ctrl = bus.hlwd.ipc.read_handler(4)? & 0x3c;
         bus.hlwd.ipc.write_handler(4, ppc_ctrl | 0x8)?;
         Ok(())
@@ -275,10 +276,10 @@ impl PpcBackend {
 impl Backend for PpcBackend {
     fn run(&mut self) -> anyhow::Result<()> {
         info!(target: "PPC", "PPC backend thread started");
-        self.bus.write().unwrap().hlwd.ipc.state.ppc_ctrl_write(0x36);
+        self.bus.write().hlwd.ipc.state.ppc_ctrl_write(0x36);
 
         loop {
-            if self.bus.read().unwrap().hlwd.ppc_on {
+            if self.bus.read().hlwd.ppc_on {
                 info!(target: "PPC", "Broadway came online");
                 break;
             }
@@ -289,7 +290,7 @@ impl Backend for PpcBackend {
         self.wait_for_ack();
 
         // Send an extra ACK
-        self.bus.write().unwrap().hlwd.ipc.state.arm_ack = true;
+        self.bus.write().hlwd.ipc.state.arm_ack = true;
         thread::sleep(std::time::Duration::from_millis(100));
 
         // Try binding to the socket

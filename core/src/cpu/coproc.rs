@@ -1,7 +1,7 @@
 //! Coprocessor register definitions and functionality.
 
-use std::{cell::RefCell, collections::HashMap, sync::{RwLock, Arc}, hash::BuildHasherDefault};
-use anyhow::anyhow;
+use std::{cell::RefCell, collections::HashMap, sync::Arc, hash::BuildHasherDefault};
+use parking_lot::RwLock;
 
 use crate::bus::Bus;
 use fxhash::FxHasher32;
@@ -244,7 +244,7 @@ impl SystemControl {
         let val = match tlb_inner.get(&addr) {
             Some(val) => *val, // TLB hit
             None => { // miss
-                let val = bus.read().map_err(|e| anyhow!(e.to_string()))?.read32(addr)?;
+                let val = bus.read().read32(addr)?;
                 tlb_inner.insert(addr, val);
                 val
             },

@@ -5,37 +5,37 @@ pub mod prim;
 use crate::cpu::mmu::prim::*;
 use crate::cpu::Cpu;
 
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 
 /// These are the top-level "public" functions providing read/write accesses.
 impl Cpu {
     pub fn read32(&self, addr: u32) -> anyhow::Result<u32> {
         let paddr = self.translate(TLBReq::new(addr, Access::Read))?;
-        let res = self.bus.read().unwrap().read32(paddr)?;
+        let res = self.bus.read().read32(paddr)?;
         Ok(res)
     }
     pub fn read16(&self, addr: u32) -> anyhow::Result<u16> {
         let paddr = self.translate(TLBReq::new(addr, Access::Read))?;
-        let res = self.bus.read().unwrap().read16(paddr)?;
+        let res = self.bus.read().read16(paddr)?;
         Ok(res)
     }
     pub fn read8(&self, addr: u32) -> anyhow::Result<u8> {
         let paddr = self.translate(TLBReq::new(addr, Access::Read))?;
-        let res = self.bus.read().unwrap().read8(paddr)?;
+        let res = self.bus.read().read8(paddr)?;
         Ok(res)
     }
 
     pub fn write32(&mut self, addr: u32, val: u32) -> anyhow::Result<()> {
         let paddr = self.translate(TLBReq::new(addr, Access::Write))?;
-        self.bus.write().unwrap().write32(paddr, val)
+        self.bus.write().write32(paddr, val)
     }
     pub fn write16(&mut self, addr: u32, val: u32) -> anyhow::Result<()> {
         let paddr = self.translate(TLBReq::new(addr, Access::Write))?;
-        self.bus.write().unwrap().write16(paddr, val as u16)
+        self.bus.write().write16(paddr, val as u16)
     }
     pub fn write8(&mut self, addr: u32, val: u32) -> anyhow::Result<()> {
         let paddr = self.translate(TLBReq::new(addr, Access::Write))?;
-        self.bus.write().unwrap().write8(paddr, val as u8)
+        self.bus.write().write8(paddr, val as u8)
     }
 }
 
@@ -103,7 +103,7 @@ impl Cpu {
             },
             _ => bail!("l2_fetch requires an L1::Coarse descriptor"),
         };
-        let val = self.bus.read().map_err(|e| anyhow!(e.to_string()))?.read32(addr)?;
+        let val = self.bus.read().read32(addr)?;
         Ok(L2Descriptor::from_u32(val))
     }
 

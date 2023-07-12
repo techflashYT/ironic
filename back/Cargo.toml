@@ -11,6 +11,7 @@ anyhow = { version = "1.0.70", features = ["std", "backtrace"] }
 elf = { path = "../vendor/rust-elf", package = "elf2" }
 gimli = "~0.27.2"
 ironic-core = { path = "../core" }
+parking_lot = { version = "~0.12.1", default-features = false, features = ["nightly", "hardware-lock-elision"] }
 log = { version = "0.4.17", default-features = false, features = ["std"] }
 
 [target.'cfg(windows)'.dependencies]

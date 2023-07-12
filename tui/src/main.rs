@@ -10,12 +10,13 @@ use ironic_backend::ppc::*;
 use log::info;
 use log::{debug, error};
 use strum::VariantNames;
+use parking_lot::RwLock;
 
 use std::panic;
 use std::process;
-use std::sync::RwLockReadGuard;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::thread::Builder;
+use std::time::Duration;
 
 use clap::{Parser, ValueEnum};
 
@@ -80,14 +81,12 @@ fn main() -> anyhow::Result<()> {
             // We only care if the emulator thread crashes, so check the thread name and see whodunnit
             let thread = std::thread::current();
             if thread.name() == Some("EmuThread") {
-                let bus = match panic_bus.try_read(){
-                    Ok(b) => b,
-                    Err(std::sync::TryLockError::WouldBlock) => {
-                        println!("Getting Bus lock would block the panic handler! bailing out, sorry no crash dump for you!");
+                let bus = match panic_bus.try_read_for(Duration::new(3, 0)) {
+                    Some(b) => b,
+                    None => {
+                        println!("Failed to get the Bus lock in time, it's stuck!");
+                        println!("Unable to procede with a crash dump");
                         break 'attempt_fancy_crashdump;
-                    }
-                    Err(std::sync::TryLockError::Poisoned(p)) => {
-                        p.into_inner()
                     },
                 };
                 // Dump emulator memory.
@@ -115,7 +114,7 @@ fn main() -> anyhow::Result<()> {
                     });
                     match addr2line::Context::from_dwarf(debuginfo_b) {
                         Ok(addr2line_ctx) => {
-                            let _ = enhanced_crashdump(addr2line_ctx, &bus, pc, lr);
+                            let _ = enhanced_crashdump(addr2line_ctx, pc, lr);
                         },
                         Err(err) => println!("Failed to initialize addr2line, cannot procede with crashdump! {err}"),
                     }
@@ -129,9 +128,13 @@ fn main() -> anyhow::Result<()> {
     let ctrl_c_bus = bus.clone();
     ctrlc::set_handler(move ||{
         debug!(target: "MEMSAVE", "BEMemory Ctrl-C handler. Good luck!");
-        let bus = match ctrl_c_bus.read() {
-            Ok(bus) => bus,
-            Err(poisoned_bus) => poisoned_bus.into_inner(),
+        let bus = match ctrl_c_bus.try_read_for(Duration::new(5, 0)) {
+            Some(b) => b,
+            None => {
+                println!("Failed to unlock Bus in 5 seconds, it's stuck!");
+                println!("Unable to persist NAND writes, sorry.");
+                std::process::exit(0);
+            }
         };
         match bus.nand.data.dump_writes() {
             Ok(_) => info!(target: "MEMSAVE", "NAND writes saved sucessfully"),
@@ -170,13 +173,7 @@ fn main() -> anyhow::Result<()> {
 
     let _ = emu_thread.join();
 
-    let bus_ref = match bus.read() {
-        Ok(val) => val,
-        Err(reason) => {
-            println!("Bus was poisoned during runtime: {reason}");
-            reason.into_inner()
-        }
-    };
+    let bus_ref = bus.read();
     match bus_ref.dump_memory("bin") {
         Ok(path) => {
             debug!(target: "Other", "Dumped ram to {}/*.bin", path.to_string_lossy())
@@ -288,7 +285,7 @@ fn handle_logging_argument(log_string: String) -> anyhow::Result<()> {
     }
 }
 
-fn enhanced_crashdump(addr2line_ctx: Context<EndianSlice<BigEndian>>, _bus: &RwLockReadGuard<Bus>, pc: u32, lr: u32) -> anyhow::Result<()> {
+fn enhanced_crashdump(addr2line_ctx: Context<EndianSlice<BigEndian>>, pc: u32, lr: u32) -> anyhow::Result<()> {
     // addr2line of PC and LR
     {
         let pc_line = addr2line_ctx.find_location(pc as u64).unwrap_or_default();

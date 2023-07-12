@@ -8,9 +8,11 @@ pub mod lut;
 use anyhow::anyhow;
 use gimli::{BigEndian, read::*};
 use log::{error, info};
+use parking_lot::RwLock;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::fs;
+use std::time::Duration;
 
 extern crate elf;
 
@@ -117,7 +119,7 @@ impl InterpBackend {
         match self.boot_status {
             BootStatus::Boot0 => {
                 if self.cpu.read_fetch_pc() == 0xfff0_0000 {
-                    if let Ok(bus) = self.bus.try_read() { // Try to detect boot1 version
+                    if let Some(bus) = self.bus.try_read_for(Duration::new(1,0)) { // Try to detect boot1 version
                         let boot1_otp_hash =
                         [
                             bus.hlwd.otp.read(0),
@@ -194,7 +196,7 @@ impl InterpBackend {
         // Probably a limitation of their early semihosting hardware
         // We buffer that internally until we see a newline, that's our cue to print
         let mut line_buf = [0u8; 16];
-        self.bus.read().map_err(|e| anyhow!(e.to_string()))?.dma_read(paddr, &mut line_buf)?;
+        self.bus.read().dma_read(paddr, &mut line_buf)?;
 
         let s = std::str::from_utf8(&line_buf)?
             .trim_matches(char::from(0));
@@ -268,7 +270,7 @@ impl InterpBackend {
                 )?;
                 info!(target: "Other", "DBG hotpatching module entrypoint {paddr:08x}");
                 info!(target: "Other", "{:?}", self.cpu.reg);
-                self.bus.write().map_err(|e| anyhow!(e.to_string()))?.dma_write(paddr,
+                self.bus.write().dma_write(paddr,
                     &Self::THREAD_CANCEL_PATCH)?;
             }
         }
@@ -399,17 +401,17 @@ impl Backend for InterpBackend {
                 }
             }
             match load_custom_kernel_debuginfo(&kernel_elf) {
-                Ok(debuginfo) => {self.bus.write().unwrap().install_debuginfo(debuginfo)},
+                Ok(debuginfo) => {self.bus.write().install_debuginfo(debuginfo)},
                 Err(err) => {error!(target: "Custom Kernel", "Failed to load debuginfo for kernel: {err}")},
             }
 
             match load_custom_kernel_debug_frame(&kernel_elf) {
-                Ok(debug_frames) => {self.bus.write().unwrap().install_debug_frames(debug_frames)},
+                Ok(debug_frames) => {self.bus.write().install_debug_frames(debug_frames)},
                 Err(err) => {error!(target: "Custom Kernel", "Failed to load debug frames for kernel: {err}")},
             }
 
             let headers = kernel_elf.phdrs;
-            let mut bus = self.bus.write().unwrap();
+            let mut bus = self.bus.write();
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
             bus.rom_disabled = true;
@@ -431,7 +433,7 @@ impl Backend for InterpBackend {
         loop {
             // Take ownership of the bus to deal with any pending tasks
             {
-                let mut bus = self.bus.write().unwrap();
+                let mut bus = self.bus.write();
                 bus.step(self.cpu_cycle)?;
                 self.bus_cycle += 1;
                 bus.update_debug_location(Some(self.cpu.reg.pc), Some(self.cpu.reg.r[14]), Some(self.cpu.reg.r[13]));
