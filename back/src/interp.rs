@@ -492,13 +492,14 @@ macro_rules! elf_header_expect_equal {
 }
 
 fn validate_custom_kernel(header: &elf::types::FileHeader) -> CustomKernelValidationResult {
+    use elf::types::*;
     let mut problems: Vec<String> = Vec::with_capacity(0);
-    elf_header_expect_equal!(problems, header.class, elf::types::ELFCLASS32, "ELF Class is not 32-bit");
-    elf_header_expect_equal!(problems, header.data, elf::types::ELFDATA2MSB, "ELF Data is not big endian");
-    elf_header_expect_equal!(problems, header.version, elf::types::EV_CURRENT, "ELF Version is not known to us");
-    elf_header_expect_equal!(problems, header.osabi, elf::types::ELFOSABI_SYSV, "ELF ABI is not known to us");
-    elf_header_expect_equal!(problems, header.elftype, elf::types::ET_EXEC, "Our ELF loader only implements EXEC type ELF");
-    elf_header_expect_equal!(problems, header.machine, elf::types::EM_ARM, "ELF Type is not 32-bit ARM");
+    elf_header_expect_equal!(problems, header.class, ELFCLASS32, "ELF Class is not 32-bit");
+    elf_header_expect_equal!(problems, header.data, ELFDATA2MSB, "ELF Data is not big endian");
+    elf_header_expect_equal!(problems, header.version, EV_CURRENT, "ELF Version is not known to us");
+    elf_header_expect_equal!(problems, header.osabi, ELFOSABI_SYSV, "ELF ABI is not known to us");
+    elf_header_expect_equal!(problems, header.elftype, ET_EXEC, "Our ELF loader only implements EXEC type ELF");
+    elf_header_expect_equal!(problems, header.machine, EM_ARM, "ELF Type is not 32-bit ARM");
     elf_header_expect_equal!(problems, header.entry, 0xffff_0000u64, "Entry point of ELF does not match CPU reset vector");
     if problems.is_empty() {
         CustomKernelValidationResult::Ok
