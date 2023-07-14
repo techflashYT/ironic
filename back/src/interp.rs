@@ -436,7 +436,7 @@ impl Backend for InterpBackend {
                 let mut bus = self.bus.write();
                 bus.step(self.cpu_cycle)?;
                 self.bus_cycle += 1;
-                bus.update_debug_location(Some(self.cpu.reg.pc), Some(self.cpu.reg.r[14]), Some(self.cpu.reg.r[13]));
+                bus.update_debug_location(Some(self.cpu.read_fetch_pc()), Some(self.cpu.reg.r[14]), Some(self.cpu.reg.r[13]));
                 self.cpu.irq_input = bus.hlwd.irq.arm_irq_output;
             }
 
