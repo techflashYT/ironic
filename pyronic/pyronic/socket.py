@@ -1,5 +1,6 @@
 import socket
 from struct import pack, unpack
+WRITE_LIMIT = 10000 - 12 # back/src/ppc.rs const BUF_LEN=100000 subtract message header 12 bytes
 
 class IronicSocket(object):
     """ Representing some connection to the PPC HLE server. """
@@ -25,8 +26,19 @@ class IronicSocket(object):
         assert len(resp) == size
         return resp
 
+    def handle_large_guestwrite(self, paddr, buf):
+        offset = 0
+        while offset != len(buf):
+            next_offset = min(len(buf), offset+WRITE_LIMIT)
+            self.send_guestwrite(offset, buf[offset:next_offset])
+            offset = next_offset
+        pass
+
     def send_guestwrite(self, paddr, buf):
         """ Send a guest write command to the server """
+        if len(buf) > WRITE_LIMIT:
+            self.handle_large_guestwrite(paddr, buf)
+            return
         msg = bytearray()
         msg += pack("<LLL", self.IRONIC_WRITE, paddr, len(buf))
         msg += buf

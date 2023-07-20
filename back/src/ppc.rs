@@ -229,7 +229,8 @@ impl PpcBackend {
             &self.ibuf[0..0xc].try_into().unwrap()
         );
         if req.len as usize > BUF_LEN - 0xc {
-            return None;
+            error!(target: "PPC", "Socket message exceeds BUF_LEN {BUF_LEN:x}");
+            panic!("Socket message exceeds BUF_LEN {BUF_LEN:x}");
         }
         Some(req)
     }
