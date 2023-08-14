@@ -385,8 +385,8 @@ impl Backend for InterpBackend {
             let mut kernel_bytes = fs::read(filename).map_err(|ioerr| anyhow!("Error opening kernel file: {filename}. Got error: {ioerr}"))?;
             let kernel_elf = elf::File::open_stream(&mut std::io::Cursor::new(&mut kernel_bytes))?;
             match validate_custom_kernel(&kernel_elf.ehdr) {
-                CustomKernelValidationResult::Ok => {/* We have a valid ELF (probably) */},
-                CustomKernelValidationResult::Problem(p) => {
+                std::result::Result::Ok(_) => {/* We have a valid ELF (probably) */},
+                std::result::Result::Err(p) => {
                     error!(target: "Custom Kernel", "!!!!!!!!!!");
                     error!(target: "Custom Kernel", "Custom Kernel ELF header validation failed. Things may not work as expected.");
                     error!(target: "Custom Kernel", "Failed validations:");
@@ -478,11 +478,6 @@ impl Backend for InterpBackend {
     }
 }
 
-enum CustomKernelValidationResult {
-    Ok,
-    Problem(Vec<String>)
-}
-
 macro_rules! elf_header_expect_equal {
     ($vec:ident, $have:expr, $want:expr, $message:expr) => {
         if $have != $want {
@@ -491,7 +486,7 @@ macro_rules! elf_header_expect_equal {
     };
 }
 
-fn validate_custom_kernel(header: &elf::types::FileHeader) -> CustomKernelValidationResult {
+fn validate_custom_kernel(header: &elf::types::FileHeader) -> std::result::Result<(), Vec<String>> {
     use elf::types::*;
     let mut problems: Vec<String> = Vec::with_capacity(0);
     elf_header_expect_equal!(problems, header.class, ELFCLASS32, "ELF Class is not 32-bit");
@@ -502,10 +497,10 @@ fn validate_custom_kernel(header: &elf::types::FileHeader) -> CustomKernelValida
     elf_header_expect_equal!(problems, header.machine, EM_ARM, "ELF Type is not 32-bit ARM");
     elf_header_expect_equal!(problems, header.entry, 0xffff_0000u64, "Entry point of ELF does not match CPU reset vector");
     if problems.is_empty() {
-        CustomKernelValidationResult::Ok
+        std::result::Result::Ok(())
     }
     else {
-        CustomKernelValidationResult::Problem(problems)
+        std::result::Result::Err(problems)
     }
 }
 
