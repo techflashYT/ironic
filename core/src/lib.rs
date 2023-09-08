@@ -1,5 +1,5 @@
 #![allow(stable_features)]
-#![feature(const_mut_refs, once_cell)]
+#![feature(const_mut_refs)]
 
 #![deny(unsafe_op_in_unsafe_fn)]
 
