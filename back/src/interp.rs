@@ -238,10 +238,6 @@ impl InterpBackend {
 
     /// Patch containing a call to ThreadCancel()
     const THREAD_CANCEL_PATCH: [u8; 0x8] = [
-        // e3a00000 mov     r0, #0
-        //0xe3, 0xa0, 0x00, 0x00,
-        // e3a01006 mov     r1, #6
-        //0xe3, 0xa0, 0x10, 0x06,
         // e6000050 .word   0xe6000050
         0xe6, 0x00, 0x00, 0x50,
         // e12fff1e bx      lr
