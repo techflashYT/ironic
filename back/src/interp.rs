@@ -28,10 +28,7 @@ use ironic_core::cpu::{Cpu, CpuRes};
 use ironic_core::cpu::reg::Reg;
 use ironic_core::cpu::excep::ExceptionType;
 
-thread_local! {
-    /// Enable PPC early, makes IPC with Custom Kernels easier
-    static PPC_EARLY_ON: std::cell::Cell<bool> = std::cell::Cell::new(false);
-}
+static PPC_EARLY_ON: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// A list of known boot1 hashes in OTP
 /// https://wiibrew.org/wiki/Boot1
@@ -98,7 +95,7 @@ pub struct InterpBackend {
 impl InterpBackend {
     pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>, ppc_early_on: bool) -> Self {
         if ppc_early_on {
-            PPC_EARLY_ON.with(|c| c.set(true));
+            PPC_EARLY_ON.store(true, std::sync::atomic::Ordering::Release);
         }
         InterpBackend {
             svc_buf: String::new(),
@@ -426,7 +423,7 @@ impl Backend for InterpBackend {
                 }
             }
             self.boot_status = BootStatus::UserKernel;
-            if PPC_EARLY_ON.with(|c| c.get()) {
+            if PPC_EARLY_ON.load(std::sync::atomic::Ordering::Acquire) {
                 bus.hlwd.ppc_on = true;
             }
         }
