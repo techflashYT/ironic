@@ -168,3 +168,7 @@ class IPCClient(object):
         res = self.guest_ipc(msg)
         return unpack(">i", res.read()[4:8])[0]
 
+    def IOSIoctl(self, fd, cmd, h_in: MemHandle, h_out: MemHandle):
+        msg = IPCMsg(self.IPC_IOCTL, fd=fd, args=[cmd, h_in.paddr, h_in.size, h_out.paddr, h_out.size])
+        res = self.guest_ipc(msg)
+        return unpack(">i", res.read()[4:8])[0]
