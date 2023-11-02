@@ -275,9 +275,7 @@ pub fn mov_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
 }
 
 pub fn mov_rsr(cpu: &mut Cpu, op: MovRsrBits) -> DispatchRes {
-    if !op.i() && (op.0 >> 4 == 1) && (op.0 >> 7 == 1) {
-        return DispatchRes::FatalErr(anyhow!("mov_rsr: Special bits set I==0, bit4==1, bit7==1 means not a mov instruction. See ARM reference: A4.1.35 and A5.1.1"));
-    }
+    debug_assert!(op.0 & 0x2000090 != 0x90); // bits set I==0, bit4==1, bit7==1 means not a mov instruction.
     let (val, carry) = barrel_shift(
         ShiftArgs::RegShiftReg { rm: cpu.reg[op.rm()], stype: op.stype(), rs: cpu.reg[op.rs()], c_in: cpu.reg.cpsr.c() }
     );

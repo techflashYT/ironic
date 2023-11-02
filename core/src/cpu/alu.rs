@@ -46,7 +46,7 @@ pub enum ShiftArgs {
 
 
 /// Logical shift left; works the same for reg/rsr arguments.
-pub fn lsl(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
+pub fn lsl(rm: u32, simm: u8, c_in: bool) -> (u32, bool) {
     if simm == 0 { 
         (rm, c_in) 
     } else if simm < 32 {
@@ -61,7 +61,7 @@ pub fn lsl(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
 }
 
 /// Logical shift right by immediate.
-pub fn lsr_imm(rm: u32, simm: u32, _c_in: bool) -> (u32, bool) {
+pub fn lsr_imm(rm: u32, simm: u8, _c_in: bool) -> (u32, bool) {
     if simm == 0 {
         (0, (rm & 0x8000_0000) != 0)
     } else {
@@ -71,7 +71,7 @@ pub fn lsr_imm(rm: u32, simm: u32, _c_in: bool) -> (u32, bool) {
     }
 }
 /// Logical shift right by register value.
-pub fn lsr_reg(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
+pub fn lsr_reg(rm: u32, simm: u8, c_in: bool) -> (u32, bool) {
     if simm == 0 {
         (rm, c_in)
     } else if simm < 32 {
@@ -86,7 +86,7 @@ pub fn lsr_reg(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
 }
 
 /// Arithmetic shift right by immediate.
-pub fn asr_imm(rm: u32, simm: u32, _c_in: bool) -> (u32, bool) {
+pub fn asr_imm(rm: u32, simm: u8, _c_in: bool) -> (u32, bool) {
     if simm == 0 {
         if (rm & 0x8000_0000) == 0 {
             (0, false)
@@ -100,7 +100,7 @@ pub fn asr_imm(rm: u32, simm: u32, _c_in: bool) -> (u32, bool) {
     }
 }
 /// Arithmetic shift right by register value.
-pub fn asr_reg(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
+pub fn asr_reg(rm: u32, simm: u8, c_in: bool) -> (u32, bool) {
     if simm == 0 {
         (rm, c_in)
     } else if simm < 32 {
@@ -114,21 +114,21 @@ pub fn asr_reg(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
     }
 }
 
-pub fn ror_imm(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
+pub fn ror_imm(rm: u32, simm: u8, c_in: bool) -> (u32, bool) {
     if simm == 0 {
         let res = (c_in as u32) << 31 | (rm >> 1);
         (res, (rm & 1) != 0)
     } else {
-        let res = rm.rotate_right(simm);
+        let res = rm.rotate_right(simm as u32);
         let c_out = (1 << (simm - 1) & res) != 0;
         (res, c_out)
     }
 }
-pub fn ror_reg(rm: u32, simm: u32, c_in: bool) -> (u32, bool) {
+pub fn ror_reg(rm: u32, simm: u8, c_in: bool) -> (u32, bool) {
     if simm == 0 {
         (rm, c_in)
     } else {
-        let imm = simm % 32;
+        let imm = simm as u32 % 32;
         if imm == 0 {
             (rm, (rm & 0x8000_0000) != 0)
         } else {
@@ -159,10 +159,10 @@ pub fn rot_by_imm(imm12: u32, c_in: bool) -> (u32, bool) {
 pub fn shift_by_imm(rm: u32, sop: u32, simm: u32, c_in: bool) -> (u32, bool) {
     use ShiftType::*;
     match ShiftType::from(sop) {
-        Lsl => lsl(rm, simm, c_in),
-        Lsr => lsr_imm(rm, simm, c_in),
-        Asr => asr_imm(rm, simm, c_in),
-        Ror => ror_imm(rm, simm, c_in),
+        Lsl => lsl(rm, (simm & 0xff) as u8, c_in),
+        Lsr => lsr_imm(rm, (simm & 0xff) as u8, c_in),
+        Asr => asr_imm(rm, (simm & 0xff) as u8, c_in),
+        Ror => ror_imm(rm, (simm & 0xff) as u8, c_in),
     }
 }
 
@@ -170,10 +170,10 @@ pub fn shift_by_imm(rm: u32, sop: u32, simm: u32, c_in: bool) -> (u32, bool) {
 pub fn shift_by_reg(rm: u32, sop: u32, rs: u32, c_in: bool) -> (u32, bool) {
     use ShiftType::*;
     match ShiftType::from(sop) {
-        Lsl => lsl(rm, rs, c_in),
-        Lsr => lsr_reg(rm, rs, c_in),
-        Asr => asr_reg(rm, rs, c_in),
-        Ror => ror_reg(rm, rs, c_in),
+        Lsl => lsl(rm, (rs & 0xff) as u8, c_in),
+        Lsr => lsr_reg(rm, (rs & 0xff) as u8, c_in),
+        Asr => asr_reg(rm, (rs & 0xff) as u8, c_in),
+        Ror => ror_reg(rm, (rs & 0xff) as u8, c_in),
     }
 }
 
