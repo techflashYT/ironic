@@ -5,7 +5,7 @@ pub mod prim;
 use crate::cpu::mmu::prim::*;
 use crate::cpu::Cpu;
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 
 /// These are the top-level "public" functions providing read/write accesses.
 impl Cpu {
@@ -104,7 +104,8 @@ impl Cpu {
             _ => bail!("l2_fetch requires an L1::Coarse descriptor"),
         };
         let val = self.bus.read().read32(addr)?;
-        Ok(L2Descriptor::from_u32(val))
+        let res = L2Descriptor::from_u32_checked(val).with_context(|| format!("l2_fetch: VirtualAddr: 0x{:x} L1Descriptor: {d:?}", vaddr.0));
+        return Ok(res?);
     }
 
     /// Translate a virtual address into a physical address.

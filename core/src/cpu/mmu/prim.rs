@@ -1,4 +1,6 @@
 #![allow(clippy::unusual_byte_groupings)]
+use std::hint::unreachable_unchecked;
+
 use anyhow::bail;
 
 /// Definitions for types related to the MMU/TLB and address translation.
@@ -159,12 +161,15 @@ pub enum L2Descriptor {
 }
 impl L2Descriptor {
     pub fn from_u32(x: u32) -> Self {
+        Self::from_u32_checked(x).unwrap()
+    }
+    pub fn from_u32_checked(x: u32) -> anyhow::Result<Self> {
         match x & 0b11 {
-            0b00 => panic!("L2 Fault descriptor unimplemented"),
-            0b01 => panic!("L2 Large page descriptor unimplemented"),
-            0b10 => L2Descriptor::SmallPage(SmallPageDescriptor(x)),
-            0b11 => panic!("L2 Tiny page descriptor unimplemented"),
-            _ => unreachable!(),
+            0b00 => bail!("L2 Fault descriptor unimplemented at: {x:x}"),
+            0b01 => bail!("L2 Large page descriptor unimplemented at: {x:x}"),
+            0b10 => Ok(L2Descriptor::SmallPage(SmallPageDescriptor(x))),
+            0b11 => bail!("L2 Tiny page descriptor unimplemented: at: {x:x}"),
+            _ => unsafe { unreachable_unchecked() },
         }
     }
 }
