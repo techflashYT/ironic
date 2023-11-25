@@ -443,8 +443,20 @@ impl Backend for InterpBackend {
             match res {
                 CpuRes::StepOk => {},
                 CpuRes::HaltEmulation(reason) => {
-                    info!(target: "Other", "CPU returned fatal error: {reason}");
-                    info!(target: "Other", "{:?}", self.cpu.reg);
+                    error!(target: "Other", "CPU returned fatal error: {reason:#}");
+                    error!(target: "Other", "{:?}", self.cpu.reg);
+                    if self.cpu.reg.cpsr.thumb() {
+                        if let Ok(opcd) = self.cpu.read16(self.cpu.read_fetch_pc()){
+                            let inst = ThumbInst::decode(opcd);
+                            error!(target: "Other", "Possibly faulting instrcution: {inst:?}"); // TODO: Fully parse opcode back to asm not just the instruction name
+                        }
+                    }
+                    else {
+                        if let Ok(opcd) = self.cpu.read32(self.cpu.read_fetch_pc()){
+                            let inst = ArmInst::decode(opcd);
+                            error!(target: "Other", "Possibly faulting instrcution: {inst:?}"); // TODO: see above
+                        }
+                    }
                     break;
                 },
                 CpuRes::StepException(e) => {
