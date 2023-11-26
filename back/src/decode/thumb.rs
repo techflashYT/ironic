@@ -1,6 +1,10 @@
 //! Thumb instruction decoder.
 
-#[derive(Clone, Debug)]
+use crate::bits::xDisplay;
+
+
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum ThumbInst {
     SbcReg, CmpReg, OrrReg, BicReg, TstReg, EorReg, MvnReg, CmnReg, AdcReg,
     AndReg, MovReg, SubReg, AddReg, CmpRegAlt, AddRegAlt, MovRegAlt,
@@ -22,6 +26,76 @@ pub enum ThumbInst {
     // These are exceptional (added by hand) until I decide sort how these
     // are decoded
     BlPrefix, BlImmSuffix, BlxImmSuffix,
+}
+
+impl std::fmt::Display for ThumbInst {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if !f.alternate() {
+            return core::fmt::Debug::fmt(&self, f);
+        }
+        match self {
+            ThumbInst::SbcReg         => write!(f, "sbc "),
+            ThumbInst::CmpReg         => write!(f, "cmp "),
+            ThumbInst::OrrReg         => write!(f, "orr "),
+            ThumbInst::BicReg         => write!(f, "bic"),
+            ThumbInst::TstReg         => write!(f, "tst "),
+            ThumbInst::EorReg         => write!(f, "eor "),
+            ThumbInst::MvnReg         => write!(f, "mvn "),
+            ThumbInst::CmnReg         => write!(f, "cmn "),
+            ThumbInst::AdcReg         => write!(f, "adc "),
+            ThumbInst::AndReg         => write!(f, "and "),
+            ThumbInst::MovReg         => write!(f, "mov "),
+            ThumbInst::SubReg         => write!(f, "sub "),
+            ThumbInst::AddReg         => write!(f, "add "),
+            ThumbInst::CmpRegAlt      => write!(f, "cmp "),
+            ThumbInst::AddRegAlt      => write!(f, "add "),
+            ThumbInst::MovRegAlt      => write!(f, "mov "),
+            ThumbInst::MovRegShiftReg => write!(f, "mov "),
+            ThumbInst::Neg            => write!(f, "neg "),
+            ThumbInst::AddImm         => write!(f, "add "),
+            ThumbInst::MovImm         => write!(f, "mov "),
+            ThumbInst::SubImm         => write!(f, "sub "),
+            ThumbInst::CmpImm         => write!(f, "cmp "),
+            ThumbInst::AddSpImm       => write!(f, "add sp"),
+            ThumbInst::SubSpImm       => write!(f, "sub sp"),
+            ThumbInst::AddSpImmAlt    => write!(f, "add sp"),
+            ThumbInst::AddImmAlt      => write!(f, "add "),
+            ThumbInst::SubImmAlt      => write!(f, "sub "),
+            ThumbInst::StrbReg        => write!(f, "strb "),
+            ThumbInst::LdrhReg        => write!(f, "ldrh "),
+            ThumbInst::LdrbReg        => write!(f, "ldrb "),
+            ThumbInst::StrReg         => write!(f, "str "),
+            ThumbInst::StrhReg        => write!(f, "strh "),
+            ThumbInst::LdrReg         => write!(f, "ldr "),
+            ThumbInst::LdrsbReg       => write!(f, "ldrsb "),
+            ThumbInst::LdrshReg       => write!(f, "ldrsh "),
+            ThumbInst::StrhImm        => write!(f, "strh "),
+            ThumbInst::StrImm         => write!(f, "str "),
+            ThumbInst::StrbImm        => write!(f, "strb "),
+            ThumbInst::StrImmAlt      => write!(f, "str "),
+            ThumbInst::LdrhImm        => write!(f, "ldrh "),
+            ThumbInst::LdrbImm        => write!(f, "ldrb "),
+            ThumbInst::LdrImm         => write!(f, "ldr "),
+            ThumbInst::LdrImmAlt      => write!(f, "ldr "),
+            ThumbInst::LdrLit         => write!(f, "ldr "),
+            ThumbInst::Stm            => write!(f, "stmia "),
+            ThumbInst::Ldm            => write!(f, "ldmia "),
+            ThumbInst::Pop            => write!(f, "pop "),
+            ThumbInst::Push           => write!(f, "push "),
+            ThumbInst::Mul            => write!(f, "mul "),
+            ThumbInst::B              => write!(f, "b "),
+            ThumbInst::Bx             => write!(f, "bx "),
+            ThumbInst::BlxReg         => write!(f, "blx "),
+            ThumbInst::Svc            => write!(f, "svc "),
+            ThumbInst::Bkpt           => write!(f, "bkpt "),
+            ThumbInst::BAlt           => write!(f, "b"),
+            ThumbInst::BlPrefix       => write!(f, ""),
+            ThumbInst::BlImmSuffix    => write!(f, "bl "),
+            ThumbInst::BlxImmSuffix   => write!(f, "blx "),
+
+            ThumbInst::Undefined      => write!(f, "Undefined"),
+        }
+    }
 }
 
 
@@ -108,6 +182,73 @@ impl ThumbInst {
             return MovRegAlt;
         }
         Undefined
+    }
+
+    pub fn bits_for_display(&self, bits: u16) -> Box<dyn xDisplay> {
+        use crate::bits::thumb::*;
+        let res: Box<dyn xDisplay> = match self {
+            ThumbInst::SbcReg         => Box::new(BitwiseRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::CmpReg         => Box::new(CmpRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::OrrReg         => Box::new(BitwiseRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::BicReg         => Box::new(BitwiseRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::TstReg         => Box::new(CmpRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::EorReg         => Box::new(BitwiseRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::MvnReg         => Box::new(MvnRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::CmnReg         => Box::new(CmpRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AdcReg         => Box::new(BitwiseRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AndReg         => Box::new(BitwiseRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::MovReg         => Box::new(MovRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::SubReg         => Box::new(AddSubRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AddReg         => Box::new(AddSubRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::CmpRegAlt      => Box::new(CmpRegAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AddRegAlt      => Box::new(AddRegAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::MovRegAlt      => Box::new(MovRegAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::MovRegShiftReg => Box::new(MovRsrBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Neg            => Box::new(NegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AddImm         => Box::new(AddSubImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::MovImm         => Box::new(MovImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::SubImm         => Box::new(AddSubImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::CmpImm         => Box::new(CmpImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AddSpImm       => Box::new(MovImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::SubSpImm       => Box::new(AddSubSpImmAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AddSpImmAlt    => Box::new(AddSubSpImmAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::AddImmAlt      => Box::new(AddSubImmAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::SubImmAlt      => Box::new(AddSubImmAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrbReg        => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrhReg        => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrbReg        => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrReg         => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrhReg        => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrReg         => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrsbReg       => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrshReg       => Box::new(LoadStoreRegBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrhImm        => Box::new(LoadStoreImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrImm         => Box::new(LoadStoreImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrbImm        => Box::new(LoadStoreImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::StrImmAlt      => Box::new(LoadStoreAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrhImm        => Box::new(LoadStoreImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrbImm        => Box::new(LoadStoreImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrImm         => Box::new(LoadStoreImmBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrImmAlt      => Box::new(LoadStoreAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::LdrLit         => Box::new(LoadStoreAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Stm            => Box::new(LoadStoreMultiBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Ldm            => Box::new(LoadStoreMultiBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Pop            => Box::new(PopBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Push           => Box::new(PushBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Mul            => Box::new(MulBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::B              => Box::new(BranchBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Bx             => Box::new(BxBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::BlxReg         => Box::new(BxBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Svc            => Box::new(MiscBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::Bkpt           => Box::new(MiscBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::BAlt           => Box::new(BranchAltBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::BlPrefix       => Box::new(BlBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::BlImmSuffix    => Box::new(BlBits(bits)) as Box<dyn xDisplay>,
+            ThumbInst::BlxImmSuffix   => Box::new(BlBits(bits)) as Box<dyn xDisplay>,
+
+            ThumbInst::Undefined      => todo!(),
+        };
+        return res;
     }
 }
 
