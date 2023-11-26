@@ -445,14 +445,17 @@ impl Backend for InterpBackend {
                 CpuRes::HaltEmulation(reason) => {
                     error!(target: "Other", "CPU returned fatal error: {reason:#}");
                     error!(target: "Other", "{:?}", self.cpu.reg);
+                    let pc = self.cpu.read_fetch_pc();
                     if self.cpu.reg.cpsr.thumb() {
-                        if let Ok(opcd) = self.cpu.read16(self.cpu.read_fetch_pc()){
-                            let inst = ThumbInst::decode(opcd);
-                            error!(target: "Other", "Possibly faulting instrcution: {inst:?}"); // TODO: Fully parse opcode back to asm not just the instruction name
+                        if let Ok(opcd) = self.cpu.read16(pc){
+                            error!(target: "Other",
+                                "Possibly faulting instruction: {}",
+                                crate::bits::disassembly::disassmble_thumb(opcd, pc).unwrap_or("Unknown".to_owned())
+                            );
                         }
                     }
                     else {
-                        if let Ok(opcd) = self.cpu.read32(self.cpu.read_fetch_pc()){
+                        if let Ok(opcd) = self.cpu.read32(pc){
                             let inst = ArmInst::decode(opcd);
                             error!(target: "Other", "Possibly faulting instrcution: {inst:?}"); // TODO: see above
                         }
