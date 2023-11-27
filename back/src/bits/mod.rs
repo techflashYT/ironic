@@ -32,9 +32,16 @@ pub mod disassembly {
         }
         let bits = instrution.bits_for_display(op);
         let ctx = if bits.required_context() == Some(TypeId::of::<u32>()) {
-            Some(Box::new(address) as Box<dyn Any>)
+            match instrution {
+                // These instructions want a base register as context
+                ThumbInst::StrImmAlt => Some(Box::new(13) as Box<dyn Any>),
+                ThumbInst::LdrImmAlt => Some(Box::new(13) as Box<dyn Any>),
+                ThumbInst::LdrLit => Some(Box::new(15) as Box<dyn Any>),
+                _ => Some(Box::new(address) as Box<dyn Any>) // Otherwise context is PC
+
+            }
         } else { None };
-        let mut res = format!("{instrution:#} ");
+        let mut res = format!("{instrution:#}");
         bits.fmt(&mut res, ctx)?;
         Ok(res)
     }

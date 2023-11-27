@@ -25,7 +25,7 @@ impl NegBits {
 }
 impl xDisplay for NegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}", self.rd(), self.rn()));
+        f.push_str(&format!("r{}, r{}", self.rd(), self.rn()));
         return Ok(());
     }
 }
@@ -41,7 +41,7 @@ impl BitwiseRegBits {
 }
 impl xDisplay for BitwiseRegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}", self.rdn(), self.rm()));
+        f.push_str(&format!("r{}, r{}", self.rdn(), self.rm()));
         return Ok(());
     }
 }
@@ -57,7 +57,7 @@ impl CmpRegBits {
 }
 impl xDisplay for CmpRegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}", self.rn(), self.rm()));
+        f.push_str(&format!("r{}, r{}", self.rn(), self.rm()));
         return Ok(());
     }
 }
@@ -73,7 +73,7 @@ impl MvnRegBits {
 }
 impl xDisplay for MvnRegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}", self.rd(), self.rm()));
+        f.push_str(&format!("r{}, r{}", self.rd(), self.rm()));
 
         return Ok(())
     }
@@ -90,7 +90,7 @@ impl MulBits {
 }
 impl xDisplay for MulBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}", self.rdm(), self.rn()));
+        f.push_str(&format!("r{}, r{}", self.rdm(), self.rn()));
 
         return Ok(())
     }
@@ -105,7 +105,7 @@ impl AddSubSpImmAltBits {
 }
 impl xDisplay for AddSubSpImmAltBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}", self.imm7() << 2));
+        f.push_str(&format!("#0x{:x}", self.imm7() << 2));
         Ok(())
     }
 }
@@ -128,7 +128,7 @@ impl MiscBits {
 }
 impl xDisplay for MiscBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}", self.imm8()));
+        f.push_str(&format!("#0x{:x}", self.imm8()));
         Ok(())
     }
 }
@@ -147,7 +147,7 @@ impl CmpRegAltBits {
 impl xDisplay for CmpRegAltBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
         let real_rn = if self.n() { self.rn() | 0x8 } else { self.rn() };
-        f.push_str(&format!("{real_rn}, {}", self.rm()));
+        f.push_str(&format!("r{real_rn}, r{}", self.rm()));
         return Ok(());
     }
 }
@@ -166,7 +166,7 @@ impl AddRegAltBits {
 impl xDisplay for AddRegAltBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
         let real_rd = if self.dn() { self.rdn() | 0x8 } else { self.rdn() };
-        f.push_str(&format!("{real_rd}, {}", self.rm()));
+        f.push_str(&format!("r{real_rd}, r{}", self.rm()));
         return Ok(())
     }
 }
@@ -185,7 +185,7 @@ impl MovRegBits {
 impl xDisplay for MovRegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
         let real_rd = if self.d() { self.rd() | 0x8 } else { self.rd() };
-        f.push_str(&format!("{real_rd}, {}", self.rm()));
+        f.push_str(&format!("r{real_rd}, r{}", self.rm()));
         return Ok(());
     }
 }
@@ -203,7 +203,7 @@ impl AddSubImmBits {
 }
 impl xDisplay for AddSubImmBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}, #{}", self.rd(), self.rn(), self.imm3()));
+        f.push_str(&format!("r{}, r{}, #{}", self.rd(), self.rn(), self.imm3()));
         Ok(())
     }
 }
@@ -221,7 +221,7 @@ impl LoadStoreRegBits {
 }
 impl xDisplay for LoadStoreRegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, [{}, {}]", self.rt(), self.rn(), self.rm()));
+        f.push_str(&format!("r{}, [r{}, r{}]", self.rt(), self.rn(), self.rm()));
 
         return Ok(())
     }
@@ -277,7 +277,7 @@ impl AddSubRegBits {
 }
 impl xDisplay for AddSubRegBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, {}, {}", self.rd(), self.rn(), self.rm()));
+        f.push_str(&format!("r{}, r{}, r{}", self.rd(), self.rn(), self.rm()));
 
         return Ok(())
     }
@@ -318,7 +318,7 @@ impl MovImmBits {
 }
 impl xDisplay for MovImmBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, #{}", self.rd(), self.imm8()));
+        f.push_str(&format!("r{}, #0x{:x}", self.rd(), self.imm8()));
 
         return Ok(())
     }
@@ -335,7 +335,7 @@ impl AddSubImmAltBits {
 }
 impl xDisplay for AddSubImmAltBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, #{}", self.rdn(), self.imm8()));
+        f.push_str(&format!("r{}, #0x{:x}", self.rdn(), self.imm8()));
 
         return Ok(())
     }
@@ -354,7 +354,7 @@ impl LoadStoreImmBits {
 }
 impl xDisplay for LoadStoreImmBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, [{} #{}]", self.rt(), self.rn(), self.imm5()));
+        f.push_str(&format!("r{}, [r{}, #0x{:x}]", self.rt(), self.rn(), self.imm5()));
 
         return Ok(())
     }
@@ -394,7 +394,7 @@ impl CmpImmBits {
 }
 impl xDisplay for CmpImmBits {
     fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        f.push_str(&format!("{}, #{}", self.rn(), self.imm8()));
+        f.push_str(&format!("r{}, #0x{:x}", self.rn(), self.imm8()));
 
         return Ok(())
     }
@@ -420,7 +420,7 @@ impl xDisplay for LoadStoreAltBits {
                 }
             } else { bail!("downcast failed");}
         } else {bail!("Context required");};
-        f.push_str(&format!("{}, [{reg}, #{}]", self.rt(), self.imm8()*4));
+        f.push_str(&format!("r{}, [r{reg}, #0x{:x}]", self.rt(), self.imm8()*4));
 
         return Ok(())
     }
