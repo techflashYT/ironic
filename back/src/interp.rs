@@ -456,8 +456,10 @@ impl Backend for InterpBackend {
                     }
                     else {
                         if let Ok(opcd) = self.cpu.read32(pc){
-                            let inst = ArmInst::decode(opcd);
-                            error!(target: "Other", "Possibly faulting instrcution: {inst:?}"); // TODO: see above
+                            error!(target: "Other",
+                                "Possibly faulting instrcution: {}",
+                                crate::bits::disassembly::disassmble_arm(opcd, pc).unwrap_or("Unknown".to_owned())
+                            );
                         }
                     }
                     break;
