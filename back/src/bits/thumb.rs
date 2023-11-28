@@ -1,5 +1,4 @@
-use std::any::{Any, TypeId};
-use super::xDisplay;
+use super::{xDisplay, DisassemblyContext};
 use anyhow::bail;
 
 /// ["Bl", "Blx"]
@@ -24,7 +23,7 @@ impl NegBits {
     pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for NegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rd(), self.rn()));
         return Ok(());
     }
@@ -40,7 +39,7 @@ impl BitwiseRegBits {
     pub fn rdn(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for BitwiseRegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rdn(), self.rm()));
         return Ok(());
     }
@@ -56,7 +55,7 @@ impl CmpRegBits {
     pub fn rn(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for CmpRegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rn(), self.rm()));
         return Ok(());
     }
@@ -72,7 +71,7 @@ impl MvnRegBits {
     pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for MvnRegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rd(), self.rm()));
 
         return Ok(())
@@ -89,7 +88,7 @@ impl MulBits {
     pub fn rdm(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for MulBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rdm(), self.rn()));
 
         return Ok(())
@@ -104,7 +103,7 @@ impl AddSubSpImmAltBits {
     pub fn imm7(&self) -> u16 { self.0 & 0x007f }
 }
 impl xDisplay for AddSubSpImmAltBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("#0x{:x}", self.imm7() << 2));
         Ok(())
     }
@@ -127,7 +126,7 @@ impl MiscBits {
     pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for MiscBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("#0x{:x}", self.imm8()));
         Ok(())
     }
@@ -145,7 +144,7 @@ impl CmpRegAltBits {
     pub fn rn(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for CmpRegAltBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let real_rn = if self.n() { self.rn() | 0x8 } else { self.rn() };
         f.push_str(&format!("r{real_rn}, r{}", self.rm()));
         return Ok(());
@@ -164,7 +163,7 @@ impl AddRegAltBits {
     pub fn rdn(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for AddRegAltBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let real_rd = if self.dn() { self.rdn() | 0x8 } else { self.rdn() };
         f.push_str(&format!("r{real_rd}, r{}", self.rm()));
         return Ok(())
@@ -183,7 +182,7 @@ impl MovRegBits {
     pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for MovRegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let real_rd = if self.d() { self.rd() | 0x8 } else { self.rd() };
         f.push_str(&format!("r{real_rd}, r{}", self.rm()));
         return Ok(());
@@ -202,7 +201,7 @@ impl AddSubImmBits {
     pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for AddSubImmBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}, #{}", self.rd(), self.rn(), self.imm3()));
         Ok(())
     }
@@ -220,7 +219,7 @@ impl LoadStoreRegBits {
     pub fn rt(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for LoadStoreRegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, [r{}, r{}]", self.rt(), self.rn(), self.rm()));
 
         return Ok(())
@@ -250,7 +249,7 @@ impl PopBits {
     pub fn register_list(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for PopBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let mut reglist = String::with_capacity(30);
         for i in 0..=7 {
             if (self.register_list() >> i) & 0x1 == 1 {
@@ -276,7 +275,7 @@ impl AddSubRegBits {
     pub fn rd(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for AddSubRegBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}, r{}", self.rd(), self.rn(), self.rm()));
 
         return Ok(())
@@ -293,7 +292,7 @@ impl PushBits {
     pub fn register_list(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for PushBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let mut reglist = String::with_capacity(30);
         for i in 0..=7 {
             if (self.register_list() >> i) & 0x1 == 1 {
@@ -317,7 +316,7 @@ impl MovImmBits {
     pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for MovImmBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, #0x{:x}", self.rd(), self.imm8()));
 
         return Ok(())
@@ -334,7 +333,7 @@ impl AddSubImmAltBits {
     pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for AddSubImmAltBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, #0x{:x}", self.rdn(), self.imm8()));
 
         return Ok(())
@@ -353,7 +352,7 @@ impl LoadStoreImmBits {
     pub fn rt(&self) -> u16 { self.0 & 0x0007 }
 }
 impl xDisplay for LoadStoreImmBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, [r{}, #0x{:x}]", self.rt(), self.rn(), self.imm5()));
 
         return Ok(())
@@ -370,7 +369,7 @@ impl LoadStoreMultiBits {
     pub fn register_list(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for LoadStoreMultiBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let mut reglist = String::with_capacity(30);
         for i in 0..=7 {
             if (self.register_list() >> i) & 0x1 == 1 {
@@ -393,7 +392,7 @@ impl CmpImmBits {
     pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for CmpImmBits {
-    fn fmt(&self, f: &mut String, _: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, #0x{:x}", self.rn(), self.imm8()));
 
         return Ok(())
@@ -410,22 +409,21 @@ impl LoadStoreAltBits {
     pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for LoadStoreAltBits {
-    fn fmt(&self, f: &mut String, ctx: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        let reg = if let Some(maybe_basereg) = ctx {
-            if let Ok(basereg) = maybe_basereg.downcast::<u32>() {
-                match *basereg {
-                    13 => "sp",
-                    15 => "pc",
-                    _ => bail!("Inappropriate base register"),
-                }
-            } else { bail!("downcast failed");}
-        } else {bail!("Context required");};
+    fn fmt(&self, f: &mut String, ctx: DisassemblyContext) -> anyhow::Result<()> {
+        let reg = match ctx {
+            DisassemblyContext::BaseRegister(r) => {
+                if r == 13 { "sp" }
+                else if r == 14 { "lr" }
+                else { bail!("Inappropriate base register") }
+            },
+            _ => bail!("base register context required")
+        };
         f.push_str(&format!("r{}, [r{reg}, #0x{:x}]", self.rt(), self.imm8()*4));
 
         return Ok(())
     }
-    fn required_context(&self) -> Option<std::any::TypeId> {
-        Some(TypeId::of::<u32>())
+    fn required_context(&self) -> DisassemblyContext {
+        DisassemblyContext::BaseRegister(0)
     }
 }
 
@@ -437,20 +435,19 @@ impl BranchAltBits {
     pub fn imm11(&self) -> u16 { self.0 & 0x07ff }
 }
 impl xDisplay for BranchAltBits {
-    fn fmt(&self, f: &mut String, ctx: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        let pc = if let Some(maybe_pc) = ctx{
-            if let Ok(maybe_pc) = maybe_pc.downcast::<u32>() {
-                *maybe_pc as i64
-            } else { bail!("downcast failed"); }
-        } else {bail!("context required");};
+    fn fmt(&self, f: &mut String, ctx: DisassemblyContext) -> anyhow::Result<()> {
+        let pc = match ctx {
+            DisassemblyContext::PC(pc) => pc as i64,
+            _ => bail!("PC context required")
+        };
         let offset = 
             crate::interp::thumb::branch::sign_extend(self.imm11() as u32, 11) << 1;
         let target = pc.wrapping_add(offset as i64);
         f.push_str(&format!("0x{target:x}"));
         Ok(())
     }
-    fn required_context(&self) -> Option<std::any::TypeId> {
-        Some(TypeId::of::<u32>())
+    fn required_context(&self) -> DisassemblyContext {
+        DisassemblyContext::PC(0)
     }
 }
 
@@ -464,12 +461,11 @@ impl BranchBits {
     pub fn imm8(&self) -> u16 { self.0 & 0x00ff }
 }
 impl xDisplay for BranchBits {
-    fn fmt(&self, f: &mut String, ctx: Option<Box<dyn Any>>) -> anyhow::Result<()> {
-        let pc = if let Some(maybe_pc) = ctx{
-            if let Ok(maybe_pc) = maybe_pc.downcast::<u32>() {
-                *maybe_pc as i64
-            } else { bail!("downcast failed"); }
-        } else {bail!("context required");};
+    fn fmt(&self, f: &mut String, ctx: DisassemblyContext) -> anyhow::Result<()> {
+        let pc = match ctx {
+            DisassemblyContext::PC(pc) => pc as i64,
+            _ => bail!("PC context required")
+        };
         let offset = 
             crate::interp::thumb::branch::sign_extend(self.imm8() as u32, 11) << 1;
         let target = pc.wrapping_add(offset as i64);
@@ -477,8 +473,8 @@ impl xDisplay for BranchBits {
         f.push_str(&format!("{cond:?} 0x{target:x}"));
         Ok(())
     }
-    fn required_context(&self) -> Option<std::any::TypeId> {
-        Some(TypeId::of::<u32>())
+    fn required_context(&self) -> DisassemblyContext {
+        DisassemblyContext::PC(0)
     }
 }
 

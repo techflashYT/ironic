@@ -3,7 +3,18 @@
 pub mod arm;
 pub mod thumb;
 
-use std::any::{Any, TypeId};
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum DisassemblyContext {
+    /// PC for offset calculations
+    PC(u32),
+    /// Register number for formatting
+    BaseRegister(u32),
+    /// True if Blx, false if other + PC for offset calculation
+    BlxDiscriminantAndPC((bool, u32)),
+    /// No context required
+    NotNeeded,
+}
+
 #[allow(non_camel_case_types, unused_variables)]
 /// Like std::fmt::Display but provides facilities for a 'context' that can provide
 /// additional information to the formatter.
@@ -12,18 +23,17 @@ use std::any::{Any, TypeId};
 /// for relative addressing modes.
 pub trait xDisplay{
     /// See xDisplay::required_context for what to pass to ctx.
-    fn fmt(&self, f: &mut String, ctx: Option<Box<dyn Any>>) -> anyhow::Result<()> {
+    fn fmt(&self, f: &mut String, ctx: DisassemblyContext) -> anyhow::Result<()> {
         anyhow::bail!("Unimplemented")
     }
-    fn required_context(&self) -> Option<TypeId> {
-        None
+    fn required_context(&self) -> DisassemblyContext {
+        DisassemblyContext::NotNeeded
     }
 }
 
 pub mod disassembly {
     use anyhow::bail;
     use crate::decode::thumb::*;
-    use std::any::{Any, TypeId};
 
     pub fn disassmble_thumb(op: u16, address: u32) -> anyhow::Result<String> {
         let instrution = ThumbInst::decode(op);
@@ -31,16 +41,18 @@ pub mod disassembly {
             bail!("Failed to decode opcde: {op:x}");
         }
         let bits = instrution.bits_for_display(op);
-        let ctx = if bits.required_context() == Some(TypeId::of::<u32>()) {
-            match instrution {
+        let ctx = match bits.required_context() {
+            super::DisassemblyContext::PC(_) => super::DisassemblyContext::PC(address),
+            super::DisassemblyContext::BaseRegister(_) => super::DisassemblyContext::BaseRegister(match instrution {
                 // These instructions want a base register as context
-                ThumbInst::StrImmAlt => Some(Box::new(13) as Box<dyn Any>),
-                ThumbInst::LdrImmAlt => Some(Box::new(13) as Box<dyn Any>),
-                ThumbInst::LdrLit => Some(Box::new(15) as Box<dyn Any>),
-                _ => Some(Box::new(address) as Box<dyn Any>) // Otherwise context is PC
-
-            }
-        } else { None };
+                ThumbInst::StrImmAlt |
+                ThumbInst::LdrImmAlt => 13,
+                ThumbInst::LdrLit => 15,
+                _ => unreachable!(),
+            }),
+            super::DisassemblyContext::BlxDiscriminantAndPC(_) => unreachable!(), // not for thumb
+            super::DisassemblyContext::NotNeeded => super::DisassemblyContext::NotNeeded,
+        };
         let mut res = format!("{instrution:#}");
         bits.fmt(&mut res, ctx)?;
         Ok(res)
