@@ -442,3 +442,14 @@ pub fn strh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     }
 }
 
+pub fn strh_reg(cpu: &mut Cpu, op: LsSignedRegBits) -> DispatchRes {
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()], cpu.reg[op.rm()], op.u(), op.p(), op.w()) {
+        Ok(val) => val,
+        Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
+    cpu.reg[op.rn()] = wb_addr;
+    match cpu.write16(addr, cpu.reg[op.rt()]) {
+        Ok(_) => DispatchRes::RetireOk,
+        Err(reason) => DispatchRes::FatalErr(reason)
+    }
+}

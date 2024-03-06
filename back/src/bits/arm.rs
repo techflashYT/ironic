@@ -531,7 +531,14 @@ impl LsSignedRegBits {
     pub fn rt(&self) -> u32 { (self.0 & 0x0000f000) >> 12 }
     #[inline(always)]
     pub fn rm(&self) -> u32 { self.0 & 0x0000000f }
-} impl xDisplay for LsSignedRegBits {} // unused instruction
+}
+
+impl xDisplay for LsSignedRegBits {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
+        f.push_str(&format!("r{}, [r{}, r{}]", self.rt(), self.rn(), self.rm()));
+        Ok(())
+    }
+}
 
 /// ['AndRegShiftReg', 'AdcRegShiftReg', 'OrrRegShiftReg', 'EorRegShiftReg', 'RscRegShiftReg', 'SbcRegShiftReg', 'AddRegShiftReg', 'BicRegShiftReg', 'RsbRegShiftReg', 'SubRegShiftReg']
 #[repr(transparent)]
