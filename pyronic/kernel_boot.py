@@ -47,7 +47,7 @@ num_entries.write(pack(">L", 0x00000000))
 
 ioctlvbuf = ipc.alloc_buf(pack(">LLLL", num_entries.paddr, 
     num_entries.size, bad_buffer.paddr, bad_buffer.size))
-msg = IPCMsg(IPCClient.IPC_IOCTLV, fd=fd, args=[0x0f, 1, 1, ioctlvbuf.paddr])
+msg = IPCMsg(IPCClient.IPC_IOCTLV, fd=fd, args=[ES.GetTitles, 1, 1, ioctlvbuf.paddr])
 ipc_buf = ipc.alloc_buf(msg.to_buffer())
 ipc.sock.send_ipcmsg_noret(ipc_buf.paddr)
 

@@ -3,6 +3,7 @@
 from struct import pack, unpack
 from hexdump import hexdump
 from pyronic.client import *
+from pyronic.ios import ES
 
 ipc = IPCClient()
 
@@ -10,7 +11,7 @@ esfd = ipc.IOSOpen("/dev/es")
 print("fd={}".format(esfd))
 
 buf = ipc.alloc_raw(4)
-res = ipc.IOSIoctlv(esfd, 0x0e, ":d", buf)
+res = ipc.IOSIoctlv(esfd, ES.GetTitlesCount, ":d", buf)
 if res < 0:
     print("ES_GetTitleCount() returned {}".format(res))
     ipc.IOSClose(esfd)
@@ -21,7 +22,7 @@ num_titles = unpack(">I", buf.read())[0]
 print("num_titles={}".format(num_titles))
 
 buf = ipc.alloc_raw(8 * num_titles)
-res = ipc.IOSIoctlv(esfd, 0x0f, "i:d", num_titles, buf)
+res = ipc.IOSIoctlv(esfd, ES.GetTitles, "i:d", num_titles, buf)
 if res < 0:
     print("ES_GetTitles() returned {}".format(res))
     ipc.IOSClose(esfd)

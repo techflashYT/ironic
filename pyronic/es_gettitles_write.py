@@ -40,7 +40,7 @@ stub_buffer = ipc.alloc_buf(stub_data, paddr=0x00010000)
 # Depending on what code you decide to run, this ioctlv may or may not return.
 
 fd = ipc.IOSOpen("/dev/es")
-res = ipc.IOSIoctlv(fd, 0x0f, "i:d", NUM_ENTRIES, bad_buffer)
+res = ipc.IOSIoctlv(fd, ES.GetTitles, "i:d", NUM_ENTRIES, bad_buffer)
 
 print("ES_GetTitles() returned {}".format(res))
 ipc.IOSClose(fd)
