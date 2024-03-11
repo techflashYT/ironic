@@ -1,6 +1,5 @@
 
 use core::slice;
-use std::convert::TryInto;
 use std::mem;
 
 /// Helper functions implemented on numeric primitives.

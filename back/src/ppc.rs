@@ -16,7 +16,6 @@ use std::thread;
 use std::sync::Arc;
 use std::net::Shutdown;
 use std::io::{Read, Write};
-use std::convert::TryInto;
 
 
 #[cfg(target_family = "unix")]
