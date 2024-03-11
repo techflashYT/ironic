@@ -123,17 +123,8 @@ impl IrqInterface {
 impl IrqInterface {
     /// Update the state of the output IRQ signal to both CPUs.
     pub fn update_irq_lines(&mut self) {
-        if (self.arm_irq_status.0 & self.arm_irq_enable.0) == 0 {
-            self.arm_irq_output = false;
-        } else {
-            self.arm_irq_output = true;
-        }
-
-        if (self.ppc_irq_status.0 & self.ppc_irq_enable.0) == 0 {
-            self.ppc_irq_output = false;
-        } else {
-            self.ppc_irq_output = true;
-        }
+        self.arm_irq_output = (self.arm_irq_status.0 & self.arm_irq_enable.0) != 0;
+        self.ppc_irq_output = (self.ppc_irq_status.0 & self.ppc_irq_enable.0) != 0;
     }
 
     /// Returns true if the given IRQ is asserted on the ARM-side.

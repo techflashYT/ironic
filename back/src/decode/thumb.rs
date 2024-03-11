@@ -248,7 +248,7 @@ impl ThumbInst {
 
             ThumbInst::Undefined      => todo!(),
         };
-        return res;
+        res
     }
 }
 

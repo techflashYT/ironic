@@ -104,8 +104,8 @@ impl Cpu {
             _ => bail!("l2_fetch requires an L1::Coarse descriptor"),
         };
         let val = self.bus.read().read32(addr)?;
-        let res = L2Descriptor::from_u32_checked(val).with_context(|| format!("l2_fetch: VirtualAddr: 0x{:x} L1Descriptor: {d:?}", vaddr.0));
-        return Ok(res?);
+
+        L2Descriptor::from_u32_checked(val).with_context(|| format!("l2_fetch: VirtualAddr: 0x{:x} L1Descriptor: {d:?}", vaddr.0))
     }
 
     /// Translate a virtual address into a physical address.

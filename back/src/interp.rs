@@ -454,13 +454,11 @@ impl Backend for InterpBackend {
                             );
                         }
                     }
-                    else {
-                        if let Ok(opcd) = self.cpu.read32(pc){
-                            error!(target: "Other",
-                                "Possibly faulting instrcution: {}",
-                                crate::bits::disassembly::disassmble_arm(opcd, pc).unwrap_or("Unknown".to_owned())
-                            );
-                        }
+                    else if let Ok(opcd) = self.cpu.read32(pc){
+                        error!(target: "Other",
+                            "Possibly faulting instrcution: {}",
+                            crate::bits::disassembly::disassmble_arm(opcd, pc).unwrap_or("Unknown".to_owned())
+                        );
                     }
                     break;
                 },
@@ -519,7 +517,7 @@ fn load_custom_kernel_debuginfo(kernel_elf: &elf::File) -> anyhow::Result<Dwarf<
         match kernel_elf.get_section(id.name()) {
             Some(section) => {
                 let d = section.data.as_slice();
-                Ok(EndianArcSlice::new(Arc::from(&d[..]), BigEndian))
+                Ok(EndianArcSlice::new(Arc::from(d), BigEndian))
             },
             None => Ok(EndianArcSlice::new(Arc::new([]), BigEndian)),
         }
@@ -531,7 +529,7 @@ fn load_custom_kernel_debug_frame(kernel_elf:&elf::File) -> anyhow::Result<gimli
     match kernel_elf.get_section(".debug_frame") {
         Some(debug_frame_section) => {
             let d = debug_frame_section.data.as_slice();
-            let mut debug_frame = DebugFrame::from(EndianArcSlice::new(Arc::from(&d[..]), BigEndian));
+            let mut debug_frame = DebugFrame::from(EndianArcSlice::new(Arc::from(d), BigEndian));
             debug_frame.set_address_size(std::mem::size_of::<u32>() as u8);
             Ok(debug_frame)
         },

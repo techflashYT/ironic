@@ -40,7 +40,7 @@ impl MovRegBits {
 impl xDisplay for MovRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         use ironic_core::cpu::alu::ShiftType;
-        if self.s() { f.push_str("s"); }
+        if self.s() { f.push('s'); }
         f.push_str(&format!(" r{} ", self.rd()));
         f.push_str(match ShiftType::from(self.stype()) { //nfi if this is right...
             ShiftType::Lsl => "lsl ",
@@ -143,11 +143,11 @@ impl MsrRegBits {
 
 impl xDisplay for MsrRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
-        if self.r() { f.push_str(&format!("spsr_")); } else { f.push_str("cpsr_"); }
+        if self.r() { f.push_str("spsr_"); } else { f.push_str("cpsr_"); }
         const PSR_MASKS: [char;4] = ['c', 'x', 's', 'f'];
-        for i in 0..4 {
+        for (i, psr_mask_char) in PSR_MASKS.iter().enumerate() {
             if (self.mask() >> i) & 0x1 == 1 {
-                f.push(PSR_MASKS[i]);
+                f.push(*psr_mask_char);
             }
         }
         f.push_str(&format!(" r{}", self.rn()));
@@ -293,7 +293,7 @@ impl MovImmBits {
 }
 impl xDisplay for MovImmBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
-        if self.s() { f.push_str("s"); }
+        if self.s() { f.push('s'); }
         let (imm, _) = ironic_core::cpu::alu::rot_by_imm(self.imm12(), false /* doesn't matter */);
         f.push_str(&format!(" r{}, #0x{:x}", self.rd(), imm));
         Ok(())
@@ -864,11 +864,11 @@ impl MsrImmBits {
 }
 impl xDisplay for MsrImmBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
-        if self.r() { f.push_str(&format!("spsr_")); } else { f.push_str("cpsr_"); }
+        if self.r() { f.push_str("spsr_"); } else { f.push_str("cpsr_"); }
         const PSR_MASKS: [char;4] = ['c', 'x', 's', 'f'];
-        for i in 0..4 {
+        for (i, psr_mask_char) in PSR_MASKS.iter().enumerate() {
             if (self.mask() >> i) & 0x1 == 1 {
-                f.push(PSR_MASKS[i]);
+                f.push(*psr_mask_char);
             }
         }
         let (imm, _) = ironic_core::cpu::alu::rot_by_imm(self.imm12(), false /* doesn't matter */);

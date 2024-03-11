@@ -98,18 +98,9 @@ impl Bus {
     }
 
     pub fn update_debug_location(&mut self, pc: Option<u32>, lr: Option<u32>, sp: Option<u32>) {
-        match pc {
-            Some(pc) => self.debuginfo.last_pc = Some(pc),
-            None => (),
-        }
-        match lr {
-            Some(lr) => self.debuginfo.last_lr = Some(lr),
-            None => (),
-        }
-        match sp {
-            Some(sp) => self.debuginfo.last_sp = Some(sp),
-            None => (),
-        }
+        if let Some(pc) = pc { self.debuginfo.last_pc = Some(pc); }
+        if let Some(lr) = lr { self.debuginfo.last_lr = Some(lr); }
+        if let Some(sp) = sp { self.debuginfo.last_sp = Some(sp); }
     } 
 
     pub fn dump_memory(&self, suffix: &'static str) -> anyhow::Result<std::path::PathBuf> {

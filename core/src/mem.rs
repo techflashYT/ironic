@@ -213,9 +213,7 @@ impl BigEndianMemory {
         // Check if we have a write in this range already
         if writes.has_overlap(off..off+data.len()) {
             // ok find the overlapping range
-            let found = writes.iter(off..off+data.len()).next().unwrap();
-            let found_range = found.0.clone();
-            drop(found);
+            let (found_range, _) = writes.iter(off..off+data.len()).next().unwrap();
             // calculate new combined range
             let new_range = min(found_range.start, off)..max(found_range.end, off+data.len());
             // if the new writes are entirely inside an existing range, just modify the data in place.

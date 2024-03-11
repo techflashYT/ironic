@@ -94,6 +94,8 @@ pub struct InterpLut {
     /// Lookup table for Thumb instructions.
     pub thumb: ThumbLut,
 }
+
+#[allow(clippy::new_without_default)]
 impl InterpLut {
     pub const fn new() -> Self {
         let arm = ArmLut::create_lut(ArmFn(dispatch::arm_unimpl_instr));

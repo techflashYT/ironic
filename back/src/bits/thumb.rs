@@ -25,7 +25,7 @@ impl NegBits {
 impl xDisplay for NegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rd(), self.rn()));
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -41,7 +41,7 @@ impl BitwiseRegBits {
 impl xDisplay for BitwiseRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rdn(), self.rm()));
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -57,7 +57,7 @@ impl CmpRegBits {
 impl xDisplay for CmpRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rn(), self.rm()));
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -74,7 +74,7 @@ impl xDisplay for MvnRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rd(), self.rm()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -91,7 +91,7 @@ impl xDisplay for MulBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}", self.rdm(), self.rn()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -147,7 +147,7 @@ impl xDisplay for CmpRegAltBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let real_rn = if self.n() { self.rn() | 0x8 } else { self.rn() };
         f.push_str(&format!("r{real_rn}, r{}", self.rm()));
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -166,7 +166,7 @@ impl xDisplay for AddRegAltBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let real_rd = if self.dn() { self.rdn() | 0x8 } else { self.rdn() };
         f.push_str(&format!("r{real_rd}, r{}", self.rm()));
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -185,7 +185,7 @@ impl xDisplay for MovRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         let real_rd = if self.d() { self.rd() | 0x8 } else { self.rd() };
         f.push_str(&format!("r{real_rd}, r{}", self.rm()));
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -222,7 +222,7 @@ impl xDisplay for LoadStoreRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, [r{}, r{}]", self.rt(), self.rn(), self.rm()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -278,7 +278,7 @@ impl xDisplay for AddSubRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, r{}, r{}", self.rd(), self.rn(), self.rm()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -302,7 +302,7 @@ impl xDisplay for PushBits {
         if self.m() {reglist += " lr"}
         f.push_str(&format!("{{{reglist} }}"));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -319,7 +319,7 @@ impl xDisplay for MovImmBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, #0x{:x}", self.rd(), self.imm8()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -336,7 +336,7 @@ impl xDisplay for AddSubImmAltBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, #0x{:x}", self.rdn(), self.imm8()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -355,7 +355,7 @@ impl xDisplay for LoadStoreImmBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, [r{}, #0x{:x}]", self.rt(), self.rn(), self.imm5()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -378,7 +378,7 @@ impl xDisplay for LoadStoreMultiBits {
         }
         f.push_str(&format!("{}!, {{{reglist}}}", self.rn()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -395,7 +395,7 @@ impl xDisplay for CmpImmBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         f.push_str(&format!("r{}, #0x{:x}", self.rn(), self.imm8()));
 
-        return Ok(())
+        Ok(())
     }
 }
 
@@ -420,7 +420,7 @@ impl xDisplay for LoadStoreAltBits {
         };
         f.push_str(&format!("r{}, [r{reg}, #0x{:x}]", self.rt(), self.imm8()*4));
 
-        return Ok(())
+        Ok(())
     }
     fn required_context(&self) -> DisassemblyContext {
         DisassemblyContext::BaseRegister(0)
