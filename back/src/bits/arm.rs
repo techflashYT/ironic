@@ -795,6 +795,64 @@ impl LsTransBits {
     pub fn imm12(&self) -> u32 { self.0 & 0x00000fff }
 } impl xDisplay for LsTransBits {} // unused instruction
 
+/// Formats a register list for instructions like ldm and stm
+fn format_register_list(list: u32) -> String {
+    fn format_register(index: u32) -> &'static str {
+        match index {
+            0..=12 => &["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12"][index as usize],
+            13 => "sp",
+            14 => "lr",
+            15 => "pc",
+            _ => unreachable!(),
+        }
+    }
+    let mut reglist = String::new();
+    let mut start = None;
+    let mut end = None;
+    // format collapsable registers (0-12)
+    for i in 0..=12 {
+        if (list & (1 << i)) != 0 {
+            if start.is_none() {
+                start = Some(i);
+            }
+            end = Some(i);
+        } else if let (Some(s), Some(e)) = (start, end) {
+            if s == e {
+                reglist += &format_register(s);
+            } else if s+1 == e {
+                reglist += &format!("{}, {}", &format_register(s), &format_register(e));
+            } else {
+                reglist += &format!("{}-{}", format_register(s), format_register(e));
+            }
+            reglist += ", ";
+            start = None;
+            end = None;
+        }
+    }
+    if let (Some(s), Some(e)) = (start, end) {
+        if s == e {
+            reglist += &format_register(s);
+        } else if s+1 == e {
+            reglist += &format!("{}, {}", &format_register(s), &format_register(e));
+        } else {
+            reglist += &format!("{}-{}", format_register(s), format_register(e));
+        }
+        reglist += ", ";
+    }
+    // never collapse sp, lr, pc
+    for i in 13..=15 {
+        if (list & (1 << 1)) != 0 {
+            reglist += format_register(i);
+            reglist += ", ";
+        }
+    }
+    if reglist.ends_with(", ") {
+        reglist.pop();
+        reglist.pop();
+    }
+    reglist
+}
+
 /// ['Stm', 'Stmda', 'Ldmda', 'Ldmib', 'Ldmdb', 'Ldm', 'Stmdb', 'Stmib']
 #[repr(transparent)]
 pub struct LsMultiBits(pub u32);
@@ -825,22 +883,7 @@ impl LsMultiBits {
 }
 impl xDisplay for LsMultiBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
-        let mut reglist = String::new();
-        for i in 0..15 {
-            if self.register_list() >> i != 0 {
-                if i < 13 {
-                    reglist += &format!("r{i}");
-                }
-                else {
-                    match i {
-                        13 => reglist += " sp",
-                        14 => reglist += " lr",
-                        15 => reglist += " pc",
-                        _ => unreachable!()
-                    }
-                }
-            }
-        }
+        let reglist = format_register_list(self.register_list());
         f.push_str(&format!("{}, r{}", self.addressing_mode(), self.rn(), ));
         if self.w() { f.push_str("!, "); } else { f.push_str(", "); }
         f.push_str(&format!("{{ {reglist} }}"));
@@ -944,22 +987,7 @@ impl LdmRegUserBits {
 }
 impl xDisplay for LdmRegUserBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
-        let mut reglist = String::new();
-        for i in 0..15 {
-            if self.register_list() >> i != 0 {
-                if i < 13 {
-                    reglist += &format!("r{i}");
-                }
-                else {
-                    match i {
-                        13 => reglist += " sp",
-                        14 => reglist += " lr",
-                        15 => reglist += " pc",
-                        _ => unreachable!()
-                    }
-                }
-            }
-        }
+        let reglist = format_register_list(self.register_list());
         f.push_str(&format!("{}, r{}", self.addressing_mode(), self.rn(), ));
         if self.w() { f.push_str("!, "); } else { f.push_str(", "); }
         f.push_str(&format!("{{ {reglist} }}"));
@@ -1024,22 +1052,7 @@ impl StmRegUserBits {
 }
 impl xDisplay for StmRegUserBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
-        let mut reglist = String::new();
-        for i in 0..15 {
-            if self.register_list() >> i != 0 {
-                if i < 13 {
-                    reglist += &format!("r{i}");
-                }
-                else {
-                    match i {
-                        13 => reglist += " sp",
-                        14 => reglist += " lr",
-                        15 => reglist += " pc",
-                        _ => unreachable!()
-                    }
-                }
-            }
-        }
+        let reglist = format_register_list(self.register_list());
         f.push_str(&format!("{}, r{}", self.addressing_mode(), self.rn(), ));
         if self.w() { f.push_str("!, "); } else { f.push_str(", "); }
         f.push_str(&format!("{{ {reglist} }}"));
