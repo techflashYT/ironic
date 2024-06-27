@@ -1,7 +1,5 @@
+Cargo.lock
 /doc
-/core/Cargo.lock
-/ui/Cargo.lock
-/tui/Cargo.lock
 pyronic/__pycache__/
 *.pyc
 *.bin
