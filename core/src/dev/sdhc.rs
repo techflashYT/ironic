@@ -754,18 +754,22 @@ impl Bus {
                 debug!(target: "SDHC", "DMA Transfer completed after {} blocks. Reached DMA Boundry: {send_dma_int}. Reached Block Count: {send_tx_complete}", (current_addr-sysaddr) / 512);
                 self.sd0.setreg(SDRegisters::BlockCount, block_count);
                 self.sd0.setreg(SDRegisters::SystemAddress, current_addr);
-                if send_tx_complete && self.sd0.tx_complete() { // TX Complete has higher priority than DMA complete
-                    self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                if send_tx_complete { // TX Complete has higher priority than DMA complete. Never send both!
+                    if self.sd0.tx_complete() {
+                        self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                    }
                 }
-                else if send_dma_int && self.sd0.dma_int() {
-                    self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                else if send_dma_int {
+                    if self.sd0.dma_int() {
+                        self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                    }
                 }
                 else {
-                    unreachable!() // This probably shouldn't happen, right?
+                    unreachable!("SDHC DMA Logic Error");
                 }
             },
             SDHCTask::DoDMAWrite => {
-                let sysaddr = self.sd0.raw_read(SDRegisters::SystemAddress.base_offset());
+                let sysaddr: u32 = self.sd0.raw_read(SDRegisters::SystemAddress.base_offset());
                 let buff_boundry = 0x1000u32 << ((self.sd0.raw_read(SDRegisters::BlockSize.base_offset()) & 0x7000) >> 12);
                 let stop_addr = match sysaddr.checked_add(buff_boundry) { // mini always sets 512k boundry size, even if that would overrun the address space
                     Some(x) => (x + 1) & !(buff_boundry - 1),
@@ -789,14 +793,18 @@ impl Bus {
                 debug!(target: "SDHC", "DMA Transfer completed after {} blocks. Reached DMA Boundry: {send_dma_int}. Reached Block Count: {send_tx_complete}", (current_addr-sysaddr) / 512);
                 self.sd0.setreg(SDRegisters::BlockCount, block_count);
                 self.sd0.setreg(SDRegisters::SystemAddress, current_addr);
-                if send_tx_complete && self.sd0.tx_complete() { // TX Complete has higher priority than DMA complete
-                    self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                if send_tx_complete { // TX Complete has higher priority than DMA complete. Never send both!
+                    if self.sd0.tx_complete() {
+                        self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                    }
                 }
-                else if send_dma_int && self.sd0.dma_int() {
-                    self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                else if send_dma_int {
+                    if self.sd0.dma_int() {
+                        self.hlwd.irq.assert(HollywoodIrq::Sdhc);
+                    }
                 }
                 else {
-                    unreachable!() // This probably shouldn't happen, right?
+                    unreachable!("SDHC DMA Logic Error");
                 }
             }
             SDHCTask::IOPoll => {
