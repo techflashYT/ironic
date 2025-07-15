@@ -1,7 +1,3 @@
-
-// For evaluating lookup tables at compile-time.
-#![feature(const_mut_refs)]
-
 #![deny(unsafe_op_in_unsafe_fn)]
 
 pub mod back;

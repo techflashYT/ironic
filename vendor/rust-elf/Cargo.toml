@@ -8,7 +8,7 @@ repository = "https://github.com/AndrewPiroli/rust-elf2/"
 description = "A pure-rust library for parsing ELF files"
 keywords = ["elf"]
 readme = "README.md"
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "elf"

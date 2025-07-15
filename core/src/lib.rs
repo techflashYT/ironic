@@ -1,6 +1,3 @@
-#![allow(stable_features)]
-#![feature(const_mut_refs, let_chains)]
-
 #![deny(unsafe_op_in_unsafe_fn)]
 
 /// Emulated CPU state and common operations.
