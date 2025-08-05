@@ -554,3 +554,30 @@ pub fn adc_imm(cpu: &mut Cpu, op: DpImmBits) -> DispatchRes {
     DispatchRes::RetireOk
 }
 
+pub fn teq_imm(cpu: &mut Cpu, op: DpTestImmBits) -> DispatchRes {
+    let (val, carry) = barrel_shift(ShiftArgs::Imm {
+        imm12: op.imm12(),
+        c_in: cpu.reg.cpsr.c(),
+    });
+
+    let res = cpu.reg[op.rn()] ^ val;
+    cpu.reg.cpsr.set_n(res & 0x8000_0000 != 0);
+    cpu.reg.cpsr.set_z(res == 0);
+    cpu.reg.cpsr.set_c(carry);
+    DispatchRes::RetireOk
+}
+
+pub fn teq_reg(cpu: &mut Cpu, op: DpTestRegBits) -> DispatchRes {
+    let (val, carry) = barrel_shift(ShiftArgs::Reg {
+        rm: cpu.reg[op.rm()],
+        stype: op.stype(),
+        imm5: op.imm5(),
+        c_in: cpu.reg.cpsr.c(),
+    });
+
+    let res = cpu.reg[op.rn()] ^ val;
+    cpu.reg.cpsr.set_n(res & 0x8000_0000 != 0);
+    cpu.reg.cpsr.set_z(res == 0);
+    cpu.reg.cpsr.set_c(carry);
+    DispatchRes::RetireOk
+}

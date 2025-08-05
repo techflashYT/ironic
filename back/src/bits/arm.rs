@@ -628,7 +628,7 @@ impl DpTestRegBits {
 impl xDisplay for DpTestRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         use ironic_core::cpu::alu::ShiftType;
-        f.push_str(&format!("r{}, r{}", self.rn(), self.rm()));
+        f.push_str(&format!("r{}, r{}, ", self.rn(), self.rm()));
         let shift = ShiftType::from(self.stype());
         f.push_str(match shift {
             ShiftType::Lsl => "lsl ",

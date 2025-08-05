@@ -119,6 +119,8 @@ impl ArmFn {
             CmpReg      => ArmFn(afn!(arm::dataproc::cmp_reg)),
             TstReg      => ArmFn(afn!(arm::dataproc::tst_reg)),
             TstImm      => ArmFn(afn!(arm::dataproc::tst_imm)),
+            TeqReg      => ArmFn(afn!(arm::dataproc::teq_reg)),
+            TeqImm      => ArmFn(afn!(arm::dataproc::teq_imm)),
             BicImm      => ArmFn(afn!(arm::dataproc::bic_imm)),
             BicReg      => ArmFn(afn!(arm::dataproc::bic_reg)),
             BicRegShiftReg => ArmFn(afn!(arm::dataproc::bic_rsr)),
