@@ -2,6 +2,7 @@
 use std::hint::unreachable_unchecked;
 
 use anyhow::bail;
+use log::error;
 
 /// Definitions for types related to the MMU/TLB and address translation.
 
@@ -28,16 +29,20 @@ pub enum TLBPermission { NA, RO, RW }
 impl TLBPermission {
     /// Given some context and the access protection bits from a particular 
     /// PTE, compute the effective permissions.
-    pub fn resolve(ctx: &PermissionContext, ap: u32) -> anyhow::Result<Self> {
+    pub fn resolve(ctx: &PermissionContext, ap: u32) -> Self {
         use TLBPermission::*;
+        if ap & (!0b11) != 0 {
+            error!(target: "MMU", "Invalid `ap` during PTE resolution");
+        }
+        let ap = ap & 0b11;
         match (ap, ctx.sysprot, ctx.romprot) {
-            (0b00, false, false)=> Ok(NA),
-            (0b00, true, false) => if ctx.is_priv { Ok(RO) } else { Ok(NA) },
-            (0b00, false, true) => Ok(RO),
-            (0b01, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(NA) },
-            (0b10, _, _)        => if ctx.is_priv { Ok(RW) } else { Ok(RO) },
-            (0b11, _, _)        => Ok(RW),
-            _ => bail!("Couldn't resolve AP bits with context"),
+            (0b00, false, false)=> NA,
+            (0b00, true, false) => if ctx.is_priv { RO } else { NA },
+            (0b00, false, true) => RO,
+            (0b01, _, _)        => if ctx.is_priv { RW } else { NA },
+            (0b10, _, _)        => if ctx.is_priv { RW } else { RO },
+            (0b11, _, _)        => RW,
+            _ => { unsafe { core::hint::unreachable_unchecked() } }
         }
     }
 }
@@ -58,25 +63,27 @@ impl PermissionContext {
 
     /// Validate a request against this context. 
     /// Returns true if the context satisfies the provided request.
-    pub fn validate(&self, req: &TLBReq, ap: u32) -> anyhow::Result<bool> {
+    pub fn validate(&self, req: &TLBReq, ap: u32) -> bool {
         // Ignore permission checking on out-of-band requests to the MMU.
-        if req.kind == Access::Debug { return Ok(true); }
+        if req.kind == Access::Debug { return true; }
 
         match self.domain_mode {
             // Actually compute the permissions and check them.
             DomainMode::Client => {
-                match TLBPermission::resolve(self, ap)? {
-                    TLBPermission::NA => Ok(false),
-                    TLBPermission::RO =>
-                        if req.kind == Access::Write { Ok(false) } else { Ok(true) },
-                    TLBPermission::RW => Ok(true),
+                match TLBPermission::resolve(self, ap) {
+                    TLBPermission::NA => false,
+                    TLBPermission::RO => req.kind == Access::Read,
+                    TLBPermission::RW => true,
                 }
             },
             // All requests on this domain are allowed.
-            DomainMode::Manager => Ok(true),
+            DomainMode::Manager => true,
             // All requests on this domain are disallowed.
-            DomainMode::NoAccess => Ok(false),
-            _ => bail!("Undefined domain mode"),
+            DomainMode::NoAccess => false,
+            DomainMode::Reserved => {
+                error!(target: "MMU", "Use of invalid \"Reserved\" Domain Mode");
+                false
+            }
         }
     }
 }

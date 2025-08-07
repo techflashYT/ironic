@@ -44,10 +44,10 @@ impl Cpu {
     /// Resolve a section descriptor, returning a physical address.
     fn resolve_section(&self, req: TLBReq, d: SectionDescriptor) -> anyhow::Result<u32> {
         let ctx = self.get_ctx(d.domain());
-        if ctx.validate(&req, d.ap())? {
+        if ctx.validate(&req, d.ap()) {
             Ok(d.base_addr() | req.vaddr.section_idx())
         } else {
-            bail!("Domain access faults are unimplemented, vaddr={:08x}", req.vaddr.0)
+            bail!("resolve_section: Domain access faults are unimplemented, vaddr={:08x}", req.vaddr.0)
         }
     }
 
@@ -61,10 +61,11 @@ impl Cpu {
         match desc {
             L2Descriptor::SmallPage(entry) => {
                 let ctx = self.get_ctx(d.domain());
-                if ctx.validate(&req, entry.get_ap(req.vaddr))? {
+                if ctx.validate(&req, entry.get_ap(req.vaddr)) {
                     Ok(entry.base_addr() | req.vaddr.small_page_idx())
                 } else {
-                    bail!("Domain access faults are unimplemented, vaddr={:08x}", req.vaddr.0)
+                    dbg!(self.p15.c3_dacr.domain(d.domain()));
+                    bail!("resolve_coarse: Domain access faults are unimplemented, vaddr={:08x}", req.vaddr.0)
                 }
             },
             _ => bail!("L2 descriptor {:?} unimplemented, vaddr={:08x}", desc, req.vaddr.0),
