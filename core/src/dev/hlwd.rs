@@ -59,6 +59,21 @@ pub struct ClockInterface {
     pub ai_ext: u32,    // 0x1d0
     pub usb_ext: u32,   // 0x1d8
 }
+impl ClockInterface {
+    pub fn new() -> anyhow::Result<Self> {
+        Ok(ClockInterface {
+            sys: 0x0040_11c0,
+            sys_ext: 0x1800_0018,
+            ddr: 0,
+            ddr_ext: 0,
+            vi_ext: 0,
+            ai: 0,
+            ai_ext: 0,
+            usb_ext: 0
+        })
+    }
+}
+
 
 /// Various bus control registers (?)
 #[derive(Default, Debug, Clone)]
@@ -184,6 +199,7 @@ pub struct Hollywood {
     pub ddr: ddr::DdrInterface,
 
     pub arb: ArbCfgInterface,
+    pub reset_ahb: u32,
     pub clocks: u32,
     pub resets: u32,
     pub compat: u32,
@@ -207,7 +223,7 @@ impl Hollywood {
             irq: irq::IrqInterface::default(),
             otp: otp::OtpInterface::new()?,
             gpio: gpio::GpioInterface::new()?,
-            pll: ClockInterface::default(),
+            pll: ClockInterface::new()?,
 
             ahb: AhbInterface::default(),
             di: compat::di::DriveInterface::default(),
@@ -217,6 +233,7 @@ impl Hollywood {
 
             usb_frc_rst: 0,
             arb: ArbCfgInterface::default(),
+            reset_ahb: 0x0000_ffff,
             resets: 0,
             clocks: 0,
             compat: 0,
@@ -245,18 +262,46 @@ impl MmioDevice for Hollywood {
             0x0dc..=0x0fc   => self.gpio.arm.read_handler(off - 0xdc)?,
             0x100..=0x13c   => self.arb.read_handler(off - 0x100)?,
             0x180           => self.compat,
+            0x184           => self.reset_ahb,
             0x188           => self.spare0,
             0x18c           => self.spare1,
-            0x190           => self.clocks,
+            0x190           => {
+                info!(target: "HLWD", "reading clocks, val={:08x}", self.clocks);
+                self.clocks
+            },
             0x194           => self.resets,
-            0x1b0           => 0x0040_11c0, //self.pll.sys,
-            0x1b4           => 0x1800_0018, //self.pll.sys_ext,
-            0x1bc           => self.pll.ddr,
-            0x1c0           => self.pll.ddr_ext,
-            0x1c8           => self.pll.vi_ext,
-            0x1cc           => self.pll.ai,
-            0x1d0           => self.pll.ai_ext,
-            0x1d8           => self.pll.usb_ext,
+            0x1b0           => {
+                info!(target: "HLWD", "reading pll_sys, val={:08x}", self.pll.sys);
+                self.pll.sys
+            },
+            0x1b4           => {
+                info!(target: "HLWD", "reading pll_sys_ext, val={:08x}", self.pll.sys_ext);
+                self.pll.sys_ext
+            },
+            0x1bc           => {
+                info!(target: "HLWD", "reading pll_ddr, val={:08x}", self.pll.ddr);
+                self.pll.ddr
+            },
+            0x1c0           => {
+                info!(target: "HLWD", "reading pll_ddr_ext, val={:08x}", self.pll.ddr_ext);
+                self.pll.ddr_ext
+            },
+            0x1c8           => {
+                info!(target: "HLWD", "reading pll_vi_ext, val={:08x}", self.pll.vi_ext);
+                self.pll.vi_ext
+            },
+            0x1cc           => {
+                info!(target: "HLWD", "reading pll_ai, val={:08x}", self.pll.ai);
+                self.pll.ai
+            },
+            0x1d0           => {
+                info!(target: "HLWD", "reading pll_ai_ext, val={:08x}", self.pll.ai_ext);
+                self.pll.ai_ext
+            },
+            0x1d8           => {
+                info!(target: "HLWD", "reading pll_usb_ext, val={:08x}", self.pll.usb_ext);
+                self.pll.usb_ext
+            },
             0x1e0           => self.io_str_ctrl0,
             0x1e4           => self.io_str_ctrl1,
             0x1ec           => self.otp.cmd,
@@ -295,6 +340,10 @@ impl MmioDevice for Hollywood {
             },
             0x100..=0x13c => self.arb.write_handler(off - 0x100, val)?,
             0x180 => self.compat = val,
+            0x184 => {
+                info!(target: "HLWD", "reset_ahb={val:08x}");
+                self.reset_ahb = val;
+            },
             0x188 => {
                 self.spare0 = val;
                 // AHB flushing code seems to check these bits?
@@ -316,7 +365,10 @@ impl MmioDevice for Hollywood {
                 };
                 return Ok(task);
             },
-            0x190 => self.clocks = val,
+            0x190 => {
+                info!(target: "HLWD", "clocks={val:08x}");
+                self.clocks = val;
+            },
             0x194 => {
                 let diff = self.resets ^ val;
                 if diff & 0x0000_0030 != 0 {
@@ -332,14 +384,38 @@ impl MmioDevice for Hollywood {
                 info!(target: "HLWD", "resets={val:08x}");
                 self.resets = val;
             },
-            0x1b0 => self.pll.sys = val,
-            0x1b4 => self.pll.sys_ext = val,
-            0x1bc => self.pll.ddr = val,
-            0x1c0 => self.pll.ddr_ext = val,
-            0x1c8 => self.pll.vi_ext = val,
-            0x1cc => self.pll.ai = val,
-            0x1d0 => self.pll.ai_ext = val,
-            0x1d8 => self.pll.usb_ext = val,
+            0x1b0 => {
+                info!(target: "HLWD", "pll_sys={val:08x}");
+                self.pll.sys = val;
+            },
+            0x1b4 => {
+                info!(target: "HLWD", "pll_sys_ext={val:08x}");
+                self.pll.sys_ext = val;
+            },
+            0x1bc => {
+                info!(target: "HLWD", "pll_ddr={val:08x}");
+                self.pll.ddr = val;
+            },
+            0x1c0 => {
+                info!(target: "HLWD", "pll_ddr_ext={val:08x}");
+                self.pll.ddr_ext = val;
+            },
+            0x1c8 => {
+                info!(target: "HLWD", "pll_vi_ext={val:08x}");
+                self.pll.vi_ext = val;
+            },
+            0x1cc => {
+                info!(target: "HLWD", "pll_ai={val:08x}");
+                self.pll.ai = val;
+            },
+            0x1d0 => {
+                info!(target: "HLWD", "pll_ai_ext={val:08x}");
+                self.pll.ai_ext = val;
+            },
+            0x1d8 => {
+                info!(target: "HLWD", "pll_usb_ext={val:08x}");
+                self.pll.usb_ext = val;
+            },
             0x1e0 => self.io_str_ctrl0 = val,
             0x1e4 => self.io_str_ctrl1 = val,
             0x1ec => self.otp.write_handler(val),
