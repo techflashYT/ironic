@@ -36,6 +36,11 @@ decl_io_handle!(OHCI1_HANDLE, Ohci1,0x0000_01ff);
 decl_io_handle!(SDHC0_HANDLE, Sdhc0,0x0000_01ff);
 decl_io_handle!(SDHC1_HANDLE, Sdhc1,0x0000_01ff);
 
+decl_io_handle!(CP_HANDLE, Cp,      0x0000_01ff);
+decl_io_handle!(PE_HANDLE, Pe,      0x0000_01ff);
+decl_io_handle!(VI_HANDLE, Vi,      0x0000_01ff);
+decl_io_handle!(PI_HANDLE, Pi,      0x0000_01ff);
+decl_io_handle!(DSP_HANDLE, Dsp,    0x0000_01ff);
 decl_io_handle!(HLWD_HANDLE, Hlwd,  0x0000_03ff);
 decl_io_handle!(AHB_HANDLE, Ahb,    0x0000_3fff);
 decl_io_handle!(MI_HANDLE, Mi,      0x0000_01ff);
@@ -66,8 +71,8 @@ impl Bus {
             0x0d07 => Some(SDHC0_HANDLE),
             0x0d08 => Some(SDHC1_HANDLE),
 
-            0x0d00 | 0x0d80 |
-            0x0d8b => self.resolve_hlwd(addr),
+            0x0c00 | 0x0d00 |
+            0x0d80 | 0x0d8b => self.resolve_hlwd(addr),
 
             0x0000..=0x017f => Some(MEM1_HANDLE),
             0x1000..=0x13ff => Some(MEM2_HANDLE),
@@ -82,11 +87,17 @@ impl Bus {
     /// Resolve a physical address associated with the Hollywood MMIO region.
     fn resolve_hlwd(&self, addr: u32) -> Option<DeviceHandle> {
         match addr {
+            CP_BASE..=CP_TAIL       => Some(CP_HANDLE),
+            PE_BASE..=PE_TAIL       => Some(PE_HANDLE),
+            VI_BASE..=VI_TAIL       => Some(VI_HANDLE),
+            PI_BASE..=PI_TAIL       => Some(PI_HANDLE),
+            DSP_BASE..=DSP_TAIL     => Some(DSP_HANDLE),
             HLWD_BASE..=HLWD_TAIL   => Some(HLWD_HANDLE),
             DI_BASE..=DI_TAIL       => Some(DI_HANDLE),
             EXI_REG_BASE..=EXI_REG_TAIL |
             EXI_BASE..=EXI_TAIL     => Some(EXI_HANDLE),
             AHB_BASE..=AHB_TAIL     => Some(AHB_HANDLE),
+            MI_BASE..=MI_TAIL |
             MEM_BASE..=MEM_TAIL     => Some(MI_HANDLE),
             DDR_BASE..=DDR_TAIL     => Some(DDR_HANDLE),
             _ => None,
@@ -102,6 +113,8 @@ impl Bus {
             (false, false) => resolve_norom_nomir(addr),
         }
     }
+
+
 }
 
 fn resolve_rom_nomir(addr: u32) -> Option<DeviceHandle> {
