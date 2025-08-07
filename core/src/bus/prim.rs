@@ -67,6 +67,12 @@ pub enum MemDevice { MaskRom, Sram0, Sram1, Mem1, Mem2 }
 /// Different kinds of I/O devices that support physical memory accesses.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum IoDevice {
+    Cp,
+    Pe,
+    Vi,
+    Pi,
+    Dsp,
+
     Nand, 
     Aes, 
     Sha, 
