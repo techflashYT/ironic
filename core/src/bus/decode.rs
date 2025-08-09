@@ -99,8 +99,8 @@ impl Bus {
             EXI_REG_BASE..=EXI_REG_TAIL |
             EXI_BASE..=EXI_TAIL     => Some(EXI_HANDLE),
             AHB_BASE..=AHB_TAIL     => Some(AHB_HANDLE),
-            SI_REG_BASE..SI_REG_TAIL |
-            SI_BASE..SI_TAIL        => Some(SI_HANDLE),
+            SI_REG_BASE..=SI_REG_TAIL |
+            SI_BASE..=SI_TAIL        => Some(SI_HANDLE),
             MI_BASE..=MI_TAIL |
             MEM_BASE..=MEM_TAIL     => Some(MI_HANDLE),
             DDR_BASE..=DDR_TAIL     => Some(DDR_HANDLE),
