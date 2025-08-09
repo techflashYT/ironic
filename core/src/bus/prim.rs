@@ -70,6 +70,7 @@ pub enum IoDevice {
     Cp,
     Pe,
     Vi,
+    Ai,
     Pi,
     Dsp,
 
