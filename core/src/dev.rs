@@ -43,6 +43,7 @@ pub const PI_BASE:      u32 = 0x0c00_3000;
 pub const MI_BASE:      u32 = 0x0c00_4000;
 pub const DSP_BASE:     u32 = 0x0c00_5000;
 
+pub const AI_BASE:      u32 = 0x0d00_6c00;
 pub const NAND_BASE:    u32 = 0x0d01_0000;
 pub const AES_BASE:     u32 = 0x0d02_0000;
 pub const SHA_BASE:     u32 = 0x0d03_0000;
@@ -86,6 +87,7 @@ pub const OH1_TAIL:     u32 = OH1_BASE + IODEV_SIZE - 1;
 pub const SD0_TAIL:     u32 = SD0_BASE + IODEV_SIZE - 1;
 pub const SD1_TAIL:     u32 = SD1_BASE + IODEV_SIZE - 1;
 pub const HLWD_TAIL:    u32 = HLWD_BASE + HLWDEV_SIZE - 1;
+pub const AI_TAIL:      u32 = AI_BASE + LEGACYDEV_SIZE - 1;
 pub const DI_TAIL:      u32 = DI_BASE + HLWDEV_SIZE - 1;
 pub const SI_TAIL:      u32 = SI_BASE + HLWDEV_SIZE - 1;
 pub const EXI_TAIL:     u32 = EXI_BASE + HLWDEV_SIZE - 1;

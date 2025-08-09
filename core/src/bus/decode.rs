@@ -39,6 +39,7 @@ decl_io_handle!(SDHC1_HANDLE, Sdhc1,0x0000_01ff);
 decl_io_handle!(CP_HANDLE, Cp,      0x0000_01ff);
 decl_io_handle!(PE_HANDLE, Pe,      0x0000_01ff);
 decl_io_handle!(VI_HANDLE, Vi,      0x0000_01ff);
+decl_io_handle!(AI_HANDLE, Ai,      0x0000_01ff);
 decl_io_handle!(PI_HANDLE, Pi,      0x0000_01ff);
 decl_io_handle!(DSP_HANDLE, Dsp,    0x0000_01ff);
 decl_io_handle!(HLWD_HANDLE, Hlwd,  0x0000_03ff);
@@ -90,6 +91,7 @@ impl Bus {
             CP_BASE..=CP_TAIL       => Some(CP_HANDLE),
             PE_BASE..=PE_TAIL       => Some(PE_HANDLE),
             VI_BASE..=VI_TAIL       => Some(VI_HANDLE),
+            AI_BASE..=AI_TAIL       => Some(AI_HANDLE),
             PI_BASE..=PI_TAIL       => Some(PI_HANDLE),
             DSP_BASE..=DSP_TAIL     => Some(DSP_HANDLE),
             HLWD_BASE..=HLWD_TAIL   => Some(HLWD_HANDLE),
