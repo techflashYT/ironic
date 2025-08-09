@@ -278,7 +278,7 @@ impl MmioDevice for DSP {
             0x04 => self.mailbox_out_h = val,
             0x06 => self.mailbox_out_l = val,
             0x08 => self.unk_08 = val,
-            0x0a => self.control_status = val,
+            0x0a => self.control_status = val & 0xfffe, // so that RES stays 0
             0x0c => self.unk_0c = val,
             0x0e => self.unk_0e = val,
             0x10 => self.unk_10 = val,
