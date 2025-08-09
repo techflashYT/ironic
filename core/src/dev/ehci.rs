@@ -1,6 +1,5 @@
 
 use anyhow::bail;
-use anyhow::ensure;
 
 use crate::bus::prim::*;
 use crate::bus::mmio::*;
