@@ -233,9 +233,11 @@ pub struct DSP {
     pub unk_38: u16,
     pub dma_bytes_left: u16
 }
-impl MmioDevice for DSP {
-    type Width = u16;
-    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
+impl MmioDeviceMultiWidth for DSP {
+    fn read8(&self, off: usize) -> anyhow::Result<BusPacket> {
+        bail!("DSP unsupported 8-bit read from offset {off:x}");
+    }
+    fn read16(&self, off: usize) -> anyhow::Result<BusPacket> {
         let val = match off {
             0x00 => self.mailbox_in_h,
             0x02 => self.mailbox_in_l,
@@ -267,11 +269,26 @@ impl MmioDevice for DSP {
             0x36 => self.dma_control_length,
             0x38 => self.unk_38,
             0x3a => self.dma_bytes_left,
-            _ => { bail!("DSP read from undefined offset {off:x}"); },
+            _ => { bail!("DSP 16-bit read from undefined offset {off:x}"); },
         };
         Ok(BusPacket::Half(val))
     }
-    fn write(&mut self, off: usize, val: u16) -> anyhow::Result<Option<BusTask>> {
+    fn read32(&self, off: usize) -> anyhow::Result<BusPacket> {
+        let val: u32 = match off {
+            0x00 => (self.mailbox_in_h as u32) << 16 & self.mailbox_in_l as u32,
+            0x04 => (self.mailbox_out_h as u32) << 16 & self.mailbox_out_l as u32,
+            0x20 => (self.ar_dma_mmaddr_h as u32) << 16 & self.ar_dma_mmaddr_l as u32,
+            0x24 => (self.ar_dma_araddr_h as u32) << 16 & self.ar_dma_araddr_l as u32,
+            0x30 => (self.dma_start_addr_h as u32) << 16 & self.dma_start_addr_l as u32,
+            _ => { bail!("DSP 32-bit read from undefined offset {off:x}"); },
+        };
+        Ok(BusPacket::Word(val))
+    }
+
+    fn write8(&mut self, off: usize, val: u8) -> anyhow::Result<Option<BusTask>> {
+        bail!("DSP unsupported 8-bit write {val:02x} to offset {off:x}");
+    }
+    fn write16(&mut self, off: usize, val: u16) -> anyhow::Result<Option<BusTask>> {
         match off {
             0x00 => self.mailbox_in_h = val,
             0x02 => self.mailbox_in_l = val,
@@ -303,8 +320,38 @@ impl MmioDevice for DSP {
             0x36 => self.dma_control_length = val,
             0x38 => self.unk_38 = val,
             0x3a => self.dma_bytes_left = val,
-            _ => { bail!("DSP write {val:08x} to undefined offset {off:x}"); },
+            _ => { bail!("DSP 16-bit write {val:04x} to undefined offset {off:x}"); },
         }
+        Ok(None)
+    }
+    fn write32(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
+        let val = match off {
+            0x00 => {
+                self.mailbox_in_h = (val & 0xffff0000) as u16;
+                self.mailbox_in_l = (val & 0x0000ffff) as u16;
+            },
+            0x04 => {
+                self.mailbox_out_h = (val & 0xffff0000) as u16;
+                self.mailbox_out_l = (val & 0x0000ffff) as u16;
+            },
+            0x20 => {
+                self.ar_dma_mmaddr_h = (val & 0xffff0000) as u16;
+                self.ar_dma_mmaddr_l = (val & 0x0000ffff) as u16;
+            },
+            0x24 => {
+                self.ar_dma_araddr_h = (val & 0xffff0000) as u16;
+                self.ar_dma_araddr_l = (val & 0x0000ffff) as u16;
+            },
+            0x28 => {
+                self.ar_dma_size_h = (val & 0xffff0000) as u16;
+                self.ar_dma_size_l = (val & 0x0000ffff) as u16;
+            },
+            0x30 => {
+                self.dma_start_addr_h = (val & 0xffff0000) as u16;
+                self.dma_start_addr_l = (val & 0x0000ffff) as u16;
+            },
+            _ => { bail!("DSP 32-bit write {val:08x} to undefined offset {off:x}"); },
+        };
         Ok(None)
     }
 }
