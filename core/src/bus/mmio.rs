@@ -51,6 +51,7 @@ impl Bus {
             (BusWidth::W, Ahb)   => self.hlwd.ahb.read(off),
             (BusWidth::W, Di)    => self.hlwd.di.read(off),
             (BusWidth::W, Exi)   => self.hlwd.exi.read(off),
+            (BusWidth::W, Si)    => self.hlwd.si.read(off),
             (BusWidth::W, Vi)    => self.hlwd.vi.read32(off),
             (BusWidth::W, Pi)    => self.hlwd.pi.read(off),
             (BusWidth::W, Ai)    => self.hlwd.ai.read(off),
@@ -78,6 +79,7 @@ impl Bus {
 
 
             (Word(val), Hlwd)  => self.hlwd.write(off, val),
+            (Word(val), Si)    => self.hlwd.si.write(off, val),
             (Word(val), Vi)    => self.hlwd.vi.write32(off, val),
             (Word(val), Ai)    => self.hlwd.ai.write(off, val),
             (Word(val), Pi)    => self.hlwd.pi.write(off, val),
