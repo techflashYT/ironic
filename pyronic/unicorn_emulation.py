@@ -47,6 +47,13 @@ hlwd_end   = hlwd_start + hlwd_size
 hlwd_hndl  = ipc.alloc_raw(hlwd_size, hlwd_start)
 hlwd       = None
 
+# Hollywood regs (mirror)
+mirr_start = 0x0d000000
+mirr_size  = 0x00800000
+mirr_end   = mirr_start + mirr_size
+mirr_hndl  = ipc.alloc_raw(mirr_size, mirr_start)
+mirr       = None
+
 # Broadway reset vector
 rvec_real_start = 0x0d806840
 rvec_start = 0xffff0000
@@ -128,6 +135,12 @@ try:
     hlwd = MemRegion(hlwd_start, hlwd_size, hlwd_end, hlwd_hndl)
     mu.mmio_map(hlwd_start, hlwd_size, mem_read, hlwd, mem_write, hlwd)
     mu.mem_protect(hlwd_start, hlwd_size)
+
+    # map Hollywood (mirror) register range
+    print("Setting up Hollywood (mirror) registers...")
+    mirr = MemRegion(mirr_start, mirr_size, mirr_end, mirr_hndl)
+    mu.mmio_map(mirr_start, mirr_size, mem_read, mirr, mem_write, mirr)
+    mu.mem_protect(mirr_start, mirr_size)
 
     # map legacy register range
     print("Setting up legacy (Flipper) registers...")
