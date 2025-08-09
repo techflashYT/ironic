@@ -19,6 +19,170 @@ pub mod irq;
 /// Inter-processor communication.
 pub mod ipc;
 
+/// Legacy Processor interface
+#[derive(Default, Debug, Clone)]
+pub struct ProcessorInterface {
+    pub intsr: u32,
+    pub intmr: u32,
+    pub fifo_base_start: u32,
+    pub fifo_base_end: u32,
+    pub fifo_cur_write_ptr: u32,
+    pub unk_18: u32,
+    pub unk_1c: u32,
+    pub unk_20: u32,
+    pub reset: u32,
+    pub unk_28: u32,
+    pub unk_2c: u32,
+}
+impl MmioDevice for ProcessorInterface {
+    type Width = u32;
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
+        let val = match off {
+            0x00 => self.intsr,
+            0x04 => self.intmr,
+            0x08 => self.fifo_base_start,
+            0x10 => self.fifo_base_end,
+            0x14 => self.fifo_cur_write_ptr,
+            0x18 => self.unk_18,
+            0x1c => self.unk_1c,
+            0x20 => self.unk_20,
+            0x24 => self.reset,
+            0x28 => self.unk_28,
+            0x2c => self.unk_2c,
+            _ => { bail!("PI read from undefined offset {off:x}"); },
+        };
+        Ok(BusPacket::Word(val))
+    }
+    fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
+        match off {
+            0x00 => self.intsr = val,
+            0x04 => self.intmr = val,
+            0x08 => self.fifo_base_start = val,
+            0x10 => self.fifo_base_end = val,
+            0x14 => self.fifo_cur_write_ptr = val,
+            0x18 => self.unk_18 = val,
+            0x1c => self.unk_1c = val,
+            0x20 => self.unk_20 = val,
+            0x24 => self.reset = val,
+            0x28 => self.unk_28 = val,
+            0x2c => self.unk_2c = val,
+            _ => { bail!("PI write {val:08x} to undefined offset {off:x}"); },
+        }
+        Ok(None)
+    }
+}
+
+/// Legacy DSP
+#[derive(Default, Debug, Clone)]
+pub struct DSP {
+    pub mailbox_in_h: u16,
+    pub mailbox_in_l: u16,
+    pub mailbox_out_h: u16,
+    pub mailbox_out_l: u16,
+    pub unk_08: u16,
+    pub control_status: u16,
+    pub unk_0c: u16,
+    pub unk_0e: u16,
+    pub unk_10: u16,
+    pub ar_size: u16,
+    pub unk_14: u16,
+    pub ar_mode: u16,
+    pub unk_18: u16,
+    pub ar_refresh: u16,
+    pub unk_1c: u16,
+    pub unk_1e: u16,
+    pub ar_dma_mmaddr_h: u16,
+    pub ar_dma_mmaddr_l: u16,
+    pub ar_dma_araddr_h: u16,
+    pub ar_dma_araddr_l: u16,
+    pub ar_dma_size_h: u16,
+    pub ar_dma_size_l: u16,
+    pub unk_2c: u16,
+    pub unk_2e: u16,
+    pub dma_start_addr_h: u16,
+    pub dma_start_addr_l: u16,
+    pub unk_34: u16,
+    pub dma_control_length: u16,
+    pub unk_38: u16,
+    pub dma_bytes_left: u16
+}
+impl MmioDevice for DSP {
+    type Width = u16;
+    fn read(&self, off: usize) -> anyhow::Result<BusPacket> {
+        let val = match off {
+            0x00 => self.mailbox_in_h,
+            0x02 => self.mailbox_in_l,
+            0x04 => self.mailbox_out_h,
+            0x06 => self.mailbox_out_l,
+            0x08 => self.unk_08,
+            0x0a => self.control_status,
+            0x0c => self.unk_0c,
+            0x0e => self.unk_0e,
+            0x10 => self.unk_10,
+            0x12 => self.ar_size,
+            0x14 => self.unk_14,
+            0x16 => self.ar_mode,
+            0x18 => self.unk_18,
+            0x1a => self.ar_refresh,
+            0x1c => self.unk_1c,
+            0x1e => self.unk_1e,
+            0x20 => self.ar_dma_mmaddr_h,
+            0x22 => self.ar_dma_mmaddr_l,
+            0x24 => self.ar_dma_araddr_h,
+            0x26 => self.ar_dma_araddr_l,
+            0x28 => self.ar_dma_size_h,
+            0x2a => self.ar_dma_size_l,
+            0x2c => self.unk_2c,
+            0x2e => self.unk_2e,
+            0x30 => self.dma_start_addr_h,
+            0x32 => self.dma_start_addr_l,
+            0x34 => self.unk_34,
+            0x36 => self.dma_control_length,
+            0x38 => self.unk_38,
+            0x3a => self.dma_bytes_left,
+            _ => { bail!("DSP read from undefined offset {off:x}"); },
+        };
+        Ok(BusPacket::Half(val))
+    }
+    fn write(&mut self, off: usize, val: u16) -> anyhow::Result<Option<BusTask>> {
+        match off {
+            0x00 => self.mailbox_in_h = val,
+            0x02 => self.mailbox_in_l = val,
+            0x04 => self.mailbox_out_h = val,
+            0x06 => self.mailbox_out_l = val,
+            0x08 => self.unk_08 = val,
+            0x0a => self.control_status = val,
+            0x0c => self.unk_0c = val,
+            0x0e => self.unk_0e = val,
+            0x10 => self.unk_10 = val,
+            0x12 => self.ar_size = val,
+            0x14 => self.unk_14 = val,
+            0x16 => self.ar_mode = val,
+            0x18 => self.unk_18 = val,
+            0x1a => self.ar_refresh = val,
+            0x1c => self.unk_1c = val,
+            0x1e => self.unk_1e = val,
+            0x20 => self.ar_dma_mmaddr_h = val,
+            0x22 => self.ar_dma_mmaddr_l = val,
+            0x24 => self.ar_dma_araddr_h = val,
+            0x26 => self.ar_dma_araddr_l = val,
+            0x28 => self.ar_dma_size_h = val,
+            0x2a => self.ar_dma_size_l = val,
+            0x2c => self.unk_2c = val,
+            0x2e => self.unk_2e = val,
+            0x30 => self.dma_start_addr_h = val,
+            0x32 => self.dma_start_addr_l = val,
+            0x34 => self.unk_34 = val,
+            0x36 => self.dma_control_length = val,
+            0x38 => self.unk_38 = val,
+            0x3a => self.dma_bytes_left = val,
+            _ => { bail!("DSP write {val:08x} to undefined offset {off:x}"); },
+        }
+        Ok(None)
+    }
+}
+
+
 /// The timer/alarm interface.
 #[derive(Default, Debug, Clone)]
 pub struct TimerInterface {
@@ -184,6 +348,9 @@ impl MmioDevice for AhbInterface {
 pub struct Hollywood {
     pub task: Option<HlwdTask>,
 
+    pub pi: ProcessorInterface,
+    pub dsp: DSP,
+
     pub ipc: ipc::IpcInterface,
     pub timer: TimerInterface,
     pub busctrl: BusCtrlInterface,
@@ -217,6 +384,8 @@ impl Hollywood {
         // TODO: Where do the initial values for these registers matter?
         Ok(Hollywood {
             task: None,
+            pi: ProcessorInterface::default(),
+            dsp: DSP::default(),
             ipc: ipc::IpcInterface::new(),
             busctrl: BusCtrlInterface::default(),
             timer: TimerInterface::default(),
