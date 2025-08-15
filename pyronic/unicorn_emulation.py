@@ -161,8 +161,26 @@ try:
     pc = reset_vec
 
     while keep_going:
+        #mu.emu_start(pc, 0xffffffff)
         mu.emu_start(pc, 0xffffffff, 0, 1)
         pc = mu.reg_read(UC_PPC_REG_PC)
+        pcTemp = pc & 0x0FFFFFFF
+        print("Emulating @ " + str(hex(pcTemp)))
+        try:
+            data = mu.mem_read(pcTemp, 4)
+            print("Code:")
+            hexdump(data)
+            print("Registers:")
+            print("r0 - r3  : {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_0), mu.reg_read(UC_PPC_REG_1), mu.reg_read(UC_PPC_REG_2), mu.reg_read(UC_PPC_REG_3)))
+            print("r4 - r7  : {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_4), mu.reg_read(UC_PPC_REG_5), mu.reg_read(UC_PPC_REG_6), mu.reg_read(UC_PPC_REG_7)))
+            print("r8 - r11 : {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_8), mu.reg_read(UC_PPC_REG_9), mu.reg_read(UC_PPC_REG_10), mu.reg_read(UC_PPC_REG_11)))
+            print("r12 - r15: {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_12), mu.reg_read(UC_PPC_REG_13), mu.reg_read(UC_PPC_REG_14), mu.reg_read(UC_PPC_REG_15)))
+            print("r16 - r19: {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_16), mu.reg_read(UC_PPC_REG_17), mu.reg_read(UC_PPC_REG_18), mu.reg_read(UC_PPC_REG_19)))
+            print("r20 - r23: {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_20), mu.reg_read(UC_PPC_REG_21), mu.reg_read(UC_PPC_REG_22), mu.reg_read(UC_PPC_REG_23)))
+            print("r24 - r27: {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_24), mu.reg_read(UC_PPC_REG_25), mu.reg_read(UC_PPC_REG_26), mu.reg_read(UC_PPC_REG_27)))
+            print("r28 - r31: {:08x} {:08x} {:08x} {:08x}".format(mu.reg_read(UC_PPC_REG_28), mu.reg_read(UC_PPC_REG_29), mu.reg_read(UC_PPC_REG_30), mu.reg_read(UC_PPC_REG_31)))
+        except:
+            continue
 
 except UcError as e:
     print("ERROR: " + str(e) + ", occurred @ " + str(hex(pc)))
