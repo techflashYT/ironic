@@ -304,7 +304,7 @@ impl PpcBackend {
     /// Read from physical memory.
     pub fn handle_read32(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
         let tmpval = self.bus.read().read32(req.addr)?;
-        //info!(target: "PPC", "read32 at {:08x}, val={:08x}", req.addr, tmpval);
+        info!(target: "PPC", "read32 at {:08x}, val={:08x}", req.addr, tmpval);
         self.obuf[0] = ((tmpval & 0xff000000) >> 24) as u8;
         self.obuf[1] = ((tmpval & 0x00ff0000) >> 16) as u8;
         self.obuf[2] = ((tmpval & 0x0000ff00) >> 8) as u8;
@@ -341,7 +341,7 @@ impl PpcBackend {
 
     /// Write to physical memory.
     pub fn handle_write32(&mut self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
-        //info!(target: "PPC", "write32 at {:08x} with {:08x}", req.addr, req.len);
+        info!(target: "PPC", "write32 at {:08x} with {:08x}", req.addr, req.len);
         let val = u32::from_le_bytes(self.ibuf[0xc..0x10].try_into().unwrap());
         let _ = self.bus.write().write32(req.addr, val)?;
         let _ = client.write("OK".as_bytes())?; // maybe FIXME: is it ok to ignore the # of bytes written here?
