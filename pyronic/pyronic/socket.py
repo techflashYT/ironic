@@ -9,12 +9,17 @@ class IronicSocket(object):
     IRONIC_MSG     = 3
     IRONIC_ACK     = 4
     IRONIC_MSGNORET= 5
+    IRONIC_QUIT    = 255
 
     def __init__(self, filename="/tmp/ironic-ppc.sock"):
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.socket.connect(filename)
 
     def close(self): 
+        msg = bytearray()
+        msg += pack("<LLL", self.IRONIC_QUIT, 0, 0)
+        self.socket.send(msg)
+        _ = self.socket.recv(2)
         self.socket.close()
 
     def send_guestread(self, paddr, size):

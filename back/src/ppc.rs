@@ -19,6 +19,7 @@ use std::io::{Read, Write};
 
 #[cfg(target_family = "unix")]
 use std::os::unix::net::{UnixStream, UnixListener};
+use std::time::Duration;
 #[cfg(target_family = "windows")]
 use uds_windows::{UnixStream, UnixListener};
 
@@ -31,7 +32,8 @@ pub enum Command {
     Message, 
     Ack, 
     MessageNoReturn,
-    Unimpl 
+    Shutdown,
+    Unimpl,
 }
 impl Command {
     fn from_u32(x: u32) -> Self {
@@ -41,6 +43,7 @@ impl Command {
             3 => Self::Message,
             4 => Self::Ack,
             5 => Self::MessageNoReturn,
+            255 => Self::Shutdown,
             _ => Self::Unimpl,
         }
     }
@@ -74,6 +77,8 @@ pub struct PpcBackend {
     pub ibuf: [u8; BUF_LEN],
     /// Output buffer for the socket.
     pub obuf: [u8; BUF_LEN],
+    /// Counter to prevent infinite retry on the socket
+    socket_errors: u8
 }
 impl PpcBackend {
     pub fn new(bus: Arc<RwLock<Bus>>) -> Self {
@@ -81,6 +86,7 @@ impl PpcBackend {
             bus,
             ibuf: [0; BUF_LEN],
             obuf: [0; BUF_LEN],
+            socket_errors: 0,
         }
     }
 
@@ -97,6 +103,9 @@ impl PpcBackend {
 impl PpcBackend {
 
     fn resolve_socket_path() -> PathBuf {
+        if cfg!(target_os = "macos") {
+            return PathBuf::from(format!("/tmp/{IPC_SOCK}"));
+        }
         let mut dir = temp_dir();
         dir.push(IPC_SOCK);
         dir
@@ -104,15 +113,22 @@ impl PpcBackend {
 
     /// Handle clients connected to the socket.
     pub fn server_loop(&mut self, sock: UnixListener) -> anyhow::Result<()> {
-        loop {
             let res = sock.accept();
             let mut client = match res {
                 Ok((stream, _)) => stream,
-                Err(e) => { 
-                    info!(target:"PPC", "accept() error {e:?}");
-                    break;
+                Err(e) => {
+                    if self.socket_errors > 10 {
+                        info!(target:"PPC", "accept() error {e:?}");
+                        return Err(anyhow::anyhow!(e));
+                    }
+                    else {
+                        self.socket_errors += 1;
+                        std::thread::sleep(Duration::from_millis(50));
+                        return Ok(());
+                    }
                 }
             };
+            self.socket_errors = 0;
 
             loop {
                 info!(target:"PPC", "waiting for command");
@@ -131,12 +147,15 @@ impl PpcBackend {
                         Command::MessageNoReturn => {
                             self.handle_message(&mut client, req)?;
                         },
+                        Command::Shutdown => {
+                            let _ = client.write(b"kk")?;
+                            break;
+                        }
                         Command::Unimpl => break,
                     }
                 }
             }
             client.shutdown(Shutdown::Both)?;
-        }
         Ok(())
     }
 
@@ -292,27 +311,27 @@ impl Backend for PpcBackend {
         self.bus.write().hlwd.ipc.state.arm_ack = true;
         thread::sleep(std::time::Duration::from_millis(100));
 
-        // Try binding to the socket
-        let res = std::fs::remove_file(PpcBackend::resolve_socket_path());
-        match res {
-            Ok(_) => {},
-            Err(_e) => {},
-        }
-        let res = UnixListener::bind(PpcBackend::resolve_socket_path());
-        let sock = match res {
-            Ok(sock) => Some(sock),
-            Err(e) => {
-                error!(target: "PPC", "Couldn't bind to {},\n{e:?}", PpcBackend::resolve_socket_path().to_string_lossy());
-                None
+        loop {
+            // Try binding to the socket
+            let res = std::fs::remove_file(PpcBackend::resolve_socket_path());
+            match res {
+                Ok(_) => {},
+                Err(_e) => {},
             }
-        };
+            let res = UnixListener::bind(PpcBackend::resolve_socket_path());
+            let sock = match res {
+                Ok(sock) => Some(sock),
+                Err(e) => {
+                    error!(target: "PPC", "Couldn't bind to {},\n{e:?}", PpcBackend::resolve_socket_path().to_string_lossy());
+                    None
+                }
+            };
 
-        // If we successfully bind, run the server until it exits
-        if sock.is_some() {
-            self.server_loop(sock.unwrap())?;
+            // If we successfully bind, run the server until it exits
+            if sock.is_some() {
+                self.server_loop(sock.unwrap())?;
+            }
         }
-        info!(target: "PPC", "thread exited");
-        Ok(())
     }
 }
 
