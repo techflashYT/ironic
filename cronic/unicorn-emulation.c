@@ -30,7 +30,7 @@ typedef struct {
 } memRegion_t;
 
 static void MEM_SetupRegion(memRegion_t *r) {
-	r->end = r->start + r->end;
+	r->end = r->start + r->size;
 	/*r->handle = IPC_AllocRaw(r->start, r->size);*/
 }
 
