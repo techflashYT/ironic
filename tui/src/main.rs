@@ -12,13 +12,12 @@ use log::{debug, error};
 use strum::VariantNames;
 use parking_lot::RwLock;
 
-use std::panic;
 use std::process;
 use std::sync::Arc;
 use std::thread::Builder;
 use std::time::Duration;
 
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 
 const LOGGING_EXAMPLE_TXT: &str = "
 Example usage for --logging
@@ -26,24 +25,8 @@ Example usage for --logging
  Set base log level to WARN but override SHA to DEBUG: --logging warn,sha:debug
  Set base log level to ERROR but override SHA to TRACE and AES to DEBUG: --logging ERROR,sha:trace,aes:DEBUG";
 
-/// User-specified backend type.
-#[derive(Clone, Debug, ValueEnum)]
-pub enum BackendType {
-    Interp,
-    JIT
-}
-
-impl std::fmt::Display for BackendType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
 #[derive(Parser, Debug)]
 struct Args {
-    /// Emulator backend to use
-    #[clap(short, long, default_value = "interp")]
-    backend: BackendType,
     /// Path to a custom kernel ELF
     #[clap(short, long)]
     custom_kernel: Option<String>,
@@ -147,18 +130,13 @@ fn main() -> anyhow::Result<()> {
 
     // Fork off the backend thread
     let emu_bus = bus.clone();
-    let emu_thread = match args.backend {
-        BackendType::Interp => {
-            let ppc_early_on = custom_kernel.is_some() && enable_ppc_hle;
-            Builder::new().name("EmuThread".to_owned()).spawn(move || {
-                let mut back = InterpBackend::new(emu_bus, custom_kernel, ppc_early_on);
-                if let Err(reason) = back.run() {
-                    println!("InterpBackend returned an Err: {reason}");
-                };
-            }).unwrap()
-        },
-        _ => panic!("unimplemented backend"),
-    };
+    let ppc_early_on = custom_kernel.is_some() && enable_ppc_hle;
+    let emu_thread = Builder::new().name("EmuThread".to_owned()).spawn(move || {
+        let mut back = InterpBackend::new(emu_bus, custom_kernel, ppc_early_on);
+        if let Err(reason) = back.run() {
+            println!("InterpBackend returned an Err: {reason}");
+        };
+    }).unwrap();
 
     // Fork off the PPC HLE thread
     if enable_ppc_hle {
