@@ -65,7 +65,7 @@ directory:
 - `otp.bin` - The associated OTP/fused memory dumped from your console
 - `seeprom.bin` - The associated SEEPROM memory dumped from your console
 
-The included script `create_binfiles_from_nand.sh` will generate otp.bin and seeprom.bin for you using your nand.bin
+The included script `create_binfiles_from_nand.sh`/`create_binfiles_from_nand.bat` will generate otp.bin and seeprom.bin for you using your nand.bin
 
 You can run the emulator with the interpreter backend like this:
 ```
