@@ -32,7 +32,7 @@ struct Args {
     custom_kernel: Option<String>,
     /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
-    ppc_hle: Option<bool>,
+    ppc_hle: bool,
     /// Define log levels for the program
     #[clap(long, default_value="info")]
     logging: String,
@@ -42,7 +42,7 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     handle_logging_argument(args.logging)?;
     let custom_kernel = args.custom_kernel.clone();
-    let enable_ppc_hle = args.ppc_hle.unwrap_or(false);
+    let enable_ppc_hle = args.ppc_hle;
 
     // The bus is shared between any threads we spin up
     let bus = match Bus::new() {
