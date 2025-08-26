@@ -169,7 +169,8 @@ impl BigEndianMemory {
             bail!("dump_writes but writes not enabled!");
         }
         if self.already_wrote.load(Relaxed) {
-            bail!("dump_writes but already wrote the latest changes!");
+            debug!(target: "MEMSAVE", "dump_writes but already wrote the latest changes!");
+            return Ok(());
         }
         self.already_wrote.store(true, Relaxed);
         let patches: Vec<MemoryPatch> = self.writes.as_ref().unwrap().iter(..).map(|x|{
