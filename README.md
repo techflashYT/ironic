@@ -38,6 +38,7 @@ Rough matrix of what software versions get to what stages in the boot process
 |--------------------------------------|-------------|-------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 4.3U, boot1d, boot2v4                | No          | No          | No        | None                                                                                                                                                               |
 | 4.3U, boot1b, boot2v4                | Yes         | Yes         | Yes       | None                                                                                                                                                               |
+| 4.3U, boot1c, boot2v4                | Yes         | Yes         | Yes       | None                                                                                                                                                               |
 | 4.3U, boot1b, BootMii/boot2, boot2v4 | Yes         | No          | N/A       | Missing some debug port writes in BootMii somehow<br>Booting into MINI from SD Card results in a crash<br>BootMii's fallback to boot2 results in crash (different) |
 | TODO: More results                   |             |             |           |                                                                                                                                                                    |
 
