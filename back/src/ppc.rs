@@ -44,11 +44,6 @@ pub enum Command {
 impl Command {
     fn from_u32(x: u32) -> Self {
         match x {
-            1 => Self::HostRead,
-            2 => Self::HostWrite,
-            3 => Self::Message,
-            4 => Self::Ack,
-            5 => Self::MessageNoReturn,
             1  => Self::HostRead,
             2  => Self::HostWrite,
             3  => Self::Message,
