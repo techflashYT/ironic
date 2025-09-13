@@ -342,9 +342,8 @@ pub fn ldmia(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
                         return DispatchRes::FatalErr(reason);
                     }
                 };
-                let new_pc = temp_addr & 0xfffffffe;
-                cpu.reg.cpsr.set_thumb(new_pc & 1 != 1);
-                cpu.write_exec_pc(new_pc);
+                cpu.reg.cpsr.set_thumb(temp_addr & 1 != 0);
+                cpu.write_exec_pc(temp_addr & 0xfffffffe);
                 branch = true;
                 addr += 4;
             } else {
