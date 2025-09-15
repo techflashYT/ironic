@@ -1,5 +1,5 @@
 use std::{num::NonZeroU16, sync::atomic::AtomicUsize};
-use log::debug;
+use log::{debug, error};
 
 use crate::mem::BigEndianMemory;
 
@@ -142,13 +142,17 @@ impl Card {
             (false, 9) => { return Some(self.cmd9(argument)); },
             (false, 7) => { return self.cmd7(argument); },
             (false, 16) => { return Some(self.cmd16(argument)); },
-            (false, 18) => { return Some(self.cmd18(argument)); }
-            (false, 25) => { return Some(self.cmd25(argument)); }
+            (false, 18) => { return Some(self.cmd18(argument)); },
+            (false, 25) => { return Some(self.cmd25(argument)); },
+            (true, 6) => { return Some(self.acmd6(argument)); },
             (_, 55) => {
                 self.acmd = true;
                 return Some(Response::Regular(0));
             }
-            _ => unimplemented!(),
+            _ => {
+                error!(target: "SDHC", "SD Card {}CMD{} not implemented", match acmd { true => "A", false => ""}, cmd.index);
+                panic!();
+            },
         }
     }
     fn cmd8(&mut self, argument: u32) -> Response {
@@ -228,6 +232,10 @@ impl Card {
         let response = (self.state.bits_for_card_status() as u32) << 9;
         self.tx_status = CardTXStatus::MultiWritePending;
         Response::Regular(response)
+    }
+    fn acmd6(&mut self, _argument: u32) -> Response {
+        // Set bus width command, we aren't emulating individual SD bus cycles, so this is just a stub
+        Response::Regular((self.state.bits_for_card_status() as u32) << 9)
     }
 }
 
@@ -322,7 +330,7 @@ impl CsdReg {
             (0x32 << 96) | // trans speed for 25Mhz
             (0b010110110101 << 84) | // command classes - mandatory only
             (0x9 << 80) | // block len fixed to 512
-            (num_blocks << 48) | // (8191 + 1) * 512k = 4Gbyte card
+            (num_blocks << 48) | // card size in blocks
             (1 << 46) | // erase block en fixed
             (0x7f << 39) | // sector size fixed
             (0b10 << 26) | //write speed factor fixed
