@@ -4,7 +4,7 @@ use crate::bus::mmio::*;
 use crate::bus::task::*;
 
 use anyhow::bail;
-use log::{error, info};
+use log::{error, warn, info};
 
 /// One-time programmable [fused] memory.
 pub mod otp;
@@ -48,7 +48,7 @@ impl TimerInterface {
 }
 
 /// Various clocking registers.
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ClockInterface {
     pub sys: u32,       // 0x1b0
     pub sys_ext: u32,   // 0x1b4
@@ -59,6 +59,21 @@ pub struct ClockInterface {
     pub ai_ext: u32,    // 0x1d0
     pub usb_ext: u32,   // 0x1d8
 }
+impl Default for ClockInterface {
+    fn default() -> Self {
+        ClockInterface {
+            sys: 0x0040_11c0,
+            sys_ext: 0x1800_0018,
+            ddr: 0,
+            ddr_ext: 0,
+            vi_ext: 0,
+            ai: 0,
+            ai_ext: 0,
+            usb_ext: 0
+        }
+    }
+}
+
 
 /// Various bus control registers (?)
 #[derive(Default, Debug, Clone)]
@@ -184,6 +199,7 @@ pub struct Hollywood {
     pub ddr: ddr::DdrInterface,
 
     pub arb: ArbCfgInterface,
+    pub reset_ahb: u32,
     pub clocks: u32,
     pub resets: u32,
     pub compat: u32,
@@ -217,7 +233,8 @@ impl Hollywood {
 
             usb_frc_rst: 0,
             arb: ArbCfgInterface::default(),
-            resets: 0,
+            reset_ahb: 0x0000_ffff,
+            resets: 0x0000_0008,
             clocks: 0,
             compat: 0,
             spare0: 0,
@@ -245,12 +262,13 @@ impl MmioDevice for Hollywood {
             0x0dc..=0x0fc   => self.gpio.arm.read_handler(off - 0xdc)?,
             0x100..=0x13c   => self.arb.read_handler(off - 0x100)?,
             0x180           => self.compat,
+            0x184           => self.reset_ahb,
             0x188           => self.spare0,
             0x18c           => self.spare1,
             0x190           => self.clocks,
             0x194           => self.resets,
-            0x1b0           => 0x0040_11c0, //self.pll.sys,
-            0x1b4           => 0x1800_0018, //self.pll.sys_ext,
+            0x1b0           => self.pll.sys,
+            0x1b4           => self.pll.sys_ext,
             0x1bc           => self.pll.ddr,
             0x1c0           => self.pll.ddr_ext,
             0x1c8           => self.pll.vi_ext,
@@ -295,6 +313,10 @@ impl MmioDevice for Hollywood {
             },
             0x100..=0x13c => self.arb.write_handler(off - 0x100, val)?,
             0x180 => self.compat = val,
+            0x184 => {
+                info!(target: "HLWD", "reset_ahb={val:08x}");
+                self.reset_ahb = val;
+            },
             0x188 => {
                 self.spare0 = val;
                 // AHB flushing code seems to check these bits?
@@ -316,7 +338,48 @@ impl MmioDevice for Hollywood {
                 };
                 return Ok(task);
             },
-            0x190 => self.clocks = val,
+            0x190 => {
+                info!(target: "HLWD", "clocks={val:08x}");
+                // Perform sanity checks on the clock change.
+                // Doing things in the wrong order on a real hardware results in a crash.
+                // The correct order to switch to 486/162 is exactly:
+                // 1. Set FX (bit 0) in HW_CLOCKS
+                // 2. Clear RSTB_DSKPLL (bit 3) in HW_RESETS
+                // 3. Set SPEED (bit 1) in HW_CLOCKS
+                // 4. Set RSTB_DSKPLL (bit 3) in HW_RESETS
+                // 5. Clear FX (bit 0) in HW_CLOCKS
+                // ... and very similar (clear SPEED instead of setting it) to switch
+                // back to 729/243.
+                //
+                // Source: https://wiibrew.org/wiki/Broadway/Clock_Speed_Control
+                //
+                // So, this should enforce that order here, and complain if the
+                // software tries to do it incorrectly.
+                // This would all have real side-effects on the actual speed in
+                // reality, but I'm not sure that's possible here, so it's not attempted.
+                // TODO: This might also affect other registers (PLLs?)
+
+                // Prevent modifying SPEED whilst either FX is not *already* cleared, or whilst
+                // RSTB_DSKPLL is not *already* cleared
+                if (val & 0x0000_0002) != (self.clocks & 0x0000_0002) {
+                    // We're modifying SPEED, ensure valid state
+                    if (self.clocks & 0x0000_0001) == 0 {
+                        bail!("Trying to modify HW_CLOCKS[SPEED] whilst HW_CLOCKS[FX] is unset, which would crash the system");
+                    }
+
+                    if (self.resets & 0x0000_0008) == 1 {
+                        bail!("Trying to modify HW_CLOCKS[SPEED] whilst HW_RESETS[RSTB_DSKPLL] is set, which would crash the system");
+                    }
+
+                    if (val & 0x0000_0002) == 0 {
+                        warn!(target: "HLWD", "Switching clocks to 729MHz (PPC core) / 243MHz (Bus / Hollywood); this is not reflected in actual timing");
+                    } else {
+                        warn!(target: "HLWD", "Switching clocks to 486MHz (PPC core) / 162MHz (Bus / Hollywood); this is not reflected in actual timing");
+                    }
+                }
+
+                self.clocks = val;
+            },
             0x194 => {
                 let diff = self.resets ^ val;
                 if diff & 0x0000_0030 != 0 {
@@ -330,6 +393,13 @@ impl MmioDevice for Hollywood {
                 }
 
                 info!(target: "HLWD", "resets={val:08x}");
+
+                // Prevent invalid state for clocking, see comment of HW_CLOCKS
+                // Prevent RSTB_DSKPLL (bit 3) from being cleared whilst FX is unset
+                if (val & 0x0000_0008) == 0 && (self.clocks & 0x0000_0001) == 0 {
+                    bail!("Trying to clear HW_RESETS[RSTB_DSKPLL] whilst HW_CLOCKS[FX] is unset, which would crash the system");
+                }
+
                 self.resets = val;
             },
             0x1b0 => self.pll.sys = val,
