@@ -3,7 +3,11 @@ Cargo.lock
 pyronic/__pycache__/
 *.pyc
 *.bin
+*.bin.*
+*.img
 *.sym
 **/target
+saved-writes
 perf.data
 perf.data.old
+*.log
