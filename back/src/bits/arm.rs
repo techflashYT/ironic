@@ -41,14 +41,16 @@ impl xDisplay for MovRegBits {
     fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
         use ironic_core::cpu::alu::ShiftType;
         if self.s() { f.push('s'); }
-        f.push_str(&format!(" r{} ", self.rd()));
-        f.push_str(match ShiftType::from(self.stype()) { //nfi if this is right...
-            ShiftType::Lsl => "lsl ",
-            ShiftType::Lsr => "lsr ",
-            ShiftType::Asr => "asr ",
-            ShiftType::Ror => "ror ",
-        });
-        f.push_str(&format!("0x{:x}", self.imm5() & 0xff));
+        f.push_str(&format!(" r{}, r{}", self.rd(), self.rm()));
+        if self.imm5() != 0 { // pretty sure this is right
+            f.push_str(match ShiftType::from(self.stype()) {
+                ShiftType::Lsl => "lsl ",
+                ShiftType::Lsr => "lsr ",
+                ShiftType::Asr => "asr ",
+                ShiftType::Ror => "ror ",
+            });
+            f.push_str(&format!("0x{:x}", self.imm5()));
+        }
         Ok(())
     }
 }
