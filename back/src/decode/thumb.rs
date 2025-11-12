@@ -37,7 +37,7 @@ impl std::fmt::Display for ThumbInst {
             ThumbInst::SbcReg         => write!(f, "sbc "),
             ThumbInst::CmpReg         => write!(f, "cmp "),
             ThumbInst::OrrReg         => write!(f, "orr "),
-            ThumbInst::BicReg         => write!(f, "bic"),
+            ThumbInst::BicReg         => write!(f, "bic "),
             ThumbInst::TstReg         => write!(f, "tst "),
             ThumbInst::EorReg         => write!(f, "eor "),
             ThumbInst::MvnReg         => write!(f, "mvn "),

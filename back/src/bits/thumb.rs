@@ -116,7 +116,12 @@ impl BxBits {
     #[inline(always)]
     pub fn rm(&self) -> u16 { (self.0 & 0x0078) >> 3 }
 }
-impl xDisplay for BxBits {} //FIXME
+impl xDisplay for BxBits {
+    fn fmt(&self, f: &mut String, _: DisassemblyContext) -> anyhow::Result<()> {
+        f.push_str(&format!("r{}", self.rm()));
+        Ok(())
+    }
+}
 
 /// ['Svc', 'Bkpt']
 #[repr(transparent)]
@@ -414,11 +419,12 @@ impl xDisplay for LoadStoreAltBits {
             DisassemblyContext::BaseRegister(r) => {
                 if r == 13 { "sp" }
                 else if r == 14 { "lr" }
+                else if r == 15 { "pc" }
                 else { bail!("Inappropriate base register") }
             },
             _ => bail!("base register context required")
         };
-        f.push_str(&format!("r{}, [r{reg}, #0x{:x}]", self.rt(), self.imm8()*4));
+        f.push_str(&format!("r{}, [{reg}, #0x{:x}]", self.rt(), self.imm8()*4));
 
         Ok(())
     }
