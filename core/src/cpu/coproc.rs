@@ -156,6 +156,11 @@ impl SystemControl {
                 _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
                     SystemControlReg::from(reg)),
             },
+            PageControl => match (crm, opcd2) {
+                (0, 0) => self.read_ttbr(),
+                _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}",
+                    SystemControlReg::from(reg)),
+            },
             _ => panic!("Unimpl p15 read {:?} crm={crm} opcd2={opcd2}", 
                 SystemControlReg::from(reg)),
         }
