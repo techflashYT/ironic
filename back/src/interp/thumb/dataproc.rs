@@ -48,15 +48,10 @@ pub fn mov_reg(cpu: &mut Cpu, op: MovRegBits) -> DispatchRes {
 }
 
 pub fn mvn_reg(cpu: &mut Cpu, op: MvnRegBits) -> DispatchRes {
-    let rm = cpu.reg[op.rm()];
-    let (val, carry) = barrel_shift(ShiftArgs::Reg { rm, 
-        stype: ShiftType::Lsl as u32, imm5: 0, c_in: cpu.reg.cpsr.c()
-    });
-    let res = !val;
-    cpu.reg[op.rd()] = res;
-    cpu.reg.cpsr.set_n(res & 0x8000_0000 != 0);
-    cpu.reg.cpsr.set_z(res == 0);
-    cpu.reg.cpsr.set_c(carry);
+    let val = !cpu.reg[op.rm()];
+    cpu.reg[op.rd()] = val;
+    cpu.reg.cpsr.set_n(val & 0x8000_0000 != 0);
+    cpu.reg.cpsr.set_z(val == 0);
     DispatchRes::RetireOk
 }
 
