@@ -91,6 +91,7 @@ impl Bus {
             VI_BASE..=VI_TAIL       => Some(VI_HANDLE),
             PI_BASE..=PI_TAIL       => Some(PI_HANDLE),
             DSP_BASE..=DSP_TAIL     => Some(DSP_HANDLE),
+            DI_REG_BASE..=DI_REG_TAIL |
             DI_BASE..=DI_TAIL       => Some(DI_HANDLE),
             SI_REG_BASE..=SI_REG_TAIL |
             SI_BASE..=SI_TAIL       => Some(SI_HANDLE),
