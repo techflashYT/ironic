@@ -139,7 +139,7 @@ impl ChannelState {
 pub struct EXIChannel {
     /// Channel index
     idx: usize,
-    /// Status register value
+    /// Channel Status Register value
     pub csr: u32,
     /// DMA address register value
     pub mar: u32,
@@ -154,6 +154,15 @@ pub struct EXIChannel {
 }
 
 impl EXIChannel {
+    /// CSR bits that are read-only from the guest's point of view:
+    /// EXT (device present, bit 12).
+    const CSR_RO_BITS: u32 = 0x0000_1000;
+    /// CSR interrupt status bits. W1C
+    /// EXIINT - bit  1
+    /// TCINT  - bit  3
+    /// EXTINT - bit 11 
+    const CSR_W1C_BITS: u32 = 0x0000_080a;
+
     pub fn new(idx: usize) -> Self {
         EXIChannel {
             idx, csr: 0, mar: 0, len: 0, data: 0, ctrl: 0,
@@ -163,6 +172,20 @@ impl EXIChannel {
 
     fn update_state(&mut self) {
         self.state = ChannelState::from_chn(self.idx, self.csr, self.ctrl);
+    }
+
+    fn write_csr(&mut self, val: u32) {
+        self.csr = (self.csr & Self::CSR_RO_BITS)
+            | (val & !(Self::CSR_RO_BITS | Self::CSR_W1C_BITS))
+            | (self.csr & Self::CSR_W1C_BITS & !val);
+    }
+
+    /// Assert the transfer-complete interrupt status bit
+    /// TODO: Actual delivery of EXI interrupts to Broadway not implemented
+    /// this seems to be ok since software polls CSR manually (why?) and doesn't rely on interrupts for immediate transfers
+    fn set_transfer_complete(&mut self) {
+        self.csr |= 0x0000_0008;
+        self.update_state();
     }
 
     fn update_csr_device_bits(&mut self, has_device: bool) {
@@ -193,7 +216,7 @@ impl EXIChannel {
     pub fn write(&mut self, off: usize, val: u32) -> anyhow::Result<EXIChannelAction> {
         log::debug!(target: "EXI", "chn{} write {val:08x} at {off:08x}", self.idx);
         match off {
-            0x00 => self.csr = val,
+            0x00 => self.write_csr(val),
             0x04 => self.mar = val,
             0x08 => self.len = val,
             0x0c => self.ctrl = val,
@@ -286,6 +309,7 @@ impl EXInterface {
             EXIChannelAction::ImmediateTransfer(req) => {
                 let result = self.devices[req.channel][req.cs].transfer_imm(req)?;
                 self.channels[req.channel].data = result;
+                self.channels[req.channel].set_transfer_complete();
                 Ok(())
             }
         }
