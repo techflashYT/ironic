@@ -4,6 +4,7 @@ use addr2line::Context;
 use gimli::BigEndian;
 use gimli::EndianSlice;
 use ironic_core::bus::*;
+use ironic_core::dev::hlwd::compat::exi::device::usbgecko::UsbGeckoDevice;
 use ironic_core::dev::hlwd::compat::vi::VideoInterface;
 use ironic_backend::interp::*;
 use ironic_backend::back::*;
@@ -34,6 +35,11 @@ struct Args {
     /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
     ppc_hle: bool,
+    /// Attach an emulated USB Gecko whose serial stream is
+    /// served over TCP on 127.0.0.1 port 55021 by default
+    /// When this flag is absent, guest software sees an empty slot.
+    #[clap(short, long, value_name = "PORT", num_args = 0..=1, default_missing_value = "55021")]
+    usbgecko: Option<u16>,
     /// Define log levels for the program
     #[clap(long, default_value="info")]
     logging: String,
@@ -46,13 +52,25 @@ fn main() -> anyhow::Result<()> {
     let enable_ppc_hle = args.ppc_hle;
 
     // The bus is shared between any threads we spin up
-    let bus = match Bus::new() {
+    let mut bus = match Bus::new() {
         Ok(val) => val,
         Err(reason) => {
             println!("Failed to construct emulator Bus: {reason}");
             process::exit(-1);
         }
     };
+
+    // TODO: rework this into a Backend.
+    if let Some(port) = args.usbgecko {
+        let gecko = UsbGeckoDevice::default();
+        match gecko.spawn_server_thread(port) {
+            Ok(_) => bus.hlwd.exi.attach_usbgecko(gecko),
+            Err(reason) => {
+                println!("Failed to start USB Gecko server on port {port}: {reason}");
+                process::exit(-1);
+            }
+        }
+    }
 
     let bus = Arc::new(RwLock::new(bus));
     let _vi_thread = VideoInterface::spawn_irq_thread(bus.clone()).unwrap();
@@ -192,6 +210,7 @@ enum LogTarget {
     SHA,
     SYSCALL,
     SVC,
+    UG,
     xHCI,
     RTPATCH,
     Other,
