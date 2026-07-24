@@ -51,19 +51,14 @@ pub struct EXITransferRequest {
 }
 
 /// Concrete device storage for a single EXI chip-select line.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum EXIDeviceSlot {
+    #[default]
     None,
     MemoryCard(MemoryCardDevice),
     Rtc(RtcDevice),
     UsbGecko(UsbGeckoDevice),
     SdGecko(SdGeckoDevice),
-}
-
-impl Default for EXIDeviceSlot {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl EXIDeviceSlot {

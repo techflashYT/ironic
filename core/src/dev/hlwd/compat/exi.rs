@@ -275,8 +275,10 @@ impl EXInterface {
 
         devices[0][0] = EXIDeviceSlot::MemoryCard(MemoryCardDevice);
         devices[0][1] = EXIDeviceSlot::Rtc(RtcDevice);
-        devices[1][0] = EXIDeviceSlot::UsbGecko(UsbGeckoDevice::default());
         devices[2][0] = EXIDeviceSlot::SdGecko(SdGeckoDevice);
+
+        // NOTE: The USB Gecko is not attached by default
+        // see `attach_usbgecko`
 
         devices
     }
@@ -290,6 +292,12 @@ impl EXInterface {
         };
         exi.refresh_presence_bits();
         exi
+    }
+
+    pub fn attach_usbgecko(&mut self, dev: UsbGeckoDevice) {
+        let (chn, cs) = EXIDeviceKind::UsbGecko.location();
+        self.devices[chn][cs] = EXIDeviceSlot::UsbGecko(dev);
+        self.refresh_presence_bits();
     }
 
     fn refresh_presence_bits(&mut self) {
