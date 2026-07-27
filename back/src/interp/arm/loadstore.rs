@@ -99,6 +99,25 @@ pub fn ldrsb_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     DispatchRes::RetireOk
 }
 
+pub fn ldrsb_reg(cpu: &mut Cpu, op: LsSignedRegBits) -> DispatchRes {
+    if op.rt() == 15 {
+        return DispatchRes::FatalErr(anyhow::anyhow!("Ldrsb can not use PC as destination register"));
+    }
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()], cpu.reg[op.rm()], op.u(), op.p(), op.w()) {
+        Ok(val) => val,
+        Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
+    let ures = match cpu.read8(addr) {
+        Ok(val) => val,
+        Err(reason) => {
+            return DispatchRes::FatalErr(reason);
+        }
+    };
+    let res = sign_extend(ures as u32, 8, 32) as u32;
+    cpu.reg[op.rt()] = res;
+    cpu.reg[op.rn()] = wb_addr;
+    DispatchRes::RetireOk
+}
 
 pub fn ldrh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     assert_ne!(op.rt(), 15);
