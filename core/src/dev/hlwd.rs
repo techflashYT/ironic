@@ -215,6 +215,7 @@ pub struct Hollywood {
     pub io_str_ctrl1: u32,
 
     pub usb_frc_rst: u32,
+    pub vi1cfg: u32,
     pub ppc_on: bool,
 }
 impl Hollywood {
@@ -251,6 +252,7 @@ impl Hollywood {
             spare1: 0,
             io_str_ctrl0: 0,
             io_str_ctrl1: 0,
+            vi1cfg: 0,
             ppc_on: false,
         })
     }
@@ -264,6 +266,7 @@ impl MmioDevice for Hollywood {
             0x000..=0x00c   => self.ipc.read_handler(off)?,
             0x010           => self.timer.timer,
             0x014           => self.timer.alarm,
+            0x018           => self.vi1cfg,
             0x030..=0x05c   => self.irq.read_handler(off - 0x30)?,
             0x060           => self.busctrl.srnprot,
             0x064           => self.busctrl.ahbprot,
@@ -305,6 +308,7 @@ impl MmioDevice for Hollywood {
                 info!(target: "HLWD", "alarm={val:08x} (timer={:08x})", self.timer.timer);
                 self.timer.alarm = val;
             },
+            0x018 => { self.vi1cfg = val; }
             0x030..=0x05c => self.irq.write_handler(off - 0x30, val)?,
             0x060 => {
                 info!(target: "HLWD", "SRNPROT={val:08x}");
