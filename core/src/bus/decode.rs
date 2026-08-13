@@ -36,7 +36,7 @@ decl_io_handle!(OHCI1_HANDLE, Ohci1,0x0000_01ff);
 decl_io_handle!(SDHC0_HANDLE, Sdhc0,0x0000_01ff);
 decl_io_handle!(SDHC1_HANDLE, Sdhc1,0x0000_01ff);
 
-decl_io_handle!(HLWD_HANDLE, Hlwd,  0x0000_03ff);
+decl_io_handle!(HLWD_HANDLE, Hlwd,  0x0000_07ff);
 decl_io_handle!(AHB_HANDLE, Ahb,    0x0000_3fff);
 decl_io_handle!(MI_HANDLE, Mi,      0x0000_01ff);
 decl_io_handle!(DDR_HANDLE, Ddr,    0x0000_01ff);

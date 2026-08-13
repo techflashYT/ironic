@@ -295,6 +295,18 @@ impl MmioDevice for Hollywood {
             // See https://wiibrew.org/wiki/Hollywood/Registers#HW_VERSION
             // Valid retail values are 0x11 (Hollywood) and 0x21 (Bollywood)
             0x214           => 0x11,
+
+            // Latte (Wii U) extension range
+            //
+            // Multiple software has unfortunately gotten in the habit of checking Latte registers on Hollywood
+            // This doesn't seem to crash real Wiis
+            0x400..=0x70c => {
+                error!(target: "HLWD", "I am NOT a Latte, please stop asking!");
+                // LT_CHIPREVID - Wii U returns 0xCAFExxxx
+                if off == 0x5a0 { 0x8badf00d }
+                // Real hardware allegedly reads 0 for most registers
+                else { 0 }
+            }
             _ => { bail!("Unimplemented Hollywood read at {off:x}"); },
         };
         Ok(BusPacket::Word(val))
