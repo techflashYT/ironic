@@ -69,6 +69,7 @@ impl ArmFn {
             Umlal       => ArmFn(afn!(arm::multiply::umlal)),
             Mul         => ArmFn(afn!(arm::multiply::mul)),
             Mla         => ArmFn(afn!(arm::multiply::mla)),
+            Smlabb      => ArmFn(afn!(arm::multiply::smlabb)),
 
             LdrImm      => ArmFn(afn!(arm::loadstore::ldr_imm)),
             LdrbImm     => ArmFn(afn!(arm::loadstore::ldrb_imm)),

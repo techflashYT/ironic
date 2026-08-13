@@ -451,7 +451,18 @@ impl SmlabbBits {
     pub fn n(&self) -> bool { (self.0 & 0x00000020) != 0 }
     #[inline(always)]
     pub fn rn(&self) -> u32 { self.0 & 0x0000000f }
-} impl xDisplay for SmlabbBits {} // unused instruction
+}
+impl xDisplay for SmlabbBits {
+    fn fmt(&self, f: &mut String, ctx: DisassemblyContext) -> anyhow::Result<()> {
+        let _ = ctx;
+        f.push_str(&format!("r{}, r{}, r{}, r{}", self.rd(), self.rn(), self.rm(), self.ra()));
+        Ok(())
+    }
+
+    fn required_context(&self) -> DisassemblyContext {
+        DisassemblyContext::NotNeeded
+    }
+}
 
 /// ['Smulbb']
 #[repr(transparent)]
