@@ -61,14 +61,14 @@ impl Bus {
             0xfffe |
             0xffff => self.resolve_sram(addr),
 
-            0x0d01 => Some(NAND_HANDLE),
-            0x0d02 => Some(AES_HANDLE),
-            0x0d03 => Some(SHA_HANDLE),
-            0x0d04 => Some(EHCI_HANDLE),
-            0x0d05 => Some(OHCI0_HANDLE),
-            0x0d06 => Some(OHCI1_HANDLE),
-            0x0d07 => Some(SDHC0_HANDLE),
-            0x0d08 => Some(SDHC1_HANDLE),
+            0x0d01 | 0x0d81 => Some(NAND_HANDLE),
+            0x0d02 | 0x0d82 => Some(AES_HANDLE),
+            0x0d03 | 0x0d83 => Some(SHA_HANDLE),
+            0x0d04 | 0x0d84 => Some(EHCI_HANDLE),
+            0x0d05 | 0x0d85 => Some(OHCI0_HANDLE),
+            0x0d06 | 0x0d86 => Some(OHCI1_HANDLE),
+            0x0d07 | 0x0d87 => Some(SDHC0_HANDLE),
+            0x0d08 | 0x0d88 => Some(SDHC1_HANDLE),
 
             0x0c00 | 0x0d00 |
             0x0d80 | 0x0d8b => self.resolve_hlwd(addr),
