@@ -114,8 +114,8 @@ pub fn ldrsb_reg(cpu: &mut Cpu, op: LsSignedRegBits) -> DispatchRes {
         }
     };
     let res = sign_extend(ures as u32, 8, 32) as u32;
-    cpu.reg[op.rt()] = res;
     cpu.reg[op.rn()] = wb_addr;
+    cpu.reg[op.rt()] = res;
     DispatchRes::RetireOk
 }
 
@@ -132,8 +132,8 @@ pub fn ldrh_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
             return DispatchRes::FatalErr(reason);
         }
     };
-    cpu.reg[op.rt()] = res as u32;
     cpu.reg[op.rn()] = wb_addr;
+    cpu.reg[op.rt()] = res as u32;
     DispatchRes::RetireOk
 }
 
@@ -151,8 +151,8 @@ pub fn ldrh_reg(cpu: &mut Cpu, op: LsSignedRegBits) -> DispatchRes {
             return DispatchRes::FatalErr(reason);
         }
     };
-    cpu.reg[op.rt()] = res as u32;
     cpu.reg[op.rn()] = wb_addr;
+    cpu.reg[op.rt()] = res as u32;
     DispatchRes::RetireOk
 }
 
