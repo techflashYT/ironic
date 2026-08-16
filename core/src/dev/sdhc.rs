@@ -221,8 +221,9 @@ impl SDRegisters {
             }
             SDRegisters::NormalIntStatus => {
                 const RW1C_MASK: u32 = 0x1ff; // mask of the bits that are rw1c, all others are reserved or ROC.
-                let clearbits = (old & RW1C_MASK) ^ (new & RW1C_MASK);
-                let int_new = (old & !RW1C_MASK) | clearbits;
+                // RW1C: writing 1 to a bit clears it if set; writing 1 to an already-clear
+                // bit is a no-op. It must never *set* a bit — old & !(new & mask) is exactly that.
+                let int_new = old & !(new & RW1C_MASK);
                 debug!(target: "SDHC", "normalintstatus {old:b} {int_new:b}");
                 iface.setreg(*self, int_new);
                 // The host driver will write here to acknowledge a CMD complete
@@ -262,8 +263,9 @@ impl SDRegisters {
             },
             SDRegisters::ErrorIntStatus => {
                 const RW1C_MASK: u32 = 0xf1ff; // mask of the bits that are rw1c, all others are reserved or ROC.
-                let clearbits = (old & RW1C_MASK) ^ (new & RW1C_MASK);
-                let new = (old & !RW1C_MASK) | clearbits;
+                // Same RW1C semantics as NormalIntStatus: writing 1 only clears an already-set
+                // bit, it can never set one.
+                let new = old & !(new & RW1C_MASK);
                 iface.setreg(*self, new);
             },
             SDRegisters::NormalIntSignalEnable => {
@@ -419,40 +421,53 @@ impl SDInterface {
         let new = old | ((val << val_shift) & mask);
         self.raw_write(reg.base_offset() & 0xffff_fffc, new);
     }
-    fn ck_int_enabled(&self, int: u32) -> bool {
-        let signal = self.raw_read(SDRegisters::NormalIntSignalEnable.base_offset());
+    // Status Enable gates whether a bit may be latched into NormalIntStatus at all.
+    // Signal Enable is unrelated to that: it only gates whether an already-set status
+    // bit is allowed to actually assert the host's physical interrupt line. A polling
+    // driver commonly sets Status Enable but leaves Signal Enable at 0, and expects to
+    // see the status bit set anyway.
+    fn status_enabled(&self, int: u32) -> bool {
         let status = self.raw_read(SDRegisters::NormalIntStatusEnable.base_offset());
-        signal & int != 0 && status & int != 0
+        status & int != 0
+    }
+    fn signal_enabled(&self, int: u32) -> bool {
+        let signal = self.raw_read(SDRegisters::NormalIntSignalEnable.base_offset());
+        signal & int != 0
     }
     fn do_pending_ints(&mut self) -> bool {
         if self.pending_interrupt_flags == 0 {
             return false;
         }
         let mut nisr = self.raw_read(SDRegisters::NormalIntStatus.base_offset());
-        let mut found = false;
+        let mut latched = false;
+        let mut assert = false;
         for i in 0..32 {
             let int = self.pending_interrupt_flags & (1 << i);
-            if self.ck_int_enabled(int) {
-                found = true;
+            if int != 0 && self.status_enabled(int) {
+                latched = true;
                 self.pending_interrupt_flags &= !int;
                 nisr |= int;
+                if self.signal_enabled(int) {
+                    assert = true;
+                }
             }
         }
-        if found {
+        if latched {
             let sisr = self.raw_read(SDRegisters::SlotIntStatus.base_offset()) & 0xffff;
             self.setreg(SDRegisters::NormalIntStatus, nisr);
             self.setreg(SDRegisters::SlotIntStatus, sisr | 0x1); // slot 1
         }
-        return found;
+        return assert;
     }
-    // returns true if the interrupt should be raised now, false if it's masked and will be raised later
+    // Sets the status bit (if Status Enable allows it) and returns true if the interrupt
+    // should be raised (asserted) right now, i.e. it was latched AND Signal Enable allows it.
     fn raise_int(&mut self, int: u32) -> bool {
-        if self.ck_int_enabled(int) {
+        if self.status_enabled(int) {
             let nisr = self.raw_read(SDRegisters::NormalIntStatus.base_offset());
             let sisr = self.raw_read(SDRegisters::SlotIntStatus.base_offset()) & 0xffff;
             self.setreg(SDRegisters::NormalIntStatus, nisr | int);
             self.setreg(SDRegisters::SlotIntStatus, sisr | 0x1); // slot 1
-            true
+            self.signal_enabled(int)
         }
         else {
             self.pending_interrupt_flags |= int;
