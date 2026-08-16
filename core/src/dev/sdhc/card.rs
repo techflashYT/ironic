@@ -121,6 +121,29 @@ pub(super) struct Card {
 }
 
 impl Card {
+    /// Build an interface with no card ever inserted, e.g. for SDHC1, which is wired to the
+    /// BCM4318 WLAN card rather than an actual SD card slot.
+    pub(super) fn new_unavailable() -> Self {
+        let len = 0usize;
+        let backing_mem = BigEndianMemory::new(len, None, false).unwrap();
+        let capacity = CardCapacity::from_bytes(len);
+        Self {
+            available: false,
+            state: Default::default(),
+            backing_mem: Mutex::new(backing_mem),
+            acmd: Default::default(),
+            ocr: OcrReg::new(capacity),
+            cid: Default::default(),
+            rca: Default::default(),
+            csd: CsdReg::new(len, capacity),
+            capacity,
+            selected: Default::default(),
+            rw_index: Default::default(),
+            rw_stop: Default::default(),
+            tx_status: Default::default()
+        }
+    }
+
     pub(super) fn new() -> Self {
         const FILENAME: &str = "sd.img";
         let mut len = 0usize;
