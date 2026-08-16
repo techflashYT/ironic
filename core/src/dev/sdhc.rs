@@ -557,10 +557,14 @@ impl SDInterface {
         const CMD_COMPLETE_MASK: u32 = 1;
         return self.raise_int(CMD_COMPLETE_MASK);
     }
+    /// Transfer Block Size, bits [11:0] of the BlockSize register.
+    fn block_size(&self) -> usize {
+        (self.raw_read(SDRegisters::BlockSize.base_offset() & 0xffff_fffc) & 0xfff) as usize
+    }
     fn buffer_ready_read(&mut self) -> bool {
         let blocks_remaining = self.raw_read(SDRegisters::BlockCount.base_offset() & 0xffff_fffc) >> 16;
         if blocks_remaining > 0 {
-            self.card.rw_stop = self.card.rw_index.load(std::sync::atomic::Ordering::Relaxed) + 512;
+            self.card.rw_stop = self.card.rw_index.load(std::sync::atomic::Ordering::Relaxed) + self.block_size();
             self.setreg(SDRegisters::BlockCount, blocks_remaining.saturating_sub(1));
         }
         else {
@@ -578,7 +582,7 @@ impl SDInterface {
         let blocks_remaining = self.raw_read(SDRegisters::BlockCount.base_offset() & 0xffff_fffc) >> 16;
         if blocks_remaining > 0 {
             // tell card it's rw_stop
-            self.card.rw_stop = self.card.rw_index.load(std::sync::atomic::Ordering::Relaxed) + 512;
+            self.card.rw_stop = self.card.rw_index.load(std::sync::atomic::Ordering::Relaxed) + self.block_size();
             self.setreg(SDRegisters::BlockCount, blocks_remaining.saturating_sub(1));
         }
         else {
@@ -623,6 +627,7 @@ impl SDInterface {
                 const TRANSFER_COMPLETE_MASK: u32 = 1 << 1;
                 self.card.tx_status = CardTXStatus::None;
                 self.card.state = CardState::Trans;
+                self.card.reading_switch_status = false;
                 return self.raise_int(TRANSFER_COMPLETE_MASK);
             },
             CardTXStatus::DMAReadInProgress => {
@@ -709,6 +714,14 @@ impl MmioDevice for SDInterface {
                 CardTXStatus::DMAWriteInProgress => { error!(target: "SDHC", "Software tried reading the BufferDataPort but there is no non-DMA read transaction."); }
                 CardTXStatus::MultiReadInProgress => {
                     let index = self.card.rw_index.load(std::sync::atomic::Ordering::Relaxed);
+                    if self.card.reading_switch_status {
+                        if index+4 > self.card.switch_status_buf.len() || index+4 > self.card.rw_stop {
+                            return Err(anyhow!("SDHC switch-status read out of range! {index:?} rw_stop: {}", self.card.rw_stop));
+                        }
+                        self.card.rw_index.store(index+4, std::sync::atomic::Ordering::Relaxed);
+                        let bytes: [u8; 4] = self.card.switch_status_buf[index..index+4].try_into().unwrap();
+                        return Ok(BusPacket::Word(u32::from_be_bytes(bytes)));
+                    }
                     {
                         let v = self.card.backing_mem.lock();
                         if v.data.len() < index+4 || index+4 > self.card.rw_stop {
@@ -770,29 +783,24 @@ impl Bus {
                 self.hlwd.irq.assert(irq);
             },
             SDHCTask::SendBufReadReady => {
-                match self.sd_mut(unit).buffer_ready_read() {
-                    true => {
-                        self.tasks.push(
-                            Task { kind: BusTask::SDHC(unit, SDHCTask::IOPoll), target_cycle: self.cycle+10000 }
-                        );
-                        self.hlwd.irq.assert(irq);
-                    },
-                    false => {
-                        unimplemented!();
-                    },
+                // `false` just means the Buffer Read Ready status bit was latched without
+                // Signal Enable allowing an actual IRQ assert (a polling driver, say) -- the
+                // transfer still needs to keep going either way.
+                let assert_irq = self.sd_mut(unit).buffer_ready_read();
+                self.tasks.push(
+                    Task { kind: BusTask::SDHC(unit, SDHCTask::IOPoll), target_cycle: self.cycle+10000 }
+                );
+                if assert_irq {
+                    self.hlwd.irq.assert(irq);
                 }
             },
             SDHCTask::SendBufWriteReady => {
-                match self.sd_mut(unit).buffer_ready_write() {
-                    true => {
-                        self.tasks.push(
-                            Task { kind: BusTask::SDHC(unit, SDHCTask::IOPoll), target_cycle: self.cycle+10000 }
-                        );
-                        self.hlwd.irq.assert(irq);
-                    },
-                    false => {
-                        unimplemented!();
-                    },
+                let assert_irq = self.sd_mut(unit).buffer_ready_write();
+                self.tasks.push(
+                    Task { kind: BusTask::SDHC(unit, SDHCTask::IOPoll), target_cycle: self.cycle+10000 }
+                );
+                if assert_irq {
+                    self.hlwd.irq.assert(irq);
                 }
             },
             SDHCTask::DoDMARead => {
