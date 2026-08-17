@@ -784,7 +784,7 @@ impl Bus {
             },
             SDHCTask::SendBufReadReady => {
                 // `false` just means the Buffer Read Ready status bit was latched without
-                // Signal Enable allowing an actual IRQ assert (a polling driver, say) -- the
+                // Signal Enable allowing an actual IRQ assert (e.g. a polling driver).  The
                 // transfer still needs to keep going either way.
                 let assert_irq = self.sd_mut(unit).buffer_ready_read();
                 self.tasks.push(
@@ -815,7 +815,11 @@ impl Bus {
                 let mut current_addr = sysaddr;
                 debug!(target: "SDHC", "Starting DMA Read Tx to sysaddr: {sysaddr:x}");
                 let mut local_buf = vec![0;512];
-                while current_addr+512 < stop_addr && block_count > 0 {
+                // stop_addr is always boundary-aligned and boundaries are always multiples of
+                // 512, so current_addr can land exactly on stop_addr that block is still
+                // in-bounds (it ends exactly at the boundary) and must still be transferred,
+                // hence <= rather than <.
+                while current_addr+512 <= stop_addr && block_count > 0 {
                     let sd = self.sd_mut(unit);
                     let offset = sd.card.rw_index.load(std::sync::atomic::Ordering::Relaxed);
                     sd.card.backing_mem.lock().read_buf(offset, &mut local_buf).unwrap();
@@ -857,7 +861,7 @@ impl Bus {
                 let mut current_addr = sysaddr;
                 debug!(target: "SDHC", "Starting DMA Write Tx from sysaddr: {sysaddr:x}");
                 let mut local_buf = vec![0;512];
-                while current_addr+512 < stop_addr && block_count > 0 {
+                while current_addr+512 <= stop_addr && block_count > 0 {
                     self.dma_read(current_addr, &mut local_buf).unwrap();
                     let sd = self.sd_mut(unit);
                     let offset = sd.card.rw_index.load(std::sync::atomic::Ordering::Relaxed);
