@@ -24,7 +24,17 @@ macro_rules! decl_io_handle {
 // These are declarations of all the constant DeviceHandle structures whose 
 // parameters (base address, size, etc.) will never change during runtime.
 
-decl_mem_handle!(MEM1_HANDLE, Mem1, 0x017f_ffff);
+/*
+ * MEM1 is 24MB (0x0180_0000), which is *not* a power of two, so it can't use
+ * a plain `size - 1` AND-mask for offset calculation (0x017f_ffff has bit 23
+ * clear, so masking with it silently aliases any address with bit 23 set
+ * 8MB lower, e.g. 0x00906e00 & 0x017fffff == 0x00106e00). The real
+ * 0000..=0x017f high-bits range check in decode_phys_addr() below already
+ * bounds this correctly to the true 24MB, so widening this mask to the next
+ * power of two (32MB - 1) just makes it a no-op for every valid MEM1
+ * address, with no aliasing.
+ */
+decl_mem_handle!(MEM1_HANDLE, Mem1, 0x01ff_ffff);
 decl_mem_handle!(MEM2_HANDLE, Mem2, 0x03ff_ffff);
 
 decl_io_handle!(NAND_HANDLE, Nand,  0x0000_001f);
