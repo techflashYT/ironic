@@ -30,8 +30,6 @@ pub const AHB_SIZE:     u32 = 0x0000_4000;
 
 // Base addresses for physical memory devices.
 pub const MEM1_BASE:    u32 = 0x0000_0000;
-// MEM1_SIZE (24MB) isn't a power of two, so `size - 1` is not a valid
-// AND-mask.  See the comment on MEM1_HANDLE in bus/decode.rs.
 pub const MEM1_MASK:    u32 = 0x01ff_ffff;
 
 pub const MEM2_BASE:    u32 = 0x1000_0000;
