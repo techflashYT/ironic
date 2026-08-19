@@ -23,7 +23,6 @@ pub struct DriveInterface {
     diimmbuf: u32,
     dicfg: u32,
 
-    // Drive state
     drive_state: DriveState
 }
 impl DriveInterface {
