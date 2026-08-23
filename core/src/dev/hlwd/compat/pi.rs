@@ -133,7 +133,7 @@ impl MmioDevice for ProcessorInterface {
         let val = match off {
             0x00 => self.intsr.0,
             0x04 => self.intmr.0,
-            0x08 => self.fifo_base_start,
+            0x0c => self.fifo_base_start,
             0x10 => self.fifo_base_end,
             0x14 => self.fifo_cur_write_ptr,
             0x18 => self.unk_18,
@@ -156,7 +156,7 @@ impl MmioDevice for ProcessorInterface {
                 info!(target: "PI", "INTMR={val:08x}");
                 self.intmr.0 = val;
             },
-            0x08 => self.fifo_base_start = val,
+            0x0c => self.fifo_base_start = val,
             0x10 => self.fifo_base_end = val,
             0x14 => self.fifo_cur_write_ptr = val,
             0x18 => self.unk_18 = val,

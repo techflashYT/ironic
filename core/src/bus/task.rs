@@ -25,6 +25,9 @@ pub enum BusTask {
 
     // SD Host Controller
     SDHC(SDHCTask),
+
+    /// A completed 32-byte burst from the PI FIFO.
+    PiFifo([u8; 32]),
 }
 
 /// An entry kept by the [Bus], representing some task to-be-completed.

@@ -47,8 +47,10 @@ impl Bus {
             (BusWidth::W, Sdhc0) => self.sd0.read(off),
             (BusWidth::W, Sdhc1) => self.sd1.read(off),
 
+            (BusWidth::_32B, PiFifo) => self.hlwd.pi_fifo.read(off),
             (BusWidth::W, Hlwd)  => self.hlwd.read(off),
             (BusWidth::W, Ahb)   => self.hlwd.ahb.read(off),
+            (BusWidth::W, Gx)    => self.hlwd.gx.read32(off),
             (BusWidth::W, Vi)    => self.hlwd.vi.read32(off),
             (BusWidth::W, Pi)    => self.hlwd.pi.read(off),
             (BusWidth::W, Dsp)   => self.hlwd.dsp.read32(off),
@@ -56,6 +58,7 @@ impl Bus {
             (BusWidth::W, Exi)   => self.hlwd.exi.read(off),
             (BusWidth::W, Si)    => self.hlwd.si.read(off),
             (BusWidth::W, Ai)    => self.hlwd.ai.read(off),
+            (BusWidth::H, Gx)    => self.hlwd.gx.read16(off),
             (BusWidth::H, Vi)    => self.hlwd.vi.read16(off),
             (BusWidth::H, Dsp)   => self.hlwd.dsp.read16(off),
             (BusWidth::H, Mi)    => self.hlwd.mi.read(off),
@@ -69,6 +72,7 @@ impl Bus {
         use IoDevice::*;
         use BusPacket::*;
         let task = match (msg, dev) {
+            (_32Byte(val), PiFifo) => self.hlwd.pi_fifo.write(off, val),
             (Word(val), Nand)  => self.nand.write(off, val),
             (Word(val), Aes)   => self.aes.write(off, val),
             (Word(val), Sha)   => self.sha.write(off, val),
@@ -80,6 +84,7 @@ impl Bus {
 
 
             (Word(val), Hlwd)  => self.hlwd.write(off, val),
+            (Word(val), Gx)    => self.hlwd.gx.write32(off, val),
             (Word(val), Vi)    => self.hlwd.vi.write32(off, val),
             (Word(val), Pi)    => self.hlwd.pi.write(off, val),
             (Word(val), Dsp)   => self.hlwd.dsp.write32(off, val),
@@ -88,6 +93,7 @@ impl Bus {
             (Word(val), Exi)   => self.hlwd.exi.write(off, val),
             (Word(val), Di)    => self.hlwd.di.write(off, val),
             (Word(val), Ai)    => self.hlwd.ai.write(off, val),
+            (Half(val), Gx)    => self.hlwd.gx.write16(off, val),
             (Half(val), Vi)    => self.hlwd.vi.write16(off, val),
             (Half(val), Dsp)   => self.hlwd.dsp.write16(off, val),
             (Half(val), Mi)    => self.hlwd.mi.write(off, val),
@@ -135,6 +141,7 @@ impl Bus {
                     BusTask::SetRomDisabled(x) => self.rom_disabled = x,
                     BusTask::SetMirrorEnabled(x) => self.mirror_enabled = x,
                     BusTask::SDHC(task) => self.handle_task_sdhc(task),
+                    BusTask::PiFifo(burst) => self.handle_task_pi_fifo(burst)?,
                 }
             } else {
                 idx += 1;

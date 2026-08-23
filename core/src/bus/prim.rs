@@ -79,6 +79,7 @@ pub enum IoDevice {
     Hlwd, 
     Ahb, 
     Ddr,
+    Gx,
     Vi, 
     Pi, 
     Dsp,
@@ -87,15 +88,16 @@ pub enum IoDevice {
     Exi, 
     Ai,
     Mi,
+    PiFifo
 }
 
 /// A message on the bus containing some value.
 #[derive(Debug, Clone, Copy)]
-pub enum BusPacket { Byte(u8), Half(u16), Word(u32) }
+pub enum BusPacket { Byte(u8), Half(u16), Word(u32), _32Byte([u8; 32]) }
 
 /// The width of an access on the bus.
 #[derive(Debug, Clone, Copy)]
-pub enum BusWidth { B, H, W }
+pub enum BusWidth { B, H, W, _32B }
 
 /// An abstract request on the bus.
 #[derive(Debug)]

@@ -194,6 +194,8 @@ pub struct Hollywood {
 
     pub vi: compat::vi::VideoInterface,
     pub pi: compat::pi::ProcessorInterface,
+    pub gx: compat::gx::GX,
+    pub pi_fifo: compat::pi_fifo::ProcessorInterfaceFIFO,
     pub dsp: compat::dsp::DigitalSignalProcessor,
     pub exi: compat::exi::EXInterface,
     pub di: compat::di::DriveInterface,
@@ -235,6 +237,8 @@ impl Hollywood {
             ahb: AhbInterface::default(),
             vi: compat::vi::VideoInterface::default(),
             pi: compat::pi::ProcessorInterface::default(),
+            gx: compat::gx::GX::default(),
+            pi_fifo: compat::pi_fifo::ProcessorInterfaceFIFO::default(),
             dsp: compat::dsp::DigitalSignalProcessor::default(),
             di: compat::di::DriveInterface::default(),
             exi: compat::exi::EXInterface::new(),
@@ -491,6 +495,18 @@ impl Bus {
         self.hlwd.pi.set_level(
             compat::pi::FlipperIrq::Vi,
             self.hlwd.vi.irq_pending(),
+        );
+
+        // Handle PE Finish IRQs
+        self.hlwd.pi.set_level(
+            compat::pi::FlipperIrq::PeFinish,
+            self.hlwd.gx.pe.finish_pending(),
+        );
+
+        // Handle CP IRQs
+        self.hlwd.pi.set_level(
+            compat::pi::FlipperIrq::CpFifo,
+            self.hlwd.gx.cp.irq_pending(),
         );
 
         if self.hlwd.task.is_some() {

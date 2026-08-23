@@ -26,7 +26,9 @@ pub const COREDEV_SIZE: u32 = 0x0000_0020;
 pub const IODEV_SIZE:   u32 = 0x0000_0200;
 pub const HLWDEV_SIZE:  u32 = 0x0000_0400;
 pub const MEMDEV_SIZE:  u32 = 0x0000_0200;
+pub const GX_SIZE:      u32 = 0x0000_2000;
 pub const AHB_SIZE:     u32 = 0x0000_4000;
+pub const PI_FIFO_SIZE: u32 = 0x0000_8000;
 
 // Base addresses for physical memory devices.
 pub const MEM1_BASE:    u32 = 0x0000_0000;
@@ -35,10 +37,12 @@ pub const MEM1_MASK:    u32 = 0x01ff_ffff;
 pub const MEM2_BASE:    u32 = 0x1000_0000;
 pub const MEM2_MASK:    u32 = 0x03ff_ffff;
 
+pub const GX_BASE:      u32 = 0x0c00_0000;
 pub const VI_BASE:      u32 = 0x0c00_2000;
 pub const PI_BASE:      u32 = 0x0c00_3000;
 pub const MI_BASE:      u32 = 0x0c00_4000;
 pub const DSP_BASE:     u32 = 0x0c00_5000;
+pub const PI_FIFO_BASE: u32 = 0x0c00_8000;
 
 pub const HLWD_REG_BASE:u32 = 0x0d00_0000;
 pub const DI_REG_BASE:  u32 = 0x0d00_6000;
@@ -74,10 +78,12 @@ pub const MROM_MASK:    u32 = 0x0000_1fff;
 // Tail addresses for physical memory devices.
 pub const MEM1_TAIL:    u32 = MEM1_BASE + MEM1_SIZE - 1;
 pub const MEM2_TAIL:    u32 = MEM2_BASE + MEM2_SIZE - 1;
+pub const GX_TAIL:      u32 = GX_BASE + GX_SIZE - 1;
 pub const VI_TAIL:      u32 = VI_BASE + HLWDEV_SIZE - 1;
 pub const PI_TAIL:      u32 = PI_BASE + HLWDEV_SIZE - 1;
 pub const MI_TAIL:      u32 = MI_BASE + HLWDEV_SIZE - 1;
 pub const DSP_TAIL:     u32 = DSP_BASE + HLWDEV_SIZE - 1;
+pub const PI_FIFO_TAIL: u32 = PI_FIFO_BASE + PI_FIFO_SIZE - 1;
 pub const HLWD_REG_TAIL:u32 = HLWD_REG_BASE + AHB_SIZE - 1;
 pub const DI_REG_TAIL:  u32 = DI_REG_BASE + HLWDEV_SIZE - 1;
 pub const SI_REG_TAIL:  u32 = SI_REG_BASE + HLWDEV_SIZE - 1;

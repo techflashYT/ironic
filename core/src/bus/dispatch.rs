@@ -108,6 +108,7 @@ impl Bus {
             BusWidth::W => Word(target_ref.read::<u32>(off)?),
             BusWidth::H => Half(target_ref.read::<u16>(off)?),
             BusWidth::B => Byte(target_ref.read::<u8>(off)?),
+            _ => bail!("Invalid read width"),
         })
     }
 
@@ -126,6 +127,7 @@ impl Bus {
             Word(val) => target_ref.write::<u32>(off, val)?,
             Half(val) => target_ref.write::<u16>(off, val)?,
             Byte(val) => target_ref.write::<u8>(off, val)?,
+            _ => bail!("Invalid write width"),
         };
         Ok(())
     }
@@ -151,7 +153,12 @@ impl Bus {
                 Mem1    => self.mem1.write_buf(off, buf)?,
                 Mem2    => self.mem2.write_buf(off, buf)?,
             }},
-            _ => { bail!("Bus error: DMA write on memory-mapped I/O region"); },
+            Device::Io(dev) => {
+                let Ok(burst) = <[u8; 32]>::try_from(buf) else {
+                    bail!("Bus error: unsupported {}B DMA write to I/O device {dev:?}", buf.len());
+                };
+                self.do_mmio_write(dev, off, BusPacket::_32Byte(burst))?;
+            },
         }
         Ok(())
     }

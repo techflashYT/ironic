@@ -40,6 +40,7 @@ decl_io_handle!(HLWD_HANDLE, Hlwd,  0x0000_07ff);
 decl_io_handle!(AHB_HANDLE, Ahb,    0x0000_3fff);
 decl_io_handle!(MI_HANDLE, Mi,      0x0000_01ff);
 decl_io_handle!(DDR_HANDLE, Ddr,    0x0000_01ff);
+decl_io_handle!(GX_HANDLE, Gx,      0x0000_1fff);
 decl_io_handle!(VI_HANDLE, Vi,      0x0000_00ff);
 decl_io_handle!(PI_HANDLE, Pi,      0x0000_00ff);
 decl_io_handle!(DSP_HANDLE, Dsp,    0x0000_01ff);
@@ -47,6 +48,7 @@ decl_io_handle!(DI_HANDLE, Di,      0x0000_03ff);
 decl_io_handle!(SI_HANDLE, Si,      0x0000_00ff);
 decl_io_handle!(EXI_HANDLE, Exi,    0x0000_03ff);
 decl_io_handle!(AI_HANDLE, Ai,      0x0000_001f);
+decl_io_handle!(PI_FIFO_HANDLE, PiFifo, 0x0000_7fff);
 
 
 impl Bus {
@@ -88,6 +90,7 @@ impl Bus {
         match addr {
             HLWD_REG_BASE..=HLWD_REG_TAIL |
             HLWD_BASE..=HLWD_TAIL   => Some(HLWD_HANDLE),
+            GX_BASE..=GX_TAIL       => Some(GX_HANDLE),
             VI_BASE..=VI_TAIL       => Some(VI_HANDLE),
             PI_BASE..=PI_TAIL       => Some(PI_HANDLE),
             DSP_BASE..=DSP_TAIL     => Some(DSP_HANDLE),
@@ -99,6 +102,7 @@ impl Bus {
             EXI_BASE..=EXI_TAIL     => Some(EXI_HANDLE),
             AI_REG_BASE..=AI_REG_TAIL |
             AI_BASE..=AI_TAIL       => Some(AI_HANDLE),
+            PI_FIFO_BASE..=PI_FIFO_TAIL     => Some(PI_FIFO_HANDLE),
             AHB_BASE..=AHB_TAIL     => Some(AHB_HANDLE),
             MI_BASE..=MI_TAIL |
             MEM_BASE..=MEM_TAIL     => Some(MI_HANDLE),
