@@ -99,6 +99,7 @@ impl ArmFn {
             StrhReg     => ArmFn(afn!(arm::loadstore::strh_reg)),
 
             StrdImm     => ArmFn(afn!(arm::loadstore::strd_imm)),
+            LdrdImm     => ArmFn(afn!(arm::loadstore::ldrd_imm)),
 
             Mcr         => ArmFn(afn!(arm::coproc::mcr)),
             Mrc         => ArmFn(afn!(arm::coproc::mrc)),

@@ -601,6 +601,30 @@ pub fn strd_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
     if let Err(reason) = cpu.write32(addr.wrapping_add(4), cpu.reg[op.rt()+1]) {
         return DispatchRes::FatalErr(reason);
     }
-    cpu.reg[op.rt()] = wb_addr;
+    cpu.reg[op.rn()] = wb_addr;
+    DispatchRes::RetireOk
+}
+
+pub fn ldrd_imm(cpu: &mut Cpu, op: LsSignedImmBits) -> DispatchRes {
+    if op.rt() == 14 || op.rt() % 2 == 1 {
+        log::warn!("Ldrd has unpredictable results!");
+    }
+    let offset = (op.imm4h() << 4) | op.imm4l();
+    let (addr, wb_addr) = match do_amode(cpu.reg[op.rn()],
+    offset, op.u(), op.p(), op.w()) {
+        Ok(val) => val,
+        Err(reason) => { return DispatchRes::FatalErr(reason); }
+    };
+    let w1 = match cpu.read32(addr) {
+        Ok(v) => v,
+        Err(reason) => return DispatchRes::FatalErr(reason),
+    };
+    let w2 = match cpu.read32(addr + 4) {
+        Ok(v) => v,
+        Err(reason) => return DispatchRes::FatalErr(reason),
+    };
+    cpu.reg[op.rt()] = w1;
+    cpu.reg[op.rt()+1] = w2;
+    cpu.reg[op.rn()] = wb_addr;
     DispatchRes::RetireOk
 }
