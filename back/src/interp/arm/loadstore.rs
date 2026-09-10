@@ -534,7 +534,7 @@ pub fn stm(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
 
     let reglist = op.register_list();
     let mut addr = cpu.reg[op.rn()];
-    let wb_addr = addr + (reglist.count_ones() * 4);
+    let wb_addr = addr.wrapping_add(reglist.count_ones() * 4);
 
     for i in 0..16 {
         if (reglist & (1 << i)) != 0 {
@@ -547,7 +547,7 @@ pub fn stm(cpu: &mut Cpu, op: LsMultiBits) -> DispatchRes {
                 Ok(_) => {},
                 Err(reason) => { return DispatchRes::FatalErr(reason); }
             };
-            addr += 4;
+            addr = addr.wrapping_add(4);
         }
     }
 
