@@ -108,6 +108,7 @@ impl ArmFn {
             Mrc         => ArmFn(afn!(arm::coproc::mrc)),
 
             BlxImm     => ArmFn(afn!(arm::branch::blx_immm)),
+            BlxReg      => ArmFn(afn!(arm::branch::blx_reg)),
             B           => ArmFn(afn!(arm::branch::b)),
             Bx          => ArmFn(afn!(arm::branch::bx)),
             BlImm       => ArmFn(afn!(arm::branch::bl_imm)),
