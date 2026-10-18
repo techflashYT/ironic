@@ -67,10 +67,11 @@ impl BigEndianMemory {
         BigEndianMemory { data, hash: None, writes: None, write_index: 0, already_wrote: AtomicBool::new(true)}
     }
 
-    pub fn from_file(len: usize, filename: &str, track_writes: bool) -> anyhow::Result<Self> {
+    pub fn from_file(len: usize, filename: &Path, track_writes: bool) -> anyhow::Result<Self> {
         use anyhow::Context;
         let mut hash: Option<u32> = None;
-        let mut f = File::open(filename).with_context(|| format!("Failed to open file at {filename} for memory initialization"))?;
+        let mut f = File::open(filename)
+            .with_context(|| format!("Failed to open file at {} for memory initialization", filename.display()))?;
         let data = if let Ok(map) = unsafe { MmapOptions::new().map_copy(&f) } {
             if track_writes {
                 hash = Some(crc32fast::hash(&*map));
@@ -78,7 +79,7 @@ impl BigEndianMemory {
             BackingMem::Mapped(map)
         }
         else {
-            error!(target: "Other", "mmaping {filename} failed, falling back to copy");
+            error!(target: "Other", "mmaping {} failed, falling back to copy", filename.display());
             let mut data = vec![0u8; len];
             let _ = f.read(&mut data)?; // ignore partial read
             if track_writes {

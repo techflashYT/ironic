@@ -4,6 +4,7 @@ pub mod dispatch;
 pub mod mmio;
 pub mod task;
 use std::env::current_dir;
+use std::path::Path;
 use std::sync::atomic::AtomicU32;
 use std::sync::OnceLock;
 use log::error;
@@ -71,16 +72,16 @@ pub struct Bus {
     pub cycle: usize,
 }
 impl Bus {
-    pub fn new()-> anyhow::Result<Self> {
+    pub fn new(boot0: &Path, nand: &Path, otp: &Path, seeprom: &Path) -> anyhow::Result<Self> {
         Ok(Bus {
-            mrom: BigEndianMemory::from_file(0x0000_2000, "./boot0.bin", false)?,
+            mrom: BigEndianMemory::from_file(0x0000_2000, boot0, false)?,
             sram0: BigEndianMemory::new(0x0001_0000),
             sram1: BigEndianMemory::new(0x0001_0000),
             mem1: BigEndianMemory::new(0x0180_0000),
             mem2: BigEndianMemory::new(0x0400_0000),
 
-            hlwd: Hollywood::new()?,
-            nand: NandInterface::new("./nand.bin")?,
+            hlwd: Hollywood::new(otp, seeprom)?,
+            nand: NandInterface::new(nand)?,
             aes: AesInterface::new(),
             sha: ShaInterface::new(),
             ehci: EhcInterface::new(),

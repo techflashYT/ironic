@@ -1,6 +1,7 @@
 pub mod util;
 use anyhow::bail;
 use log::info;
+use std::path::Path;
 
 use crate::dev::nand::util::*;
 
@@ -131,7 +132,7 @@ pub struct NandInterface {
 }
 impl NandInterface {
     /// Create a new instance of the NAND interface.
-    pub fn new(filename: &str) -> anyhow::Result<Self> {
+    pub fn new(filename: &Path) -> anyhow::Result<Self> {
         let reg = NandRegisters {
             ctrl: 0,
             cfg: 0,

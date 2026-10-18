@@ -14,6 +14,7 @@ use log::{debug, error};
 use parking_lot::RwLock;
 
 use std::io::Write;
+use std::path::PathBuf;
 use std::process;
 use std::sync::Arc;
 use std::thread::Builder;
@@ -23,6 +24,18 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 struct Args {
+    /// Path to boot0.bin
+    #[clap(short, long, default_value = "boot0.bin")]
+    boot0: PathBuf,
+    /// Path to nand.bin
+    #[clap(short, long, default_value = "nand.bin")]
+    nand: PathBuf,
+    /// Path to otp.bin
+    #[clap(short, long, default_value = "otp.bin")]
+    otp: PathBuf,
+    /// Path to seeprom.bin
+    #[clap(short, long, default_value = "seeprom.bin")]
+    seeprom: PathBuf,
     /// Path to a custom kernel ELF
     #[clap(short, long)]
     custom_kernel: Option<String>,
@@ -65,7 +78,7 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     // The bus is shared between any threads we spin up
-    let mut bus = match Bus::new() {
+    let mut bus = match Bus::new(&args.boot0, &args.nand, &args.otp, &args.seeprom) {
         Ok(val) => val,
         Err(reason) => {
             println!("Failed to construct emulator Bus: {reason}");

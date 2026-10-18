@@ -3,6 +3,7 @@ use crate::dev::hlwd::gpio::*;
 use crate::mem::*;
 
 use log::{debug, info};
+use std::path::Path;
 
 /// Set of commands to/states of the SEEPROM state machine.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,13 +56,13 @@ pub struct SeepromState {
     pub write_buffer: Option<u16>,
 }
 impl SeepromState {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(seeprom: &Path) -> anyhow::Result<Self> {
         Ok(SeepromState {
             in_buf: 0,
             num_bits: 0,
             out_buf: None,
             opcd: SeepromOp::Init,
-            data: BigEndianMemory::from_file(0x100, "seeprom.bin", false)?,
+            data: BigEndianMemory::from_file(0x100, seeprom, false)?,
             wren: false,
             addr: None,
             write_buffer: None,

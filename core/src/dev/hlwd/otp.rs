@@ -1,6 +1,7 @@
 
 use std::io::Read;
 use std::fs::File;
+use std::path::Path;
 use crate::bus::prim::AccessWidth;
 
 use log::{debug, trace, log_enabled};
@@ -15,8 +16,8 @@ pub struct OtpInterface {
     pub out: u32,
 }
 impl OtpInterface {
-    pub fn new() -> Result<Self, std::io::Error> {
-        let mut f = File::open("otp.bin")?;
+    pub fn new(otp: &Path) -> std::io::Result<Self> {
+        let mut f = File::open(otp)?;
         let mut otp = OtpInterface { data: Box::new([0; 0x80]), cmd: 0, out: 0 };
         f.read_exact(otp.data.as_mut_slice())?;
         if log_enabled!(target: "OTP", log::Level::Trace) {

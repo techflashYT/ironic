@@ -1,4 +1,4 @@
-use std::{num::NonZeroU16, sync::atomic::{AtomicUsize, Ordering}};
+use std::{num::NonZeroU16, path::Path, sync::atomic::{AtomicUsize, Ordering}};
 use log::{debug, error, warn};
 
 use crate::mem::BigEndianMemory;
@@ -63,7 +63,7 @@ impl Card {
         if let Ok(f) = std::fs::File::open(FILENAME)
         && let Ok(metadata) = f.metadata() {
             len = metadata.len() as usize;
-            backing_mem = BigEndianMemory::from_file(len, FILENAME, false).unwrap_or_else(|_|{
+            backing_mem = BigEndianMemory::from_file(len, Path::new(FILENAME), false).unwrap_or_else(|_|{
                 card_inserted = false;
                 BigEndianMemory::new(len)
             });

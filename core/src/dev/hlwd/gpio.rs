@@ -2,6 +2,7 @@
 pub mod seeprom;
 use anyhow::bail;
 use log::{info, error};
+use std::path::Path;
 
 use crate::dev::hlwd::gpio::seeprom::*;
 use crate::dev::hlwd::*;
@@ -35,11 +36,11 @@ pub struct GpioInterface {
     pub seeprom: SeepromState,
 }
 impl GpioInterface {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(seeprom: &Path) -> anyhow::Result<Self> {
         Ok(GpioInterface {
             arm: ArmGpio::default(),
             ppc: PpcGpio::default(),
-            seeprom: SeepromState::new()?,
+            seeprom: SeepromState::new(seeprom)?,
         })
     }
 }

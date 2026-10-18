@@ -5,6 +5,7 @@ use crate::bus::task::*;
 
 use anyhow::bail;
 use log::{error, warn, info};
+use std::path::Path;
 
 /// One-time programmable [fused] memory.
 pub mod otp;
@@ -222,7 +223,7 @@ pub struct Hollywood {
     pub ppc_on: bool,
 }
 impl Hollywood {
-    pub fn new() -> anyhow::Result<Self> {
+    pub fn new(otp: &Path, seeprom: &Path) -> anyhow::Result<Self> {
         // TODO: Where do the initial values for these registers matter?
         Ok(Hollywood {
             task: None,
@@ -230,8 +231,8 @@ impl Hollywood {
             busctrl: BusCtrlInterface::default(),
             timer: TimerInterface::default(),
             irq: irq::IrqInterface::default(),
-            otp: otp::OtpInterface::new()?,
-            gpio: gpio::GpioInterface::new()?,
+            otp: otp::OtpInterface::new(otp)?,
+            gpio: gpio::GpioInterface::new(seeprom)?,
             pll: ClockInterface::default(),
 
             ahb: AhbInterface::default(),
