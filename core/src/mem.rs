@@ -2,6 +2,7 @@
 use std::path::Path;
 use std::fmt;
 use std::fs::File;
+use std::io;
 use std::io::Read;
 use std::io::Write;
 use std::mem;
@@ -13,7 +14,6 @@ use memmap::{MmapMut, MmapOptions};
 use iset::IntervalMap;
 use anyhow::{bail, Context};
 use log::{error, debug};
-use bincode::{config, Decode, Encode};
 
 use crate::bus::prim::AccessWidth;
 
@@ -294,13 +294,98 @@ impl BigEndianMemory {
     }
 }
 
-#[derive(Encode, Decode, PartialEq, Debug, Clone)]
+fn encode_varint<W: Write>(writer: &mut W, val: u32) -> io::Result<usize> {
+    const SINGLE_BYTE_MAX: u8 = 250;
+    const U16_BYTE: u8 = 251;
+    const U32_BYTE: u8 = 252;
+
+    if val <= SINGLE_BYTE_MAX as _ {
+        writer.write(&[val as u8])
+    } else if val <= u16::MAX as _ {
+        writer.write(&[U16_BYTE])?;
+        writer.write(&(val as u16).to_le_bytes()).map(|x| x + 1)
+    } else {
+        writer.write(&[U32_BYTE])?;
+        writer.write(&val.to_le_bytes()).map(|x| x + 1)
+    }
+}
+
+fn encode_slice<W: Write>(writer: &mut W, slice: &[u8]) -> io::Result<usize> {
+    let len = encode_varint(writer, slice.len() as u32)?;
+    writer.write_all(slice)?;
+    Ok(len + slice.len())
+}
+
+fn encode_memory_patch<W: Write>(writer: &mut W, memory_patch: &MemoryPatch) -> io::Result<usize> {
+    let mut len = encode_varint(writer, memory_patch.offset as u32)?;
+    len += encode_slice(writer, &memory_patch.data)?;
+    Ok(len)
+}
+
+fn encode_memory_patch_file<W: Write>(writer: &mut W, memory_patch_file: &MemoryPatchFile) -> io::Result<usize> {
+    let mut len = encode_varint(writer, memory_patch_file.hash)?;
+    len += encode_varint(writer, memory_patch_file.ranges.len() as u32)?;
+    for memory_patch in memory_patch_file.ranges.iter() {
+        len += encode_memory_patch(writer, memory_patch)?;
+    }
+    Ok(len)
+}
+
+fn decode_varint<R: Read>(reader: &mut R) -> io::Result<u32> {
+    const SINGLE_BYTE_MAX: u8 = 250;
+    const U16_BYTE: u8 = 251;
+    const U32_BYTE: u8 = 252;
+
+    let mut bytes = [0u8; 1];
+    reader.read(&mut bytes)?;
+
+    match bytes[0] {
+        byte @ 0..=SINGLE_BYTE_MAX => Ok(byte as u32),
+        U16_BYTE => {
+            let mut bytes = [0u8; 2];
+            reader.read(&mut bytes)?;
+            Ok(u16::from_le_bytes(bytes) as u32)
+        }
+        U32_BYTE => {
+            let mut bytes = [0u8; 4];
+            reader.read(&mut bytes)?;
+            Ok(u32::from_le_bytes(bytes) as u32)
+        }
+        byte => panic!("Invalid byte while reading varint: {byte}"),
+    }
+}
+
+fn decode_vec<R: Read>(reader: &mut R) -> io::Result<Vec<u8>> {
+    let len = decode_varint(reader)?;
+    let mut vec = vec![0u8; len as usize];
+    reader.read_exact(&mut vec)?;
+    Ok(vec)
+}
+
+fn decode_memory_patch<R: Read>(reader: &mut R) -> io::Result<MemoryPatch> {
+    let offset = decode_varint(reader)?;
+    let data = decode_vec(reader)?;
+    Ok(MemoryPatch { offset: offset as usize, data })
+}
+
+fn decode_memory_patch_file<R: Read>(reader: &mut R) -> io::Result<MemoryPatchFile> {
+    let hash = decode_varint(reader)?;
+    let len = decode_varint(reader)?;
+    let mut ranges = Vec::with_capacity(len as usize);
+    for _ in 0..len {
+        let memory_patch = decode_memory_patch(reader)?;
+        ranges.push(memory_patch);
+    }
+    Ok(MemoryPatchFile { hash, ranges })
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub struct MemoryPatch {
     pub offset: usize,
     pub data: Vec<u8>,
 }
 
-#[derive(Encode, Decode, PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct MemoryPatchFile {
     hash: u32,
     ranges: Vec<MemoryPatch>,
@@ -309,9 +394,8 @@ pub struct MemoryPatchFile {
 impl MemoryPatchFile {
     pub fn from_file(path: std::path::PathBuf) -> Self {
         use lz4_flex::frame::*;
-        let mut bytes: Vec<u8> = Vec::new();
-        FrameDecoder::new(std::fs::File::open(path).unwrap()).read_to_end(&mut bytes).unwrap();
-        let res: MemoryPatchFile = bincode::decode_from_slice(&bytes, config::standard()).unwrap().0;
+        let mut decoder = FrameDecoder::new(std::fs::File::open(path).unwrap());
+        let res: MemoryPatchFile = decode_memory_patch_file(&mut decoder).unwrap();
         debug!(target: "MEMSAVE", "decoded MemoryPatchFile: hash: {} # of ranges: {}", res.hash, res.ranges.len());
         res
     }
@@ -319,15 +403,14 @@ impl MemoryPatchFile {
     pub fn to_file(&self, path: std::path::PathBuf) -> anyhow::Result<()> {
         use std::io::BufWriter;
         use lz4_flex::frame::*;
-        let bytes = bincode::encode_to_vec(self, config::standard())?;
         let mut file = std::fs::File::create(&path)?;
         let mut writer = BufWriter::new(&mut file);
         let mut encoder = FrameEncoder::new(&mut writer);
-        encoder.write_all(&bytes)?;
+        let len = encode_memory_patch_file(&mut encoder, self)?;
         encoder.finish()?;
         drop(writer);
         file.flush()?;
-        let real_size = bytes.len() as f64;
+        let real_size = len as f64;
         let written = file.metadata()?.len() as f64;
         debug!(target: "MEMSAVE", "encoded MemoryPatchFile to {path:?}, size {:.1}k compressed to {:.1}k. ({:.2}%)", (real_size/1024f64), (written/1024f64), (written/real_size));
         Ok(())
