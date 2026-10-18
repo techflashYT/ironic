@@ -62,9 +62,9 @@ pub struct BigEndianMemory {
     already_wrote: AtomicBool,
 }
 impl BigEndianMemory {
-    pub fn new(len: usize) -> anyhow::Result<Self> {
+    pub fn new(len: usize) -> Self {
         let data = BackingMem::Local(vec![0u8; len]);
-        Ok(BigEndianMemory { data, hash: None, writes: None, write_index: 0, already_wrote: AtomicBool::new(true)})
+        BigEndianMemory { data, hash: None, writes: None, write_index: 0, already_wrote: AtomicBool::new(true)}
     }
 
     pub fn from_file(len: usize, filename: &str, track_writes: bool) -> anyhow::Result<Self> {

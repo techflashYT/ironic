@@ -131,12 +131,12 @@ impl Card {
             len = metadata.len() as usize;
             backing_mem = BigEndianMemory::from_file(len, FILENAME, false).unwrap_or_else(|_|{
                 card_inserted = false;
-                BigEndianMemory::new(len).unwrap()
+                BigEndianMemory::new(len)
             });
         }
         else {
             card_inserted = false;
-            backing_mem = BigEndianMemory::new(len).unwrap();
+            backing_mem = BigEndianMemory::new(len);
         }
         let capacity = CardCapacity::from_bytes(len);
         debug!(target: "SDHC", "SD card image size: {} bytes, capacity type: {:?}", len, capacity);
