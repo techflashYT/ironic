@@ -9,7 +9,7 @@ edition = "2024"
 [dependencies]
 anyhow = { version = "~1.0.102", features = ["std", "backtrace"] }
 elf = { path = "../vendor/rust-elf", package = "elf2" }
-gimli = "~0.33.0"
+gimli = "~0.34.0"
 ironic-core = { path = "../core" }
 parking_lot = { version = "~0.12.5", default-features = false, features = ["nightly", "hardware-lock-elision"] }
 log = { version = "~0.4.29", default-features = false, features = ["std"] }
