@@ -55,26 +55,24 @@ pub(super) struct Card {
 }
 
 impl Card {
-    pub(super) fn new() -> Self {
-        const FILENAME: &str = "sd.img";
-        let mut len = 0usize;
-        let backing_mem: BigEndianMemory;
-        let mut card_inserted = true;
-        if let Ok(f) = std::fs::File::open(FILENAME)
-        && let Ok(metadata) = f.metadata() {
+    pub(super) fn new(sd: Option<&Path>) -> anyhow::Result<Self> {
+        let len;
+        let card_inserted;
+        let backing_mem = if let Some(filename) = sd {
+            let f = std::fs::File::open(filename)?;
+            let metadata = f.metadata()?;
             len = metadata.len() as usize;
-            backing_mem = BigEndianMemory::from_file(len, Path::new(FILENAME), false).unwrap_or_else(|_|{
-                card_inserted = false;
-                BigEndianMemory::new(len)
-            });
+            card_inserted = true;
+            BigEndianMemory::from_file(len, filename, false)?
         }
         else {
+            len = 0;
             card_inserted = false;
-            backing_mem = BigEndianMemory::new(len);
-        }
+            BigEndianMemory::new(len)
+        };
         let capacity = CardCapacity::from_bytes(len);
         debug!(target: LOG, "SD card image size: {} bytes, capacity type: {:?}", len, capacity);
-        Self {
+        Ok(Self {
             available: card_inserted,
             state: Default::default(),
             backing_mem: Mutex::new(backing_mem),
@@ -88,7 +86,7 @@ impl Card {
             rw_index: Default::default(),
             reading_status: false,
             sd_status_buf: [0;64],
-        }
+        })
     }
 }
 

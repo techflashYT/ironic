@@ -72,7 +72,7 @@ pub struct Bus {
     pub cycle: usize,
 }
 impl Bus {
-    pub fn new(boot0: &Path, nand: &Path, otp: &Path, seeprom: &Path) -> anyhow::Result<Self> {
+    pub fn new(boot0: &Path, nand: &Path, otp: &Path, seeprom: &Path, sd: Option<&Path>) -> anyhow::Result<Self> {
         Ok(Bus {
             mrom: BigEndianMemory::from_file(0x0000_2000, boot0, false)?,
             sram0: BigEndianMemory::new(0x0001_0000),
@@ -87,7 +87,7 @@ impl Bus {
             ehci: EhcInterface::new(),
             ohci0: OhcInterface { idx: 0, ..Default::default() },
             ohci1: OhcInterface { idx: 1, ..Default::default() },
-            sd0: SDInterface::new_sd0(),
+            sd0: SDInterface::new_sd0(sd)?,
             sd1: SDInterface::new_sd1(),
 
             rom_disabled: false,

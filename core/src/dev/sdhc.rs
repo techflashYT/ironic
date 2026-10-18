@@ -3,6 +3,7 @@ mod card;
 mod device;
 mod sdio;
 
+use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use anyhow::bail;
@@ -238,8 +239,8 @@ pub struct SDInterface {
 }
 
 impl SDInterface {
-    pub fn new_sd0() -> Self {
-        Self::new(SdhcSlot::Sd0, SdDevice::Card(Card::new()))
+    pub fn new_sd0(sd: Option<&Path>) -> anyhow::Result<Self> {
+        Ok(Self::new(SdhcSlot::Sd0, SdDevice::Card(Card::new(sd)?)))
     }
 
     pub fn new_sd1() -> Self {

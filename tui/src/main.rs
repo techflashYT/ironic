@@ -36,6 +36,9 @@ struct Args {
     /// Path to seeprom.bin
     #[clap(short, long, default_value = "seeprom.bin")]
     seeprom: PathBuf,
+    /// Path to a SD card image
+    #[clap(short, long)]
+    sd: Option<PathBuf>,
     /// Path to a custom kernel ELF
     #[clap(short, long)]
     custom_kernel: Option<String>,
@@ -78,7 +81,7 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     // The bus is shared between any threads we spin up
-    let mut bus = match Bus::new(&args.boot0, &args.nand, &args.otp, &args.seeprom) {
+    let mut bus = match Bus::new(&args.boot0, &args.nand, &args.otp, &args.seeprom, args.sd.as_deref()) {
         Ok(val) => val,
         Err(reason) => {
             println!("Failed to construct emulator Bus: {reason}");
