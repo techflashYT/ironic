@@ -273,6 +273,7 @@ impl InterpBackend {
 
     /// Do a single step of the CPU.
     pub fn cpu_step(&mut self) -> CpuRes {
+        use std::sync::atomic::Ordering::Relaxed;
         assert!((self.cpu.read_fetch_pc() & 1) == 0);
 
         // Sample the IRQ line. If the IRQ line is high and IRQs are not 
@@ -282,6 +283,9 @@ impl InterpBackend {
                 return CpuRes::HaltEmulation(reason);
             };
         }
+
+        DEBUGINFO.last_pc.store(self.cpu.read_fetch_pc(), Relaxed);
+        DEBUGINFO.last_lr.store(self.cpu.reg.r[14], Relaxed);
 
         // Fetch/decode/execute an ARM or Thumb instruction depending on
         // the state of the Thumb flag in the CPSR.
@@ -430,7 +434,6 @@ impl Backend for InterpBackend {
                 let mut bus = self.bus.write();
                 bus.step(self.cpu_cycle)?;
                 self.bus_cycle += 1;
-                bus.update_debug_location(Some(self.cpu.read_fetch_pc()), Some(self.cpu.reg.r[14]), Some(self.cpu.reg.r[13]));
                 self.cpu.irq_input = bus.hlwd.irq.arm_irq_output;
             }
 

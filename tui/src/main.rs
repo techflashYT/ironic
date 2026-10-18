@@ -81,47 +81,42 @@ fn main() -> anyhow::Result<()> {
     let orig_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info|{
         'attempt_fancy_crashdump: {
+            use std::sync::atomic::Ordering::Relaxed;
             // We only care if the emulator thread crashes, so check the thread name and see whodunnit
             let thread = std::thread::current();
             if thread.name() == Some("EmuThread") {
-                let bus = match panic_bus.try_read_for(Duration::new(3, 0)) {
-                    Some(b) => b,
-                    None => {
-                        println!("Failed to get the Bus lock in time, it's stuck!");
-                        println!("Unable to procede with a crash dump");
-                        break 'attempt_fancy_crashdump;
-                    },
-                };
-                // Dump emulator memory.
-                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-                match bus.dump_memory("crash.bin") {
-                    Ok(p) => println!("Emulator crashed! Dumped RAM to {}/*.crash.bin", p.to_string_lossy()),
-                    Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
-                }
-                println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-                match bus.nand.data.dump_writes() {
-                    Ok(_) => println!("NAND WRITES DUMPED TO {}", bus.nand.data.write_index),
-                    Err(e) => println!("FAILED TO DUMP NAND WRITE DATA: {e}"),
+                if let Some(bus) = panic_bus.try_read_for(Duration::new(3, 0)) {
+                    // Dump emulator memory.
+                    println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                    match bus.dump_memory("crash.bin") {
+                        Ok(p) => println!("Emulator crashed! Dumped RAM to {}/*.crash.bin", p.to_string_lossy()),
+                        Err(e) => println!("Emulator crashed! Failed to dump RAM: {e}"),
+                    }
+                    println!("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+                    match bus.nand.data.dump_writes() {
+                        Ok(_) => println!("NAND WRITES DUMPED TO {}", bus.nand.data.write_index),
+                        Err(e) => println!("FAILED TO DUMP NAND WRITE DATA: {e}"),
+                    }
+                } else {
+                    println!("Failed to get the Bus lock in time, it's stuck!");
+                    println!("Skipping RAM and NAND dumps");
                 }
                 // Attempt a debuginfo enhanced crashdump.
-                if bus.debuginfo.debuginfo.is_none() {
-                    println!("Debug location never saved to bus, can not continue crashdump");
+                let Some(debuginfo) = DEBUGINFO.debuginfo.get() else {
+                    println!("No debug info installed, can not continue crashdump");
                     break 'attempt_fancy_crashdump;
-                }
-                let pc = bus.debuginfo.last_pc.unwrap();
-                let lr = bus.debuginfo.last_lr.unwrap();
-                let _sp = bus.debuginfo.last_sp.unwrap();
-                if let Some(ref debuginfo) = bus.debuginfo.debuginfo {
-                    #[allow(deprecated)] // God these 2 crates are stupid
-                    let debuginfo_b = debuginfo.borrow(|section|{
-                        EndianSlice::new(section, BigEndian)
-                    });
-                    match addr2line::Context::from_dwarf(debuginfo_b) {
-                        Ok(addr2line_ctx) => {
-                            let _ = enhanced_crashdump(addr2line_ctx, pc, lr);
-                        },
-                        Err(err) => println!("Failed to initialize addr2line, cannot procede with crashdump! {err}"),
-                    }
+                };
+                let pc = DEBUGINFO.last_pc.load(Relaxed);
+                let lr = DEBUGINFO.last_lr.load(Relaxed);
+                #[allow(deprecated)] // God these 2 crates are stupid
+                let debuginfo_b = debuginfo.borrow(|section|{
+                    EndianSlice::new(section, BigEndian)
+                });
+                match addr2line::Context::from_dwarf(debuginfo_b) {
+                    Ok(addr2line_ctx) => {
+                        let _ = enhanced_crashdump(addr2line_ctx, pc, lr);
+                    },
+                    Err(err) => println!("Failed to initialize addr2line, cannot procede with crashdump! {err}"),
                 }
             }
         }

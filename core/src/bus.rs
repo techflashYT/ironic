@@ -4,6 +4,9 @@ pub mod dispatch;
 pub mod mmio;
 pub mod task;
 use std::env::current_dir;
+use std::sync::atomic::AtomicU32;
+use std::sync::OnceLock;
+use log::error;
 
 use crate::bus::task::*;
 
@@ -23,12 +26,18 @@ use gimli::EndianArcSlice;
 
 #[derive(Default)]
 pub struct DebugInfo {
-    pub debuginfo: Option<Dwarf<EndianArcSlice<BigEndian>>>,
-    pub debug_frames: Option<DebugFrame<EndianArcSlice<BigEndian>>>,
-    pub last_pc: Option<u32>,
-    pub last_lr: Option<u32>,
-    pub last_sp: Option<u32>,
+    pub debuginfo: OnceLock<Dwarf<EndianArcSlice<BigEndian>>>,
+    pub debug_frames: OnceLock<DebugFrame<EndianArcSlice<BigEndian>>>,
+    pub last_pc: AtomicU32,
+    pub last_lr: AtomicU32,
 }
+
+pub static DEBUGINFO: DebugInfo = DebugInfo {
+    debuginfo: OnceLock::new(),
+    debug_frames: OnceLock::new(),
+    last_pc: AtomicU32::new(0),
+    last_lr: AtomicU32::new(0),
+};
 
 /// Implementation of an emulated bus.
 ///
@@ -60,7 +69,6 @@ pub struct Bus {
     /// Queue for pending work on I/O devices.
     pub tasks: Vec<Task>,
     pub cycle: usize,
-    pub debuginfo: Box<DebugInfo>,
 }
 impl Bus {
     pub fn new()-> anyhow::Result<Self> {
@@ -85,23 +93,20 @@ impl Bus {
             mirror_enabled: false,
             tasks: Vec::new(),
             cycle: 0,
-            debuginfo: Box::default(),
         })
     }
 
     pub fn install_debuginfo(&mut self, debuginfo: Dwarf<EndianArcSlice<BigEndian>>) {
-        self.debuginfo.debuginfo = Some(debuginfo);
+        if !DEBUGINFO.debuginfo.set(debuginfo).is_ok() {
+            error!(target: "Other", "Debug info already installed");
+        }
     }
 
     pub fn install_debug_frames(&mut self, debug_frames: DebugFrame<EndianArcSlice<BigEndian>>) {
-        self.debuginfo.debug_frames = Some(debug_frames);
+        if !DEBUGINFO.debug_frames.set(debug_frames).is_ok() {
+            error!(target: "Other", "Debug frames already installed");
+        }
     }
-
-    pub fn update_debug_location(&mut self, pc: Option<u32>, lr: Option<u32>, sp: Option<u32>) {
-        if let Some(pc) = pc { self.debuginfo.last_pc = Some(pc); }
-        if let Some(lr) = lr { self.debuginfo.last_lr = Some(lr); }
-        if let Some(sp) = sp { self.debuginfo.last_sp = Some(sp); }
-    } 
 
     pub fn dump_memory(&self, suffix: &'static str) -> anyhow::Result<std::path::PathBuf> {
         let dir = current_dir()?;
