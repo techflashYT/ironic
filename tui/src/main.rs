@@ -41,7 +41,7 @@ struct Args {
     sd: Option<PathBuf>,
     /// Path to a custom kernel ELF
     #[clap(short, long)]
-    custom_kernel: Option<String>,
+    custom_kernel: Option<PathBuf>,
     /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
     ppc_hle: bool,

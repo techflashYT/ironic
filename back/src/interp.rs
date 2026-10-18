@@ -12,6 +12,7 @@ use parking_lot::RwLock;
 
 use std::sync::Arc;
 use std::fs;
+use std::path::PathBuf;
 use std::time::Duration;
 
 extern crate elf;
@@ -90,11 +91,11 @@ pub struct InterpBackend {
     pub svc_buf: String,
     /// Current stage in the platform boot process.
     pub boot_status: BootStatus,
-    pub custom_kernel: Option<String>,
+    pub custom_kernel: Option<PathBuf>,
     debugger_attached: bool,
 }
 impl InterpBackend {
-    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<String>, ppc_early_on: bool) -> Self {
+    pub fn new(bus: Arc<RwLock<Bus>>, custom_kernel: Option<PathBuf>, ppc_early_on: bool) -> Self {
         if ppc_early_on {
             PPC_EARLY_ON.store(true, std::sync::atomic::Ordering::Release);
         }
@@ -380,7 +381,8 @@ impl Backend for InterpBackend {
         if self.custom_kernel.is_some() {
             // Read the user supplied kernel file
             let filename = self.custom_kernel.as_ref().unwrap();
-            let mut kernel_bytes = fs::read(filename).map_err(|ioerr| anyhow!("Error opening kernel file: {filename}. Got error: {ioerr}"))?;
+            let mut kernel_bytes = fs::read(filename)
+                .map_err(|ioerr| anyhow!("Error opening kernel file: {}. Got error: {ioerr}", filename.display()))?;
             let kernel_elf = elf::File::open_stream(&mut std::io::Cursor::new(&mut kernel_bytes))?;
             match validate_custom_kernel(&kernel_elf.ehdr) {
                 std::result::Result::Ok(_) => {/* We have a valid ELF (probably) */},
