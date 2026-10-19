@@ -37,7 +37,7 @@ struct Args {
     #[clap(short, long, default_value = "seeprom.bin")]
     seeprom: PathBuf,
     /// Path to a SD card image
-    #[clap(short, long)]
+    #[clap(long)]
     sd: Option<PathBuf>,
     /// Path to a custom kernel ELF
     #[clap(short, long)]
