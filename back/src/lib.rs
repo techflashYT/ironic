@@ -20,13 +20,13 @@ pub mod ppclle {
     use parking_lot::RwLock;
     use ironic_core::bus::Bus;
     /// Stub implementation of PPC LLE system
-    /// 
+    ///
     /// If you can see this, your build did not
     /// detect libppcemu OR libclang and PPC LLE is not available.
-    struct PpcEmu;
+    pub struct PpcEmu;
     impl PpcEmu {
         #[allow(unused)]
-        pub fn new(bus: Arc<RwLock<Bus>>) -> Self {
+        pub fn new(bus: Arc<RwLock<Bus>>, _ppc_kernel: Option<String>) -> Self {
             Self
         }
     }
