@@ -40,9 +40,11 @@ struct Args {
 }
 
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+    let mut args = Args::parse();
     let custom_kernel = args.custom_kernel.clone();
     let enable_ppc_hle = args.ppc_hle;
+
+    args.logging.make_ascii_uppercase();
 
     env_logger::builder()
         .parse_filters(&args.logging)
@@ -197,8 +199,8 @@ fn main() -> anyhow::Result<()> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::AsRefStr, strum::Display, strum::VariantNames, strum::EnumString)]
-#[strum(ascii_case_insensitive)]
 #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
+#[allow(dead_code)]
 enum LogTarget {
     AES,
     DEBUG_PORT,
@@ -217,7 +219,7 @@ enum LogTarget {
     SYSCALL,
     SVC,
     UG,
-    xHCI,
+    XHCI,
     RTPATCH,
     Other,
 }

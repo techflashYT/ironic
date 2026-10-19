@@ -54,11 +54,11 @@ impl MmioDevice for OhcInterface {
 
             _ => { bail!("OHCI#{} read at {off:x} unimpl", self.idx); },
         };
-        debug!(target: "xHCI", "OH{} read {val:08x} at {off:x}", self.idx);
+        debug!(target: "XHCI", "OH{} read {val:08x} at {off:x}", self.idx);
         Ok(BusPacket::Word(val))
     }
     fn write(&mut self, off: usize, val: u32) -> anyhow::Result<Option<BusTask>> {
-        debug!(target: "xHCI", "OH{} write {val:08x} at {off:x}", self.idx);
+        debug!(target: "XHCI", "OH{} write {val:08x} at {off:x}", self.idx);
         match off {
             0x04 => self.ctrl = val,
             0x08 => self.cmd_status = val,
