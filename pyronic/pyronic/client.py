@@ -93,6 +93,18 @@ class IPCClient(object):
     def disable_ppc_protections(self):
         self.sock.send_disableprot()
 
+    def disable_arm_instruction_cache(self):
+        self.sock.send_arm_instruction_cache_control(0)
+
+    def enable_arm_instruction_cache(self):
+        self.sock.send_arm_instruction_cache_control(1)
+
+    def flush_arm_instruction_cache(self):
+        self.sock.send_arm_instruction_cache_control(2)
+
+    def invalidate_arm_instruction_cache(self):
+        self.sock.send_arm_instruction_cache_control(3)
+
     def dump_xfb(self, path: str):
         self.sock.send_xfbdump(path.encode('utf-8'))
 

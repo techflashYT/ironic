@@ -45,6 +45,9 @@ struct Args {
     /// Enable the PPC HLE server (default = False)
     #[clap(short, long)]
     ppc_hle: bool,
+    /// Permanently disable the ARM instruction cache, regardless of CP15 or IPC
+    #[clap(long)]
+    no_cache: bool,
     /// Attach an emulated USB Gecko whose serial stream is
     /// served over TCP on 127.0.0.1 port 55021 by default
     /// When this flag is absent, guest software sees an empty slot.
@@ -102,6 +105,9 @@ fn main() -> anyhow::Result<()> {
     }
 
     let bus = Arc::new(RwLock::new(bus));
+    if args.no_cache {
+        bus.write().cache_control.disable_permanently();
+    }
     let _vi_thread = VideoInterface::spawn_irq_thread(bus.clone()).unwrap();
 
     // Setup panic hook

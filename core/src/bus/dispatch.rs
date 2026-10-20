@@ -9,6 +9,50 @@ use crate::bus::prim::*;
 
 /// Top-level read/write functions for performing physical memory accesses.
 impl Bus {
+    /// Memory Read for execution
+    pub(crate) fn fetch_memory(&self, addr: u32, len: usize) -> Option<&[u8]> {
+        let handle = self.decode_phys_addr(addr)?;
+        let target = match handle.dev {
+            Device::Mem(MemDevice::MaskRom) => &self.mrom,
+            Device::Mem(MemDevice::Sram0) => &self.sram0,
+            Device::Mem(MemDevice::Sram1) => &self.sram1,
+            Device::Mem(MemDevice::Mem1) => &self.mem1,
+            Device::Mem(MemDevice::Mem2) => &self.mem2,
+            Device::Io(_) => return None,
+        };
+        let off = (addr & handle.mask) as usize;
+        target.data.get(off..off.checked_add(len)?)
+    }
+
+    pub(crate) fn same_fetchable_memory(&self, start: u32, addr: u32, distance: usize) -> bool {
+        let (Some(a), Some(b)) = (self.decode_phys_addr(start), self.decode_phys_addr(addr)) else {
+            return false;
+        };
+        matches!((a.dev, b.dev), (Device::Mem(x), Device::Mem(y)) if x == y)
+            && (start & a.mask) as usize + distance == (addr & b.mask) as usize
+    }
+
+    pub(crate) fn line_for_instr(&self, addr: u32) -> Option<[u8; 32]> {
+        let last = addr.checked_add(31)?;
+        if !self.same_fetchable_memory(addr, last, 31) {
+            return None;
+        }
+        self.fetch_memory(addr, 32)?.try_into().ok()
+    }
+
+    /// Helper for external software to write code and clear the icache
+    pub fn patch_code(&mut self, addr: u32, bytes: &[u8]) -> anyhow::Result<()> {
+        if bytes.is_empty() || self.fetch_memory(addr, bytes.len()) == Some(bytes) {
+            return Ok(());
+        }
+        if self.fetch_memory(addr, bytes.len()).is_none() {
+            bail!("Code patch requires backed memory at {addr:08x}");
+        }
+        self.dma_write(addr, bytes)?;
+        self.cache_control.invalidate();
+        Ok(())
+    }
+
     /// Perform a 32-bit physical memory read.
     pub fn read32(&self, addr: u32) -> anyhow::Result<u32> {
         let msg = self.do_read(addr, BusWidth::W)?;

@@ -21,7 +21,7 @@ pub fn bl_prefix(cpu: &mut Cpu, op: BlBits) -> DispatchRes {
     // manually advance and fetch the next instruction
     cpu.reg.pc = cpu.reg.pc.wrapping_add(2);
     let intermediate_pc = cpu.read_fetch_pc();
-    let next_op = match cpu.read16(intermediate_pc) {
+    let next_op = match cpu.fetch16(intermediate_pc) {
         Ok(next_op) => BlBits(next_op),
         Err(x) => return DispatchRes::FatalErr(x.context("Coudn't fetch the next PC for 32-bit Thumb branch".to_owned())),
     };

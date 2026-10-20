@@ -11,6 +11,11 @@ use parking_lot::lock_api::RwLockReadGuard;
 
 use anyhow::{bail, Context};
 
+pub(crate) struct Translation {
+    pub paddr: u32,
+    pub cacheable: bool,
+}
+
 /// These are the top-level "public" functions providing read/write accesses.
 impl Cpu {
     pub fn read32(&self, addr: u32) -> anyhow::Result<u32> {
@@ -46,17 +51,17 @@ impl Cpu {
 /// These are the functions used to perform virtual-to-physical translation.
 impl Cpu {
     /// Resolve a section descriptor, returning a physical address.
-    fn resolve_section(&self, req: TLBReq, d: SectionDescriptor) -> anyhow::Result<u32> {
+    fn resolve_section(&self, req: TLBReq, d: SectionDescriptor) -> anyhow::Result<Translation> {
         let ctx = self.get_ctx(d.domain());
         if ctx.validate(&req, d.ap()) {
-            Ok(d.base_addr() | req.vaddr.section_idx())
+            Ok(Translation { paddr: d.base_addr() | req.vaddr.section_idx(), cacheable: d.cacheable() })
         } else {
             bail!("resolve_section: Domain access faults are unimplemented, vaddr={:08x}", req.vaddr.0)
         }
     }
 
     /// Resolve a page table descriptor, returning a physical address.
-    fn resolve_page_table(&self, req: TLBReq, d: L1Descriptor, bus: &RwLockReadGuard<'_, RawRwLock, Bus>) -> anyhow::Result<u32> {
+    fn resolve_page_table(&self, req: TLBReq, d: L1Descriptor, bus: &RwLockReadGuard<'_, RawRwLock, Bus>) -> anyhow::Result<Translation> {
         let domain = match d {
             L1Descriptor::Coarse(ref e) => e.domain(),
             L1Descriptor::Fine(ref e)   => e.domain(),
@@ -70,7 +75,7 @@ impl Cpu {
             L2Descriptor::SmallPage(entry) => {
                 let ctx = self.get_ctx(domain);
                 if ctx.validate(&req, entry.get_ap(req.vaddr)) {
-                    Ok(entry.base_addr() | req.vaddr.small_page_idx())
+                    Ok(Translation { paddr: entry.base_addr() | req.vaddr.small_page_idx(), cacheable: entry.cacheable() })
                 } else {
                     dbg!(self.p15.c3_dacr.domain(domain));
                     bail!("resolve_page_table: Domain access faults are unimplemented, vaddr={:08x}", req.vaddr.0)
@@ -121,16 +126,22 @@ impl Cpu {
 
     /// Translate a virtual address into a physical address.
     pub fn translate(&self, req: TLBReq) -> anyhow::Result<u32> {
+        if !self.p15.c1_ctrl.mmu_enabled() {
+            return Ok(req.vaddr.0);
+        }
+        Ok(self.translate_with_bus(req, &self.bus.read())?.paddr)
+    }
+
+    pub(crate) fn translate_with_bus(&self, req: TLBReq, bus: &RwLockReadGuard<'_, RawRwLock, Bus>) -> anyhow::Result<Translation> {
         if self.p15.c1_ctrl.mmu_enabled() {
-            let bus = self.bus.read();
-            match self.l1_fetch(req.vaddr, &bus)? {
+            match self.l1_fetch(req.vaddr, bus)? {
                 L1Descriptor::Section(entry) => Ok(self.resolve_section(req, entry)?),
-                L1Descriptor::Coarse(entry) => self.resolve_page_table(req, L1Descriptor::Coarse(entry), &bus),
-                L1Descriptor::Fine(entry) => self.resolve_page_table(req, L1Descriptor::Fine(entry), &bus),
+                L1Descriptor::Coarse(entry) => self.resolve_page_table(req, L1Descriptor::Coarse(entry), bus),
+                L1Descriptor::Fine(entry) => self.resolve_page_table(req, L1Descriptor::Fine(entry), bus),
                 other => bail!("TLB first-level descriptor {other:?} unimplemented"),
             }
         } else {
-            Ok(req.vaddr.0)
+            Ok(Translation { paddr: req.vaddr.0, cacheable: true })
         }
     }
 }

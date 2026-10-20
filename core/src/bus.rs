@@ -44,6 +44,7 @@ pub static DEBUGINFO: DebugInfo = DebugInfo {
 ///
 /// In this model, the bus itself owns all memories and system devices.
 pub struct Bus {
+    pub cache_control: std::sync::Arc<crate::cpu::icache::CacheControl>,
     // System memories
     pub mrom: BigEndianMemory,
     pub sram0: BigEndianMemory,
@@ -63,9 +64,9 @@ pub struct Bus {
     pub sd1: SDInterface,
 
     /// True when the ROM mapping is disabled.
-    pub rom_disabled: bool,
+    rom_disabled: bool,
     /// True when the SRAM mirror is enabled.
-    pub mirror_enabled: bool,
+    mirror_enabled: bool,
 
     /// Queue for pending work on I/O devices.
     pub tasks: Vec<Task>,
@@ -74,6 +75,7 @@ pub struct Bus {
 impl Bus {
     pub fn new(boot0: &Path, nand: &Path, otp: &Path, seeprom: &Path, sd: Option<&Path>) -> anyhow::Result<Self> {
         Ok(Bus {
+            cache_control: Default::default(),
             mrom: BigEndianMemory::from_file(0x0000_2000, boot0, false)?,
             sram0: BigEndianMemory::new(0x0001_0000),
             sram1: BigEndianMemory::new(0x0001_0000),
@@ -100,6 +102,20 @@ impl Bus {
     pub fn install_debuginfo(&mut self, debuginfo: Dwarf<EndianArcSlice<BigEndian>>) {
         if !DEBUGINFO.debuginfo.set(debuginfo).is_ok() {
             error!(target: "Other", "Debug info already installed");
+        }
+    }
+
+    pub fn set_rom_disabled(&mut self, disabled: bool) {
+        if self.rom_disabled != disabled {
+            self.rom_disabled = disabled;
+            self.cache_control.mapping_changed();
+        }
+    }
+
+    pub fn set_mirror_enabled(&mut self, enabled: bool) {
+        if self.mirror_enabled != enabled {
+            self.mirror_enabled = enabled;
+            self.cache_control.mapping_changed();
         }
     }
 

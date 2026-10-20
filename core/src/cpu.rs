@@ -4,6 +4,7 @@ pub mod excep;
 pub mod reg;
 pub mod psr;
 pub mod mmu;
+pub mod icache;
 pub mod alu;
 
 use std::sync::Arc;
@@ -27,6 +28,7 @@ pub enum CpuRes {
 /// Container for ARMv5-compatible CPU state.
 pub struct Cpu {
     pub bus: Arc<RwLock<Bus>>,
+    cache_control: Arc<icache::CacheControl>,
     /// The CPU's register file.
     pub reg: reg::RegisterFile,
     /// The system control co-processor.
@@ -42,8 +44,10 @@ pub struct Cpu {
 }
 impl Cpu {
     pub fn new(bus: Arc<RwLock<Bus>>) -> Self {
+        let cache_control = bus.read().cache_control.clone();
         Cpu {
             bus,
+            cache_control,
             reg: reg::RegisterFile::new(),
             p15: coproc::SystemControl::new(),
             scratch: 0,

@@ -153,6 +153,7 @@ impl FineDescriptor {
 #[repr(transparent)]
 pub struct SectionDescriptor(pub u32);
 impl SectionDescriptor {
+    pub fn cacheable(&self) -> bool { self.0 & 8 != 0 }
 
     const ADDR_MASK: u32 = 0b111111111111_00000000_00_0_0000_000_00;
     const AP_MASK: u32   = 0b000000000000_00000000_11_0_0000_000_00;
@@ -202,6 +203,7 @@ impl L2Descriptor {
 #[repr(transparent)]
 pub struct SmallPageDescriptor(pub u32);
 impl SmallPageDescriptor {
+    pub fn cacheable(&self) -> bool { self.0 & 8 != 0 }
 
     const ADDR_MASK: u32 = 0b11111111111111111111_00_00_00_00_0_0_00;
     const AP3_MASK: u32  = 0b00000000000000000000_11_00_00_00_0_0_00;

@@ -19,6 +19,7 @@ class IronicSocket(object):
     IRONIC_PATCH       = 14
     IRONIC_DISABLEPROT = 15
     IRONIC_DUMPXFB     = 17
+    IRONIC_CACHE_CONTROL = 18
     IRONIC_QUIT        = 255
 
     def __init__(self, filename="/tmp/ironic-ppc.sock"):
@@ -154,6 +155,14 @@ class IronicSocket(object):
         self.socket.sendall(msg)
         resp = self.recv(2)
         assert resp.decode('utf-8') == "OK"
+
+    def send_arm_instruction_cache_control(self, action: int):
+        if not isinstance(action, int) or action not in (0, 1, 2, 3):
+            raise ValueError("Invalid ARM instruction cache action")
+        self.socket.sendall(pack("<LLL", self.IRONIC_CACHE_CONTROL, action, 0))
+        resp = self.recv(2)
+        if resp != b"OK":
+            raise RuntimeError(f"ARM instruction cache control failed: {resp!r}")
 
     def send_xfbdump(self, path: bytes):
         msg = bytearray()

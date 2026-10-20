@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
+// use std::time::Instant;
 
 extern crate elf;
 
@@ -216,26 +217,23 @@ impl InterpBackend {
     }
 
     /// Write the current instruction to stdout.
-    pub fn dbg_print(&mut self) -> anyhow::Result<()> {
-        let pc = self.cpu.read_fetch_pc();
+    pub fn dbg_print(&self, opcd: u32) {
         if self.cpu.dbg_on {
             if self.cpu.reg.cpsr.thumb() {
-                let opcd = self.cpu.read16(pc)?;
+                let opcd = opcd as u16;
                 let inst = ThumbInst::decode(opcd);
                 if let ThumbInst::BlImmSuffix = inst {
-                    return Ok(());
+                    return;
                 }
                 let name = format!("{:?}", ThumbInst::decode(opcd));
                 info!(target: "Other", "({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
                 //info!(target: "Other", "{:?}", self.cpu.reg);
             } else {
-                let opcd = self.cpu.read32(pc)?;
                 let name = format!("{:?}", ArmInst::decode(opcd));
                 info!(target: "Other", "({opcd:08x}) {name:12} {:x?}", self.cpu.reg);
                 //info!(target: "Other", "{:?}", self.cpu.reg);
             };
         }
-        Ok(())
     }
 
     /// Patch containing a call to ThreadCancel()
@@ -265,7 +263,7 @@ impl InterpBackend {
                 )?;
                 info!(target: "Other", "DBG hotpatching module entrypoint {paddr:08x}");
                 info!(target: "Other", "{:?}", self.cpu.reg);
-                self.bus.write().dma_write(paddr,
+                self.bus.write().patch_code(paddr,
                     &Self::THREAD_CANCEL_PATCH)?;
             }
         }
@@ -290,24 +288,21 @@ impl InterpBackend {
 
         // Fetch/decode/execute an ARM or Thumb instruction depending on
         // the state of the Thumb flag in the CPSR.
-        let disp_res = if self.cpu.reg.cpsr.thumb() {
-            self.dbg_print().unwrap_or_default(); // Ok to fail - just a debug print
-            let opcd = match self.cpu.read16(self.cpu.read_fetch_pc()) {
-                Ok(val) => val,
-                Err(reason) => {
-                    return CpuRes::HaltEmulation(reason);
-                }
-            };
-            let func = INTERP_LUT.thumb.lookup(opcd);
-            func.0(&mut self.cpu, opcd)
+        let thumb = self.cpu.reg.cpsr.thumb();
+        let fetched = if thumb {
+            self.cpu.fetch16(self.cpu.read_fetch_pc()).map(u32::from)
         } else {
-            self.dbg_print().unwrap_or_default(); // Ok to fail - just a debug print
-            let opcd = match self.cpu.read32(self.cpu.read_fetch_pc()) {
-                Ok(val) => val,
-                Err(reason) => {
-                    return CpuRes::HaltEmulation(reason);
-                }
-            };
+            self.cpu.fetch32(self.cpu.read_fetch_pc())
+        };
+        let opcd = match fetched {
+            Ok(val) => val,
+            Err(reason) => return CpuRes::HaltEmulation(reason),
+        };
+        self.dbg_print(opcd);
+        let disp_res = if thumb {
+            let func = INTERP_LUT.thumb.lookup(opcd as u16);
+            func.0(&mut self.cpu, opcd as u16)
+        } else {
             match self.cpu.reg.cond_pass(opcd) {
                 Ok(cond_did_pass) => {
                     if cond_did_pass {
@@ -342,15 +337,13 @@ impl InterpBackend {
                     // Detect if this is an SVC 0xAB
                     // If so this is a semihosting debug print and we need to handle it
                     // Note, the PC has not yet been advanced!
-                    if self.cpu.reg.cpsr.thumb() {
-                        let opcd = self.cpu.read16(self.cpu.read_fetch_pc()).unwrap_or_default(); // Fail gracefully
+                    if thumb {
                         if opcd == 0xdfab { // thumb svc 0xAB
                             self.cpu.increment_pc();
                             return CpuRes::Semihosting;
                         }
                     }
                     else {
-                        let opcd = self.cpu.read32(self.cpu.read_fetch_pc()).unwrap_or_default(); // Fail gracefully
                         // strip condition (it must have already passed) and opcode bits
                         let opcd = opcd & 0x00ff_ffff;
                         if opcd == 0xAB {
@@ -414,8 +407,9 @@ impl Backend for InterpBackend {
             let mut bus = self.bus.write();
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
-            bus.rom_disabled = true;
-            bus.mirror_enabled = true;
+            bus.set_rom_disabled(true);
+            bus.set_mirror_enabled(true);
+            bus.cache_control.invalidate();
             // A basic ELF loader
             for header in headers.iter() {
                 if header.progtype == elf::types::PT_LOAD && header.filesz > 0 {
@@ -430,6 +424,7 @@ impl Backend for InterpBackend {
                 bus.hlwd.ppc_on = true;
             }
         }
+        // let mut timer = Instant::now();
         loop {
             // Take ownership of the bus to deal with any pending tasks
             {
@@ -438,6 +433,11 @@ impl Backend for InterpBackend {
                 self.bus_cycle += 1;
                 self.cpu.irq_input = bus.hlwd.irq.arm_irq_output;
             }
+            // if self.cpu_cycle % 100000000 == 0 {
+            //     let diff = Instant::now();
+            //     error!(target: "Other", "100Mc took {}ms", diff.checked_duration_since(timer).unwrap().as_millis());
+            //     timer = Instant::now();
+            // }
 
             // Before each CPU step, check if we need to patch any close code
             // I'm ok swallowing the possible Err result here because the only way this can error is

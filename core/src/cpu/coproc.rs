@@ -1,6 +1,6 @@
 //! Coprocessor register definitions and functionality.
 
-use std::{cell::RefCell, collections::HashMap, hash::BuildHasherDefault};
+use std::{cell::{Cell, RefCell}, collections::HashMap, hash::BuildHasherDefault};
 use parking_lot::RawRwLock;
 use parking_lot::lock_api::RwLockReadGuard;
 
@@ -95,6 +95,8 @@ pub struct FlagRes {
 
 /// Container for the System Control coprocessor (p15).
 pub struct SystemControl {
+    pub(crate) icache: super::icache::InstructionCache,
+    pub(crate) translation_epoch: Cell<u64>,
     /// System control register
     pub c1_ctrl: ControlRegister,
     /// Translation table base register 0
@@ -120,6 +122,8 @@ impl Default for SystemControl {
 impl SystemControl {
     pub fn new() -> Self {
         SystemControl {
+            icache: Default::default(),
+            translation_epoch: Cell::new(0),
             c1_ctrl: ControlRegister(0),
             c2_ttbr0: 0,
             c3_dacr: DACRegister(0),
@@ -212,17 +216,20 @@ impl SystemControl {
                 (0, 4) => { // wait for interrupt
                     // This isn't implemented currently. Since interrupts are serviced immediately, we should be able to no-op right?
                 },
-                (5, 0) => {}, // Invalidate entire icache
+                (5, 0) | (7, 0) => self.icache.invalidate(),
+                (5, 1) => self.icache.invalidate_mva(val),
+                (5, 4) => {}, // Prefetch buffer flush (we don't do this)
                 (6, 0) => {}, // Invalidate entire dcache
                 (6, 1) => {}, // Invalidate dcache line
                 (10, 1) => {}, // Clean dcache line
+                (14, 1) => {}, // Clean and invalidate dcache line
                 (10, 4) => {}, // Drain write buffer
                 _ => panic!("Unimpl P15 write {:08x} {:?} crm={} opcd2={}",
                     val, SystemControlReg::from(reg), crm, opcd2),
             },
 
             TlbControl => match (crm, opcd2) {
-                (7, 0) => { self.clear_tlb(); }, // Invalidate entire TLB
+                (5..=7, 0..=1) => { self.clear_tlb(); }, // todo: better?
                 _ => panic!("Unimpl P15 write {:08x} {:?} crm={} opcd2={}",
                     val, SystemControlReg::from(reg), crm, opcd2),
             },
@@ -260,5 +267,6 @@ impl SystemControl {
 
     pub fn clear_tlb(&self) {
         self.l1_tlb.borrow_mut().clear();
+        self.translation_epoch.set(self.translation_epoch.get().wrapping_add(1));
     }
 }

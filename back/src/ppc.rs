@@ -46,6 +46,7 @@ pub enum Command {
     DisableProtections,
     PollFlipperIrq,
     DumpXfb,
+    CacheControl,
     Shutdown,
     Unimpl,
 }
@@ -69,6 +70,7 @@ impl Command {
             15 => Self::DisableProtections,
             16 => Self::PollFlipperIrq,
             17 => Self::DumpXfb,
+            18 => Self::CacheControl,
             255 => Self::Shutdown,
             _ => Self::Unimpl,
         }
@@ -90,6 +92,14 @@ impl SocketReq {
         let addr = u32::from_le_bytes(s[0x4..0x8].try_into().unwrap());
         let len = u32::from_le_bytes(s[0x8..0xc].try_into().unwrap());
         SocketReq { cmd, addr, len }
+    }
+
+    fn cache_control_action(&self) -> Option<u32> {
+        if matches!(self.cmd, Command::CacheControl) && self.len == 0 && self.addr <= 3 {
+            Some(self.addr)
+        } else {
+            None
+        }
     }
 }
 
@@ -258,6 +268,7 @@ impl PpcBackend {
                     Command::DumpXfb => {
                         self.handle_dump_xfb(&mut client, req)?;
                     },
+                    Command::CacheControl => self.handle_cache_control(&mut client, req)?,
                     Command::Unimpl => {
                         error!(target: "PPC", "recieved unimplemented command");
                         break;
@@ -366,7 +377,7 @@ impl PpcBackend {
         }
 
         let req = SocketReq::from_buf(&self.ibuf[..0xc].try_into().unwrap());
-        if req.len as usize > BUF_LEN - 0xc {
+        if req.len as usize > BUF_LEN - 0xc && !matches!(req.cmd, Command::CacheControl) {
             error!(target: "PPC", "Socket message exceeds BUF_LEN {BUF_LEN:x}");
             anyhow::bail!("Socket message exceeds BUF_LEN {BUF_LEN:x}");
         }
@@ -502,7 +513,7 @@ impl PpcBackend {
                 break;
             }
             if buf == p.old {
-                if let Err(e) = bus.dma_write(current+p.offset, p.new) {
+                if let Err(e) = bus.patch_code(current+p.offset, p.new) {
                     error!(target: "RTPATCH", "Failed during patch apply: {current:x}+{:x}. {e:?}", p.offset);
                     bail!(e);
                 }
@@ -512,6 +523,25 @@ impl PpcBackend {
         }
         info!(target: "RTPATCH", "Applied patch {} times", found);
         client.write_all(&found.to_le_bytes())?;
+        Ok(())
+    }
+
+    fn handle_cache_control(&self, client: &mut UnixStream, req: SocketReq) -> anyhow::Result<()> {
+        let Some(action) = req.cache_control_action() else {
+            client.write_all(b"F1")?;
+            return Ok(());
+        };
+        {
+            let bus = self.bus.write();
+            match action {
+                0 => bus.cache_control.set_disabled(true),
+                1 => bus.cache_control.set_disabled(false),
+                // Flush = invalidate btw
+                2 | 3 => bus.cache_control.invalidate(),
+                _ => unreachable!(),
+            }
+        }
+        client.write_all(b"OK")?;
         Ok(())
     }
 
