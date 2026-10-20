@@ -12,9 +12,6 @@ pub struct CacheControl {
     /// *** Low two bits are disable bits ***
     /// upper 62 bits are the epoch counter for invalidation
     epoch: AtomicU64,
-    // Keep track of mapping changes separately so only
-    // partial revalidation is required rather than re-filling a cache line with the same data
-    mapping: AtomicU64,
 }
 
 impl CacheControl {
@@ -38,16 +35,11 @@ impl CacheControl {
     pub fn invalidate(&self) {
         self.epoch.fetch_add(4, Ordering::Release);
     }
-
-    pub(crate) fn mapping_changed(&self) {
-        self.mapping.fetch_add(1, Ordering::Release);
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct FetchContext {
     translation: u64, // tlb cleared
-    mapping: u64, // hw mapping
     control: u32, // cp15 c1
     domains: u32, // dacr
     privileged: bool, // mode().is_privileged()
@@ -153,10 +145,9 @@ impl Cpu {
     fn fetch_context(&self) -> FetchContext {
         FetchContext {
             translation: self.p15.translation_epoch.get(),
-            mapping: self.cache_control.mapping.load(Ordering::Acquire),
             control: self.p15.c1_ctrl.0,
             domains: self.p15.c3_dacr.0,
-            privileged: self.reg.cpsr.mode().is_privileged(),
+            privileged: self.reg.cpsr.0 & 0xf == 0, // This is essentially self.reg.cpsr.mode().is_privileged() but faster
         }
     }
 

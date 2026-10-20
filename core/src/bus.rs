@@ -108,14 +108,12 @@ impl Bus {
     pub fn set_rom_disabled(&mut self, disabled: bool) {
         if self.rom_disabled != disabled {
             self.rom_disabled = disabled;
-            self.cache_control.mapping_changed();
         }
     }
 
     pub fn set_mirror_enabled(&mut self, enabled: bool) {
         if self.mirror_enabled != enabled {
             self.mirror_enabled = enabled;
-            self.cache_control.mapping_changed();
         }
     }
 
