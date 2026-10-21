@@ -138,8 +138,8 @@ impl Bus {
                     BusTask::Aes(x) => self.handle_task_aes(x)?,
                     BusTask::Sha(x) => self.handle_task_sha(x)?,
                     BusTask::Mi{kind, data} => self.handle_task_mi(kind, data)?,
-                    BusTask::SetRomDisabled(x) => self.set_rom_disabled(x),
-                    BusTask::SetMirrorEnabled(x) => self.set_mirror_enabled(x),
+                    BusTask::SetRomDisabled(x) => self.rom_disabled = x,
+                    BusTask::SetMirrorEnabled(x) => self.mirror_enabled = x,
                     BusTask::SDHC(slot, task) => self.handle_task_sdhc(slot, task),
                     BusTask::PiFifo(burst) => self.handle_task_pi_fifo(burst)?,
                 }

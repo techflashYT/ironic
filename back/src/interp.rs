@@ -407,9 +407,8 @@ impl Backend for InterpBackend {
             let mut bus = self.bus.write();
             // We are relying on the mirror being available
             // Or else we would be writing to mask ROM.
-            bus.set_rom_disabled(true);
-            bus.set_mirror_enabled(true);
-            bus.cache_control.invalidate();
+            bus.rom_disabled = true;
+            bus.mirror_enabled = true;
             // A basic ELF loader
             for header in headers.iter() {
                 if header.progtype == elf::types::PT_LOAD && header.filesz > 0 {
