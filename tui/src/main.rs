@@ -74,8 +74,10 @@ fn main() -> anyhow::Result<()> {
             } else {
                 use colored::Colorize;
                 let level = match record.level() {
-                    level @ log::Level::Debug => level.as_str().cyan(),
                     level @ log::Level::Trace => level.as_str().bright_cyan(),
+                    level @ log::Level::Debug => level.as_str().cyan(),
+                    level @ log::Level::Warn => level.as_str().yellow(),
+                    level @ log::Level::Error => level.as_str().red(),
                     level => level.as_str().normal(),
                 };
                 writeln!(buf, "[{}][{}] {}", record.target(), level, record.args())
